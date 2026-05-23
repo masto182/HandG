@@ -1,0 +1,96 @@
+name: Build images (arm64 -> ghcr.io)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: "Commit SHA to build (defaults to current ref)"
+        required: false
+        default: ""
+
+concurrency:
+  group: build-images-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+  security-events: write
+
+env:
+  REGISTRY: ghcr.io
+  OWNER: sfc-gh-cmasterson
+  PLATFORMS: linux/arm64
+
+jobs:
+  build:
+    name: Build + push ${{ matrix.app }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [backend, storefront]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.sha || github.sha }}
+
+      - name: Set image tags
+        id: tags
+        run: |
+          SHA=$(git rev-parse --short HEAD)
+          echo "sha_short=$SHA" >> "$GITHUB_OUTPUT"
+          REPO="${REGISTRY}/${OWNER}/${{ matrix.app }}"
+          echo "repo=$REPO" >> "$GITHUB_OUTPUT"
+          # On main pushes, tag :staging and :sha-<short>. Manual dispatch
+          # also tags :sha-<short>. Production promotion happens via the
+          # promote-prod workflow.
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "primary_tag=staging" >> "$GITHUB_OUTPUT"
+          else
+            echo "primary_tag=manual" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build + push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/${{ matrix.app }}/Dockerfile
+          platforms: ${{ env.PLATFORMS }}
+          push: true
+          tags: |
+            ${{ steps.tags.outputs.repo }}:${{ steps.tags.outputs.primary_tag }}
+            ${{ steps.tags.outputs.repo }}:sha-${{ steps.tags.outputs.sha_short }}
+          cache-from: type=gha,scope=${{ matrix.app }}
+          cache-to: type=gha,scope=${{ matrix.app }},mode=max
+          provenance: false
+
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.tags.outputs.repo }}:sha-${{ steps.tags.outputs.sha_short }}
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
+          format: sarif
+          output: trivy-${{ matrix.app }}.sarif
+          exit-code: "0"
+        env:
+          TRIVY_PLATFORM: linux/arm64
+
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-${{ matrix.app }}.sarif
+          category: trivy-image-${{ matrix.app }}
+

@@ -1,0 +1,77 @@
+# What does NOT go into the docker build context.
+#
+# Smaller context = faster builds + smaller cache invalidation surface.
+# Anything that's not a build input belongs here.
+
+# ---- VCS ----
+.git
+.gitignore
+.gitattributes
+.github
+
+# ---- Dependencies (rebuilt inside image) ----
+**/node_modules
+.pnpm-store
+.pnpm-state
+
+# ---- Build outputs ----
+**/.next
+**/.turbo
+**/.medusa
+**/.cache
+**/dist
+**/build
+**/coverage
+**/storybook-static
+
+# ---- Logs ----
+**/*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---- Local env files (image reads from runtime env) ----
+.env
+.env.*
+!.env.example
+
+# ---- Editor / OS junk ----
+.DS_Store
+Thumbs.db
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# ---- Test artefacts ----
+**/.nyc_output
+**/test-results
+**/playwright-report
+**/playwright/.cache
+**/__snapshots__
+**/*.tsbuildinfo
+
+# ---- Docs / repo metadata (not needed in image) ----
+**/*.md
+LICENSE
+CHANGELOG.md
+docs
+.changeset
+.husky
+commitlint.config.cjs
+renovate.json
+.release-please-manifest.json
+release-please-config.json
+.lighthouserc.json
+.gitleaks.toml
+.editorconfig
+.prettierrc.json
+.prettierignore
+
+# ---- CI / dev tooling (compose/Caddy live on the host, not in the image) ----
+scripts
+docker-compose*.yml
+Caddyfile
+SECURITY.md

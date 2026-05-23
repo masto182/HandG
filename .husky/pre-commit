@@ -1,0 +1,17 @@
+#!/usr/bin/env sh
+
+# Run prettier + per-app lint on staged files.
+pnpm exec lint-staged || exit 1
+
+# Secret scan. Skip silently if gitleaks isn't installed locally; CI also runs it.
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks protect --staged --redact --no-banner --config .gitleaks.toml || {
+    echo ""
+    echo "gitleaks found a secret in your staged changes. Aborting commit."
+    echo "If this is a false positive, add it to .gitleaks.toml allowlist."
+    exit 1
+  }
+else
+  echo "gitleaks not installed locally — skipping local scan (CI still runs it)."
+  echo "Install: brew install gitleaks"
+fi

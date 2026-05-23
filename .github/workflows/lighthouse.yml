@@ -1,0 +1,55 @@
+name: Lighthouse CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/storefront/**"
+      - "packages/**"
+      - ".github/workflows/lighthouse.yml"
+      - ".lighthouserc.json"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: lighthouse-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20.20.2"
+  PNPM_VERSION: "10.33.2"
+
+jobs:
+  lighthouse:
+    name: Lighthouse audit (storefront)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build storefront
+        env:
+          NEXT_PUBLIC_MEDUSA_BACKEND_URL: http://localhost:9000
+          NEXT_PUBLIC_BASE_URL: http://localhost:8000
+          STOREFRONT_IMAGE_HOSTS: localhost
+        run: pnpm --filter ./apps/storefront build
+
+      - name: Run Lighthouse CI
+        run: |
+          pnpm dlx @lhci/cli@0.14.x autorun --config=.lighthouserc.json
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}

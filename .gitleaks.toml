@@ -1,0 +1,32 @@
+# Gitleaks config — extends the default rules and allowlists
+# repo-specific patterns that are NOT secrets.
+#
+# Docs: https://github.com/gitleaks/gitleaks/blob/master/config/gitleaks.toml
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Repo-wide allowlist for known non-secrets"
+
+paths = [
+  '''(.*?)(\.example)$''',
+  '''(.*?)\.test$''',
+  '''pnpm-lock\.yaml''',
+  '''docs/.*\.md$''',
+]
+
+regexes = [
+  # Placeholder strings used in .env.example / docs
+  '''replace-me-with-openssl-rand-hex-32''',
+  '''<generate-with-openssl-rand-hex-32>''',
+  '''<your_[a-z_]+_(api_)?key>''',
+  '''dev-jwt-secret-do-not-use-in-prod''',
+  '''dev-cookie-secret-do-not-use-in-prod''',
+  '''test-jwt-secret-do-not-use-in-prod''',
+  '''test-cookie-secret-do-not-use-in-prod''',
+  '''medusa_dev_password''',
+  '''meili_dev_master_key''',
+  '''re_test_placeholder''',
+  '''re_test_key''',
+]

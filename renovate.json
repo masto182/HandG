@@ -1,0 +1,53 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":semanticCommits",
+    ":prHourlyLimit2",
+    ":prConcurrentLimit10",
+    ":maintainLockFilesWeekly"
+  ],
+  "schedule": ["before 6am on Monday"],
+  "timezone": "Australia/Sydney",
+  "labels": ["dependencies"],
+  "rangeStrategy": "bump",
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on Monday"]
+  },
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["dependencies", "security"]
+  },
+  "packageRules": [
+    {
+      "groupName": "all non-major dependencies",
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "matchPackagePatterns": ["*"]
+    },
+    {
+      "groupName": "Medusa packages",
+      "matchPackagePatterns": ["^@medusajs/", "^medusa-"]
+    },
+    {
+      "groupName": "Next.js + React",
+      "matchPackageNames": ["next", "react", "react-dom", "eslint-config-next"]
+    },
+    {
+      "matchPackageNames": ["node"],
+      "matchManagers": ["dockerfile", "node-version", "nvm"],
+      "rangeStrategy": "pin"
+    },
+    {
+      "matchPackagePrefixes": ["postgres", "redis", "caddy"],
+      "matchManagers": ["docker-compose", "dockerfile"],
+      "rangeStrategy": "pin",
+      "groupName": "infrastructure container images"
+    },
+    {
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    }
+  ],
+  "postUpdateOptions": ["pnpmDedupe"]
+}

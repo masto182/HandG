@@ -1,0 +1,10 @@
+# Trivy ignore list. Add CVE IDs here when:
+#   - the upstream fix is not yet released, or
+#   - the path is unreachable in our deployment, or
+#   - we have a compensating control documented elsewhere.
+#
+# Format: one CVE / advisory ID per line, blank lines and `#` comments allowed.
+# Always include a comment explaining the rationale and an expiry date.
+#
+# Example:
+# CVE-2024-XXXXX  # unreachable: only triggered by malicious admin input; revisit 2026-12-01

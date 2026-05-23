@@ -1,0 +1,602 @@
+[
+  {
+    "handle": "russian-river-pliny-the-elder",
+    "brewery": "Russian River",
+    "beer": "Pliny the Elder",
+    "hops": ["Simcoe", "Amarillo", "Citra", "Nectaron", "CTZ"],
+    "description": "Full-bodied, hop forward Double IPA with intense hop character.",
+    "source": "russianriverbrewing.com"
+  },
+  {
+    "handle": "lolev-parabellum",
+    "brewery": "Lolev",
+    "beer": "Parabellum",
+    "hops": ["Citra", "Motueka", "Riwaka"],
+    "description": "Ultra Hopped Ale featuring Citra, Motueka, Citra Incognito, Freestyle Riwaka, Motueka Hyperboost & Motueka SubZero Hop Kief.",
+    "source": "lolev.beer"
+  },
+  {
+    "handle": "monkish-taste-bud",
+    "brewery": "Monkish",
+    "beer": "Taste Bud",
+    "hops": ["Citra", "Galaxy"],
+    "description": "Triple IPA with Citra and a splash of Galaxy hops.",
+    "source": "facebook.com/monkishbrewing"
+  },
+  {
+    "handle": "monkish-flip-fly-flows",
+    "brewery": "Monkish",
+    "beer": "Flip Fly Flows",
+    "hops": ["Galaxy", "Nelson Sauvin"],
+    "description": "DDH Double IPA with Galaxy & Nelson Sauvin.",
+    "source": "birrapedia.com"
+  },
+  {
+    "handle": "north-park-cloudcaster",
+    "brewery": "North Park",
+    "beer": "Cloudcaster",
+    "hops": ["Citra", "Nelson Sauvin", "Peacharine"],
+    "description": "TDH Hazy DIPA with Citra, Citra Cryo, Citra Dynaboost, Nelson Sauvin Cryo, Nelson Sauvin, and Peacharine.",
+    "source": "untappd.com"
+  },
+  {
+    "handle": "lolev-harvest-ii",
+    "brewery": "Lolev",
+    "beer": "Harvest II",
+    "hops": ["Wakatu", "Citra", "Motueka", "Nelson Sauvin", "Southern Cross"],
+    "description": "Ultra Hopped Ale featuring Wakatu, Citra Incognito, Eggers Motueka, Freestyle Nelson Bliss, Freestyle Southern Cross & Motueka SubZero Hop Kief.",
+    "source": "lolev.beer"
+  },
+  {
+    "handle": "monkish-heads-nor-tails",
+    "brewery": "Monkish",
+    "beer": "Heads Nor Tails",
+    "hops": ["Citra", "Nelson Sauvin"],
+    "description": "Triple IPA with Citra and Nelson Sauvin.",
+    "source": "facebook.com/monkishbrewing"
+  },
+  {
+    "handle": "brujos-el-sacerdote-ara-a",
+    "brewery": "Brujos",
+    "beer": "El Sacerdote Araña",
+    "hops": ["Nelson Sauvin", "Citra"],
+    "description": "Hop Saturated Ale featuring Nelson Sauvin in multiple forms (Amplifire Oil & Pellets, Quantum Nelson, Freestyle Nelson Juice, Super Sauvin/Phantasm blend) and a tiny bit of Citra. Colab with RaR.",
+    "source": "brujosbrewing.com/on-tap"
+  },
+  {
+    "handle": "fidens-elemental-art",
+    "brewery": "Fidens",
+    "beer": "Elemental Art",
+    "hops": ["Nelson Sauvin", "Riwaka"],
+    "description": "Triple IPA brewed with Nelson, Riwaka & Riwaka Cryo.",
+    "source": "mybeercollectibles.com"
+  },
+  {
+    "handle": "lolev-tiger",
+    "brewery": "Lolev",
+    "beer": "Tiger",
+    "hops": ["Citra", "Riwaka", "Motueka", "Nelson Sauvin", "Rakau"],
+    "description": "Ultra Hopped Ale featuring Citra, Eggers Riwaka, Citra Incognito, Eggers Motueka, Freestyle Nelson Bliss & Rakau SubZero Hop Kief.",
+    "source": "lolev.beer"
+  },
+  {
+    "handle": "rar-personal-plague",
+    "brewery": "Rar",
+    "beer": "Personal Plague",
+    "hops": [],
+    "description": "Hazy DIPA",
+    "source": "not-found"
+  },
+  {
+    "handle": "the-alchemist-heady-topper",
+    "brewery": "The Alchemist",
+    "beer": "Heady Topper",
+    "hops": ["Simcoe", "Centennial", "Columbus", "Chinook", "Citra", "Amarillo"],
+    "description": "American DIPA, one of the most iconic hop-forward beers. Widely documented hop bill.",
+    "source": "well-known (clone recipes, interviews)"
+  },
+  {
+    "handle": "tree-house-king-julius",
+    "brewery": "Tree House",
+    "beer": "King Julius",
+    "hops": ["Citra", "Mosaic", "Simcoe", "Chinook"],
+    "description": "Tree House Double IPA, flagship hop-forward beer.",
+    "source": "coalitionbrewing.com"
+  },
+  {
+    "handle": "trillium-twice-daily-serving-raspberry",
+    "brewery": "Trillium",
+    "beer": "Twice Daily Serving: Raspberry",
+    "hops": [],
+    "description": "Fruited Berliner Weisse - hops not prominent/listed for sour styles.",
+    "source": "not-applicable (fruited sour)"
+  },
+  {
+    "handle": "trillium-ddh-congress-st",
+    "brewery": "Trillium",
+    "beer": "DDH Congress St",
+    "hops": ["Citra", "Galaxy"],
+    "description": "Trillium's flagship NEIPA, DDH with Citra and Galaxy.",
+    "source": "widely reported by beer community"
+  },
+  {
+    "handle": "trillium-rabbit-the-club",
+    "brewery": "Trillium",
+    "beer": "Rabbit The Club",
+    "hops": ["Mosaic", "Citra"],
+    "description": "West Coast-Style Double IPA with Mosaic & Citra Hops.",
+    "source": "untappd.com"
+  },
+  {
+    "handle": "rar-eternal-prankster",
+    "brewery": "Rar",
+    "beer": "Eternal Prankster",
+    "hops": [],
+    "description": "Hazy DIPA, colab with Brujos.",
+    "source": "not-found"
+  },
+  {
+    "handle": "bakes-brewing-medalist",
+    "brewery": "Bakes Brewing",
+    "beer": "Medalist",
+    "hops": [],
+    "description": "IPA",
+    "source": "not-found"
+  },
+  {
+    "handle": "brujos-satan-to-the-masses",
+    "brewery": "Brujos",
+    "beer": "Satan to the Masses",
+    "hops": [],
+    "description": "A Hoppy Ale, colab with Troon. No hop bill published.",
+    "source": "brujosbrewing.com (listed but hops not specified)"
+  },
+  {
+    "handle": "brujos-populas",
+    "brewery": "Brujos",
+    "beer": "Populas",
+    "hops": ["Nelson Sauvin", "Citra", "Mosaic"],
+    "description": "DDH Hazy IPA with Nelson, Citra and Mosaic.",
+    "source": "addicted2craftbeer.eu"
+  },
+  {
+    "handle": "brujos-se-or-murcielago-2026",
+    "brewery": "Brujos",
+    "beer": "Señor Murcielago (2026)",
+    "hops": [],
+    "description": "DDH Hazy IPA",
+    "source": "not-found"
+  },
+  {
+    "handle": "fidens-made-in-colonie",
+    "brewery": "Fidens",
+    "beer": "Made in Colonie",
+    "hops": ["Nelson Sauvin", "Riwaka", "Southern Cross", "Cascade", "Motueka", "Rakau", "Waimea", "Wai-iti"],
+    "description": "Triple IPA brewed with Nelson, Riwaka, Southern Cross, NZ Cascade, Motueka, Rakau, Waimea & Wai-iti hops.",
+    "source": "mybeercollectibles.com"
+  },
+  {
+    "handle": "hill-farmstead-society-solitude-6",
+    "brewery": "Hill Farmstead",
+    "beer": "Society & Solitude #6",
+    "hops": ["Mosaic"],
+    "description": "Single-hop DIPA showcasing Mosaic.",
+    "source": "hillfarmstead.com"
+  },
+  {
+    "handle": "human-robot-single-axis",
+    "brewery": "Human Robot",
+    "beer": "Single Axis",
+    "hops": [],
+    "description": "Hazy IPA",
+    "source": "not-found"
+  },
+  {
+    "handle": "north-park-deja-fu",
+    "brewery": "North Park",
+    "beer": "Deja-Fu!",
+    "hops": ["Simcoe", "Mosaic", "Krush", "Nelson Sauvin", "Peacharine", "Southern Cross", "Strata"],
+    "description": "DDH West Coast IPA with Simcoe, Mosaic, Mosaic Cryo, Krush Cryo, Nelson Sauvin Cryo, Peacharine, Southern Cross, and Strata.",
+    "source": "untappd.com"
+  },
+  {
+    "handle": "tree-house-moment-of-clarity-barrel-blend",
+    "brewery": "Tree House",
+    "beer": "Moment of Clarity Barrel Blend",
+    "hops": [],
+    "description": "Imperial Milk Stout brewed with coffee, chocolate, and dark amber maple syrup. Blended with barrel-aged stout.",
+    "source": "mybeercollectibles.com (stout - no hop bill)"
+  },
+  {
+    "handle": "trillium-the-streets",
+    "brewery": "Trillium",
+    "beer": "The Streets",
+    "hops": ["Citra", "Mosaic", "Nelson Sauvin", "Simcoe", "El Dorado", "Amarillo", "Galaxy"],
+    "description": "Anniversary TIPA blending Citra, Mosaic, Nelson Sauvin, Simcoe, El Dorado, Amarillo, and Galaxy.",
+    "source": "untappd.com"
+  },
+  {
+    "handle": "bakes-brewing-snappy-buckets",
+    "brewery": "Bakes Brewing",
+    "beer": "Snappy Buckets",
+    "hops": [],
+    "description": "DIPA",
+    "source": "not-found"
+  },
+  {
+    "handle": "bakes-brewing-circus-drive-in",
+    "brewery": "Bakes Brewing",
+    "beer": "Circus Drive-in",
+    "hops": [],
+    "description": "IPA",
+    "source": "not-found"
+  },
+  {
+    "handle": "brujos-no-better-times",
+    "brewery": "Brujos",
+    "beer": "No Better Times",
+    "hops": [],
+    "description": "DDH West Coast IPA",
+    "source": "not-found"
+  },
+  {
+    "handle": "fidens-triple-jasper",
+    "brewery": "Fidens",
+    "beer": "Triple Jasper",
+    "hops": ["Citra"],
+    "description": "Triple IPA, all-Citra showcase. Fidens' Jasper series is built on Citra hops.",
+    "source": "beerandbrewing.com (official recipe from Fidens cofounder Steve Parker)"
+  },
+  {
+    "handle": "fidens-broadway",
+    "brewery": "Fidens",
+    "beer": "Broadway",
+    "hops": ["Citra", "Nectaron"],
+    "description": "Triple IPA with Nectaron hops (Citra base per Fidens pattern).",
+    "source": "mybeercollectibles.com"
+  },
+  {
+    "handle": "fidens-devil-i-met",
+    "brewery": "Fidens",
+    "beer": "Devil I met",
+    "hops": ["Eclipse", "Vic Secret", "Citra"],
+    "description": "Double IPA brewed with Eclipse, Vic Secret & Citra hops.",
+    "source": "mybeercollectibles.com"
+  },
+  {
+    "handle": "fidens-fairy-ring",
+    "brewery": "Fidens",
+    "beer": "Fairy Ring",
+    "hops": [],
+    "description": "Double IPA. Reported hops (Indy, Penny, Cheddar) are experimental/proprietary varieties not in standard taxonomy.",
+    "source": "atownszone.com (experimental hops)"
+  },
+  {
+    "handle": "freak-folk-bleak-2026",
+    "brewery": "Freak Folk",
+    "beer": "Bleak (2026)",
+    "hops": [],
+    "description": "DIPA",
+    "source": "not-found"
+  },
+  {
+    "handle": "freak-folk-yodel",
+    "brewery": "Freak Folk",
+    "beer": "Yodel",
+    "hops": [],
+    "description": "DDH DIPA",
+    "source": "not-found"
+  },
+  {
+    "handle": "hill-farmstead-double-nelson",
+    "brewery": "Hill Farmstead",
+    "beer": "Double Nelson",
+    "hops": ["Nelson Sauvin"],
+    "description": "Single-hop DIPA showcasing Nelson Sauvin.",
+    "source": "hillfarmstead.com"
+  },
+  {
+    "handle": "human-robot-collective-citra-eggers-spx",
+    "brewery": "Human Robot",
+    "beer": "Collective: Citra Eggers SPX",
+    "hops": ["Citra"],
+    "description": "Hazy IPA featuring Citra (inferred from beer name 'Citra Eggers SPX').",
+    "source": "inferred from name"
+  },
+  {
+    "handle": "lolev-zebra",
+    "brewery": "Lolev",
+    "beer": "Zebra",
+    "hops": ["Nelson Sauvin", "HBC 1019"],
+    "description": "Ultra Hopped Ale featuring HBC 1910 Incognito, Eggers Nelson Sauvin, Freestyle Nelson Bliss & Nelson Sauvin SubZero Hop Kief.",
+    "source": "lolev.beer"
+  },
+  {
+    "handle": "lolev-capex-ii",
+    "brewery": "Lolev",
+    "beer": "Capex II",
+    "hops": ["Motueka", "Nelson Sauvin", "Citra", "Cascade"],
+    "description": "Ultra Hopped Ale featuring Motueka, Nelson Bliss, Kohia Nelson, Nelson Sauvin, Citra Incognito & NZ Cascade SubZero Hop Kief.",
+    "source": "lolev.beer"
+  },
+  {
+    "handle": "lolev-waves-ii",
+    "brewery": "Lolev",
+    "beer": "Waves II",
+    "hops": ["Citra", "Motueka", "Nelson Sauvin"],
+    "description": "Ultra Hopped Ale featuring Citra, Motueka, Nelson Sauvin, Estate Grown Comet & Maui Nelson SubZero Hop Kief.",
+    "source": "lolev.beer"
+  },
+  {
+    "handle": "off-script-we-re-not-worthy-hazy",
+    "brewery": "Off Script",
+    "beer": "We're Not Worthy Hazy",
+    "hops": [],
+    "description": "Hazy DDH DIPA",
+    "source": "not-found"
+  },
+  {
+    "handle": "tree-house-moment-of-clarity-extra-maple",
+    "brewery": "Tree House",
+    "beer": "Moment of Clarity Extra Maple",
+    "hops": [],
+    "description": "Milk Stout brewed with coffee, chocolate, and extra maple syrup.",
+    "source": "mybeercollectibles.com (stout - no hop bill)"
+  },
+  {
+    "handle": "tree-house-platinum-fern",
+    "brewery": "Tree House",
+    "beer": "Platinum Fern",
+    "hops": ["Nelson Sauvin", "Motueka", "Waimea"],
+    "description": "Triple IPA showcasing New Zealand hops: Nelson, Peacharine, Motueka & Waimea.",
+    "source": "mybeercollectibles.com"
+  },
+  {
+    "handle": "tree-house-grail",
+    "brewery": "Tree House",
+    "beer": "Grail",
+    "hops": ["Rakau", "Nelson Sauvin"],
+    "description": "Double IPA featuring Rakau and Nelson hops sourced from Garston Hops, plus Coleman Hops experimental lots.",
+    "source": "mybeercollectibles.com / x.com/TreeHouseBrewCo"
+  },
+  {
+    "handle": "troon-praying-with-anger",
+    "brewery": "Troon",
+    "beer": "praying with anger",
+    "hops": [],
+    "description": "Hoppy Ale in crowler format.",
+    "source": "not-found"
+  },
+  {
+    "handle": "troon-free-beer-for-a-year",
+    "brewery": "Troon",
+    "beer": "free beer for a year",
+    "hops": [],
+    "description": "Hoppy Ale in crowler format.",
+    "source": "not-found"
+  },
+  {
+    "handle": "fidens-wrath-of-the-reaper",
+    "brewery": "Fidens",
+    "beer": "Wrath of the Reaper",
+    "hops": ["El Dorado", "Nelson Sauvin", "Riwaka"],
+    "description": "Triple IPA brewed with El Dorado, El Dorado Liquid Lupulin, Nelson Cryo & Riwaka Cryo hops. Colab with Messorem.",
+    "source": "mybeercollectibles.com"
+  },
+  {
+    "handle": "fidens-parliament",
+    "brewery": "Fidens",
+    "beer": "Parliament",
+    "hops": ["Citra", "Nelson Sauvin", "Riwaka"],
+    "description": "DDH DIPA brewed with Citra, Citra Liquid Lupulin, Nelson Cryo & Riwaka Cryo hops. Colab with Troon & Wild Bird.",
+    "source": "mybeercollectibles.com"
+  },
+  {
+    "handle": "fidens-wisdom",
+    "brewery": "Fidens",
+    "beer": "Wisdom",
+    "hops": ["Galaxy", "Nelson Sauvin", "Riwaka"],
+    "description": "DDH DIPA brewed with Galaxy, Galaxy Liquid Lupulin, Nelson Cryo & Riwaka Cryo hops. Colab with Troon.",
+    "source": "mybeercollectibles.com"
+  },
+  {
+    "handle": "fidens-no-written-record",
+    "brewery": "Fidens",
+    "beer": "No Written Record",
+    "hops": ["Krush", "Strata", "Mosaic"],
+    "description": "West Coast IPA with Krush, Strata & Mosaic hops.",
+    "source": "addicted2craftbeer.eu"
+  },
+  {
+    "handle": "monkish-diggin-and-diggin",
+    "brewery": "Monkish",
+    "beer": "Diggin and Diggin",
+    "hops": ["Galaxy", "Citra"],
+    "description": "Triple IPA with Galaxy and Citra.",
+    "source": "addicted2craftbeer.eu"
+  },
+  {
+    "handle": "north-park-art3",
+    "brewery": "North Park",
+    "beer": "Art3",
+    "hops": ["Citra", "Motueka", "Simcoe", "Rakau"],
+    "description": "TDH Triple IPA with Citra, Citra Cryo, Citra Dynaboost, Motueka Cryo, Motueka, Simcoe, Simcoe Cryo, and Rakau Hop Kief.",
+    "source": "untappd.com"
+  },
+  {
+    "handle": "other-half-all-green-everything",
+    "brewery": "Other Half",
+    "beer": "All green Everything",
+    "hops": ["Citra", "Mosaic", "Simcoe"],
+    "description": "DDH Triple IPA from Other Half's All Green Everything series.",
+    "source": "widely reported (Other Half AGE series)"
+  },
+  {
+    "handle": "threat-xlviii-still-learning-without-you",
+    "brewery": "Threat",
+    "beer": "XLVIII. Still Learning Without You",
+    "hops": [],
+    "description": "Double IPA",
+    "source": "not-found"
+  },
+  {
+    "handle": "threat-xlvii-we-came-back-changed",
+    "brewery": "Threat",
+    "beer": "XLVII. We Came Back, Changed",
+    "hops": [],
+    "description": "Fruited IPA",
+    "source": "not-found"
+  },
+  {
+    "handle": "tree-house-juice-machine",
+    "brewery": "Tree House",
+    "beer": "Juice Machine",
+    "hops": ["Magnum", "Columbus", "Amarillo", "Citra", "Galaxy"],
+    "description": "Double IPA — marriage of King Julius malt bill with intensified hopping. Magnum, Columbus, Amarillo, Citra & Galaxy.",
+    "source": "mybeercollectibles.com"
+  },
+  {
+    "handle": "tree-house-riwaka-all-ways",
+    "brewery": "Tree House",
+    "beer": "Riwaka All Ways",
+    "hops": ["Riwaka"],
+    "description": "Single-hop Double IPA. Riwaka sourced from four NZ growers.",
+    "source": "mybeercollectibles.com"
+  },
+  {
+    "handle": "tree-house-super-mega",
+    "brewery": "Tree House",
+    "beer": "Super Mega",
+    "hops": ["Nelson Sauvin", "Motueka"],
+    "description": "Double IPA with NZ hops processed with Phantasm (Super Sauvin = Phantasm-enhanced Nelson Sauvin, Mega Motueka = Phantasm-enhanced Motueka).",
+    "source": "x.com/TreeHouseBrewCo"
+  },
+  {
+    "handle": "troon-slumbering-wraith",
+    "brewery": "Troon",
+    "beer": "slumbering wraith",
+    "hops": [],
+    "description": "Hoppy Ale in crowler format.",
+    "source": "not-found"
+  },
+  {
+    "handle": "brujos-verba-volant",
+    "brewery": "Brujos",
+    "beer": "Verba Volant",
+    "hops": [],
+    "description": "DDH IIPA, colab with Lyric.",
+    "source": "not-found"
+  },
+  {
+    "handle": "fallside-experimental-23",
+    "brewery": "Fallside",
+    "beer": "Experimental #23",
+    "hops": [],
+    "description": "IPA in crowler format.",
+    "source": "not-found"
+  },
+  {
+    "handle": "fallside-nala",
+    "brewery": "Fallside",
+    "beer": "Nala",
+    "hops": [],
+    "description": "IPA in crowler format.",
+    "source": "not-found"
+  },
+  {
+    "handle": "fidens-stare",
+    "brewery": "Fidens",
+    "beer": "Stare",
+    "hops": ["Vic Secret", "Eclipse", "Nelson Sauvin", "Riwaka"],
+    "description": "DDH DIPA brewed with Vic Secret, Eclipse Liquid Lupulin, Nelson Cryo & Riwaka Cryo. Colab with Troon.",
+    "source": "addicted2craftbeer.eu"
+  },
+  {
+    "handle": "fidens-excelsior",
+    "brewery": "Fidens",
+    "beer": "Excelsior",
+    "hops": ["Nelson Sauvin", "Riwaka", "Nectaron", "Motueka", "Rakau"],
+    "description": "TDH DIPA with Nelson, Peacharine, Riwaka, Nectaron, Motueka HopKief & Rakau HopKief.",
+    "source": "mybeercollectibles.com"
+  },
+  {
+    "handle": "fidens-jasper",
+    "brewery": "Fidens",
+    "beer": "Jasper",
+    "hops": ["Citra"],
+    "description": "All-Citra showcase DIPA. Official recipe from Fidens cofounder Steve Parker.",
+    "source": "beerandbrewing.com"
+  },
+  {
+    "handle": "other-half-green-flowers",
+    "brewery": "Other Half",
+    "beer": "Green Flowers",
+    "hops": ["Citra", "Simcoe"],
+    "description": "DDH West Coast IPA from Other Half's Green series.",
+    "source": "widely reported"
+  },
+  {
+    "handle": "tall-trees-lupo-transmogrifier",
+    "brewery": "Tall Trees",
+    "beer": "Lupo-Transmogrifier",
+    "hops": ["Citra", "Rakau", "Riwaka", "Nectaron"],
+    "description": "NETIPA built on Citra Incognito & Citra Lupomax and blasted with Rakau, Riwaka, and Nectaron from Freestyle Hopsin the dry hop.",
+    "source": "untappd.com"
+  },
+  {
+    "handle": "tall-trees-upgrade-your-green-matter",
+    "brewery": "Tall Trees",
+    "beer": "Upgrade your green matter",
+    "hops": [],
+    "description": "NEDIPA",
+    "source": "not-found"
+  },
+  {
+    "handle": "troon-to-build-a-mountain",
+    "brewery": "Troon",
+    "beer": "to build a mountain",
+    "hops": [],
+    "description": "Hoppy Ale in crowler format.",
+    "source": "not-found"
+  },
+  {
+    "handle": "troon-alone-again-at-last",
+    "brewery": "Troon",
+    "beer": "alone again at last",
+    "hops": [],
+    "description": "Hoppy Ale in crowler format.",
+    "source": "not-found"
+  },
+  {
+    "handle": "troon-corrupt-to-the-core",
+    "brewery": "Troon",
+    "beer": "corrupt to the core",
+    "hops": [],
+    "description": "Hoppy Ale in crowler format.",
+    "source": "not-found"
+  },
+  {
+    "handle": "troon-i-sleep-standing-up",
+    "brewery": "Troon",
+    "beer": "i sleep standing up",
+    "hops": [],
+    "description": "Hoppy Ale in crowler format.",
+    "source": "not-found"
+  },
+  {
+    "handle": "troon-can-time-be-stopped",
+    "brewery": "Troon",
+    "beer": "can time be stopped?",
+    "hops": [],
+    "description": "Hoppy Ale in crowler format.",
+    "source": "not-found"
+  },
+  {
+    "handle": "troon-cususcating-flame",
+    "brewery": "Troon",
+    "beer": "cususcating flame",
+    "hops": [],
+    "description": "Baltic Porter in crowler format. Hops not prominent for porter style.",
+    "source": "not-applicable (porter)"
+  }
+]

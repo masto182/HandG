@@ -1,0 +1,121 @@
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly Monday 4am UTC (~3pm Sydney). Runs on default branch.
+    - cron: "0 4 * * 1"
+  workflow_dispatch: {}
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+env:
+  NODE_VERSION: "20.20.2"
+  PNPM_VERSION: "10.33.2"
+
+jobs:
+  gitleaks:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml
+
+  codeql:
+    name: CodeQL (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [javascript-typescript]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-and-quality
+      - uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
+
+  dependency-audit:
+    name: Dependency audit (pnpm)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: pnpm audit (high+critical only)
+        run: pnpm audit --prod --audit-level=high
+        # Renovate handles routine upgrades. This gate fails the workflow on
+        # any high/critical advisory in production deps so we are forced to
+        # patch before merging.
+
+  trivy-fs:
+    name: Trivy filesystem scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: .
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
+          format: sarif
+          output: trivy-fs.sarif
+          exit-code: "0"
+          # Findings upload to the Security tab as SARIF. Informational by
+          # default; tighten to exit-code: "1" once .trivyignore is curated
+          # and the dependency tree is clean.
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-fs.sarif
+          category: trivy-fs
+
+  trivy-config:
+    name: Trivy IaC scan (Dockerfiles + compose)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: config
+          scan-ref: .
+          severity: CRITICAL,HIGH
+          format: sarif
+          output: trivy-config.sarif
+          exit-code: "0"
+          # Don't block PRs on IaC findings — they are informational.
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-config.sarif
+          category: trivy-config

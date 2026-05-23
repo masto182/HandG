@@ -1,0 +1,3 @@
+# GitHub CODEOWNERS — defines reviewers required by branch protection.
+# Adopters: replace with your own org / team handles.
+* @sfc-gh-cmasterson

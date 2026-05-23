@@ -1,0 +1,124 @@
+name: Promote to production
+
+# Manual-only. Promotes a previously-built (and ideally staging-tested) image
+# tag to :prod and deploys to the Oracle production host. Tags the previous
+# :prod image as :previous so rollback-prod.yml can revert in seconds.
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Source tag to promote (e.g. staging, sha-abc1234). Defaults to staging."
+        required: true
+        default: "staging"
+      skip_migrations:
+        description: "Skip db:migrate after deploy (set true for hotfix that touches no schema)"
+        required: false
+        default: "false"
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  OWNER: sfc-gh-cmasterson
+
+jobs:
+  retag:
+    name: Retag images :prod (and stash old :prod -> :previous)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    steps:
+      - name: Refuse non-main promotion
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "Refusing to promote: workflow must run from main (got ${{ github.ref }})."
+          exit 1
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify source tag exists
+        run: |
+          for app in backend storefront; do
+            REPO="${REGISTRY}/${OWNER}/${app}"
+            SRC="${REPO}:${{ github.event.inputs.image_tag }}"
+            if ! docker buildx imagetools inspect "$SRC" >/dev/null 2>&1; then
+              echo "Source tag $SRC does not exist in registry. Aborting promotion."
+              exit 1
+            fi
+            echo "Verified $SRC exists."
+          done
+
+      - name: Promote backend + storefront
+        run: |
+          for app in backend storefront; do
+            REPO="${REGISTRY}/${OWNER}/${app}"
+            SRC="${REPO}:${{ github.event.inputs.image_tag }}"
+            echo "::group::Promote $app from $SRC"
+            # Stash current :prod as :previous (ignore if no current :prod yet).
+            if docker buildx imagetools inspect "${REPO}:prod" >/dev/null 2>&1; then
+              docker buildx imagetools create -t "${REPO}:previous" "${REPO}:prod"
+            else
+              echo "No existing :prod for $app, skipping :previous tag."
+            fi
+            # Promote source tag to :prod.
+            docker buildx imagetools create -t "${REPO}:prod" "$SRC"
+            echo "::endgroup::"
+          done
+
+  deploy:
+    name: Deploy :prod to Oracle
+    needs: retag
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: SSH deploy
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.ORACLE_HOST }}
+          username: ${{ secrets.ORACLE_USER }}
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          command_timeout: 15m
+          script: |
+            set -euo pipefail
+            cd /opt/retail-example
+            git fetch origin main
+            git reset --hard origin/main
+            export BACKEND_IMAGE="ghcr.io/sfc-gh-cmasterson/backend:prod"
+            export STOREFRONT_IMAGE="ghcr.io/sfc-gh-cmasterson/storefront:prod"
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+            docker compose -f docker-compose.prod.yml --env-file .env.production pull
+            docker compose -f docker-compose.prod.yml --env-file .env.production up -d --remove-orphans
+            if [ "${{ github.event.inputs.skip_migrations }}" != "true" ]; then
+              docker compose -f docker-compose.prod.yml --env-file .env.production exec -T backend npx medusa db:migrate
+            fi
+        env:
+          GHCR_USER: ${{ github.repository_owner }}
+          GHCR_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
+
+      - name: Production health probe
+        timeout-minutes: 5
+        run: |
+          for i in {1..30}; do
+            if curl -fsS https://${{ vars.PRODUCTION_DOMAIN }}/health/ready >/dev/null && \
+               curl -fsS https://${{ vars.PRODUCTION_DOMAIN }}/api/health/ready >/dev/null; then
+              echo "Production healthy"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Production health probe failed - consider running rollback-prod.yml"
+          exit 1

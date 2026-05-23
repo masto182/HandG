@@ -1,0 +1,5 @@
+{
+  ".": "0.1.0",
+  "apps/backend": "0.0.1",
+  "apps/storefront": "1.0.3"
+}

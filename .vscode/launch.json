@@ -1,0 +1,35 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Backend: medusa develop",
+      "cwd": "${workspaceFolder}/apps/backend",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["exec", "medusa", "develop"],
+      "envFile": "${workspaceFolder}/apps/backend/.env",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Backend: jest (current file)",
+      "cwd": "${workspaceFolder}/apps/backend",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["exec", "jest", "--runInBand", "${relativeFile}"],
+      "console": "integratedTerminal"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Storefront: next dev",
+      "cwd": "${workspaceFolder}/apps/storefront",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["exec", "next", "dev", "-p", "8000"],
+      "envFile": "${workspaceFolder}/apps/storefront/.env.local",
+      "console": "integratedTerminal"
+    }
+  ]
+}

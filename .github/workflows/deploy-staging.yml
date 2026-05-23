@@ -1,0 +1,69 @@
+name: Deploy staging
+
+on:
+  workflow_run:
+    workflows: ["Build images (arm64 -> ghcr.io)"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    name: Deploy :staging tag to Oracle host
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: staging
+    steps:
+      - name: Refuse non-main builds
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.head_branch != 'main'
+        run: |
+          echo "Refusing to deploy: head_branch was ${{ github.event.workflow_run.head_branch }}, expected main."
+          exit 1
+
+      - uses: actions/checkout@v4
+
+      - name: SSH deploy
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.ORACLE_HOST }}
+          username: ${{ secrets.ORACLE_USER }}
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          command_timeout: 15m
+          envs: "GITHUB_SHA"
+          script: |
+            set -euo pipefail
+            cd /opt/retail-example-staging
+            git fetch origin main
+            git reset --hard origin/main
+            export BACKEND_IMAGE="ghcr.io/sfc-gh-cmasterson/backend:staging"
+            export STOREFRONT_IMAGE="ghcr.io/sfc-gh-cmasterson/storefront:staging"
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+            docker compose -f docker-compose.prod.yml --env-file .env.staging pull
+            docker compose -f docker-compose.prod.yml --env-file .env.staging up -d --remove-orphans
+            docker compose -f docker-compose.prod.yml --env-file .env.staging exec -T backend npx medusa db:migrate || true
+        env:
+          GHCR_USER: ${{ github.repository_owner }}
+          GHCR_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
+
+      - name: Health probe
+        timeout-minutes: 5
+        run: |
+          for i in {1..30}; do
+            if curl -fsS https://${{ vars.STAGING_DOMAIN }}/health/ready >/dev/null && \
+               curl -fsS https://${{ vars.STAGING_DOMAIN }}/api/health/ready >/dev/null; then
+              echo "Staging healthy"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Staging health probe failed"
+          exit 1
+

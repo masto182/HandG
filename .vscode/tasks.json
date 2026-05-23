@@ -1,0 +1,53 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Stack: dev (compose up)",
+      "type": "shell",
+      "command": "docker compose up -d && pnpm dev",
+      "problemMatcher": []
+    },
+    {
+      "label": "Stack: down",
+      "type": "shell",
+      "command": "docker compose down",
+      "problemMatcher": []
+    },
+    {
+      "label": "Backend: migrate",
+      "type": "shell",
+      "command": "pnpm --filter ./apps/backend exec medusa db:migrate",
+      "problemMatcher": []
+    },
+    {
+      "label": "Backend: seed",
+      "type": "shell",
+      "command": "pnpm --filter ./apps/backend exec medusa exec ./src/scripts/seed.ts",
+      "problemMatcher": []
+    },
+    {
+      "label": "Lint",
+      "type": "shell",
+      "command": "pnpm lint",
+      "problemMatcher": ["$eslint-stylish"]
+    },
+    {
+      "label": "Typecheck",
+      "type": "shell",
+      "command": "pnpm typecheck",
+      "problemMatcher": ["$tsc"]
+    },
+    {
+      "label": "Test (all)",
+      "type": "shell",
+      "command": "pnpm test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Build (turbo)",
+      "type": "shell",
+      "command": "pnpm build",
+      "problemMatcher": []
+    }
+  ]
+}

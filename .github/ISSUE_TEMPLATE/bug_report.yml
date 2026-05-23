@@ -1,0 +1,36 @@
+name: Bug report
+description: Something is broken or behaving unexpectedly
+labels: ["bug"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What's wrong, in one or two sentences?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction steps
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      placeholder: |
+        Node version:
+        pnpm version:
+        OS:
+        Browser (if storefront):

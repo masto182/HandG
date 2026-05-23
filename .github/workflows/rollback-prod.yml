@@ -1,0 +1,80 @@
+name: Rollback production
+
+# Re-tags :previous as :prod and redeploys. Use when promote-prod fails its
+# health probe or when a regression is found shortly after deploy.
+
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  OWNER: sfc-gh-cmasterson
+
+jobs:
+  retag:
+    name: Re-tag :previous as :prod
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    steps:
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - run: |
+          for app in backend storefront; do
+            REPO="${REGISTRY}/${OWNER}/${app}"
+            if ! docker buildx imagetools inspect "${REPO}:previous" >/dev/null 2>&1; then
+              echo "No :previous tag for $app - cannot rollback. Aborting."
+              exit 1
+            fi
+            docker buildx imagetools create -t "${REPO}:prod" "${REPO}:previous"
+          done
+
+  deploy:
+    name: Deploy rolled-back :prod
+    needs: retag
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: SSH deploy
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.ORACLE_HOST }}
+          username: ${{ secrets.ORACLE_USER }}
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          command_timeout: 10m
+          script: |
+            set -euo pipefail
+            cd /opt/retail-example
+            export BACKEND_IMAGE="ghcr.io/sfc-gh-cmasterson/backend:prod"
+            export STOREFRONT_IMAGE="ghcr.io/sfc-gh-cmasterson/storefront:prod"
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+            docker compose -f docker-compose.prod.yml --env-file .env.production pull
+            docker compose -f docker-compose.prod.yml --env-file .env.production up -d --remove-orphans
+        env:
+          GHCR_USER: ${{ github.repository_owner }}
+          GHCR_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
+      - name: Health probe
+        timeout-minutes: 5
+        run: |
+          for i in {1..30}; do
+            if curl -fsS https://${{ vars.PRODUCTION_DOMAIN }}/health/ready >/dev/null; then
+              echo "Rollback healthy"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Rollback health probe failed - manual intervention required"
+          exit 1

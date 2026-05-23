@@ -1,0 +1,267 @@
+{
+  "_notes": "Product image URLs found from web research. Shopify CDN URLs are permanent. Instagram URLs are ephemeral (downloaded to data/product-images/).",
+  "_sources": {
+    "addicted2craftbeer.eu": "Shopify store - permanent CDN URLs",
+    "instagram": "Ephemeral - downloaded locally to data/product-images/",
+    "treehousebrew.com": "Official Tree House site - permanent Squarespace CDN",
+    "otherhalfbrewing.com": "Official Other Half site - imgix CDN (permanent)",
+    "mybeercollectibles.com": "Beer trading site - user uploaded photos (permanent)",
+    "leftfieldbeer.co.uk": "UK beer shop - Wix static CDN (permanent)"
+  },
+  "images": {
+    "tree-house-king-julius": {
+      "url": "https://cdn.shopify.com/s/files/1/0503/4347/7444/files/rn-image_picker_lib_temp_148eeb3b-2659-4068-9d16-fe0fa0ee1e15.jpg?v=1722882238",
+      "source": "addicted2craftbeer.eu",
+      "type": "shopify_cdn"
+    },
+    "tree-house-grail": {
+      "url": "https://cdn.shopify.com/s/files/1/0503/4347/7444/files/rn-image_picker_lib_temp_3e3d2c1b-dcc2-4d7f-9f1d-872bd80ed08a.jpg?v=1778670217",
+      "source": "addicted2craftbeer.eu",
+      "type": "shopify_cdn"
+    },
+    "tree-house-juice-machine": {
+      "url": "https://cdn.shopify.com/s/files/1/0503/4347/7444/products/DSC3211-02.jpg?v=1650537966",
+      "source": "addicted2craftbeer.eu",
+      "type": "shopify_cdn"
+    },
+    "tree-house-platinum-fern": {
+      "url": "https://cdn.shopify.com/s/files/1/0503/4347/7444/files/DSC-0275.jpg?v=1720007160",
+      "source": "addicted2craftbeer.eu",
+      "type": "shopify_cdn"
+    },
+    "tree-house-moment-of-clarity-barrel-blend": {
+      "url": "data/product-images/tree-house-moment-of-clarity-barrel-blend.jpg",
+      "source": "instagram/@treehousereleases (DUI5iUylVf0)",
+      "type": "local_file"
+    },
+    "tree-house-moment-of-clarity-extra-maple": {
+      "url": "data/product-images/tree-house-moment-of-clarity-extra-maple.jpg",
+      "source": "instagram/@treehousereleases (DWOr2uNFu1A)",
+      "type": "local_file"
+    },
+    "tree-house-super-mega": {
+      "url": "data/product-images/tree-house-super-mega.jpg",
+      "source": "instagram/@treehousereleases (DW3-GJbEjL2)",
+      "type": "local_file"
+    },
+    "tree-house-riwaka-all-ways": {
+      "url": "data/product-images/tree-house-riwaka-all-ways.jpg",
+      "source": "instagram/@beer_food_movies (DXbUXPQivcn)",
+      "type": "local_file"
+    },
+    "fidens-wisdom": {
+      "url": "https://cdn.shopify.com/s/files/1/0503/4347/7444/files/rn-image_picker_lib_temp_0c39381b-3e9b-42c2-9609-e057be6b01fd.jpg?v=1778670217",
+      "source": "addicted2craftbeer.eu",
+      "type": "shopify_cdn",
+      "note": "Fidens x Troon collab"
+    },
+    "fidens-stare": {
+      "url": "https://cdn.shopify.com/s/files/1/0503/4347/7444/files/rn-image_picker_lib_temp_456e8dd7-2bdb-4390-9fd0-23072f95a243.jpg?v=1778599720",
+      "source": "addicted2craftbeer.eu",
+      "type": "shopify_cdn"
+    },
+    "fidens-jasper": {
+      "url": "https://cdn.shopify.com/s/files/1/0503/4347/7444/files/rn-image_picker_lib_temp_d1a7978a-13a9-4716-a2de-ff59aec48338.jpg?v=1773256906",
+      "source": "addicted2craftbeer.eu",
+      "type": "shopify_cdn",
+      "note": "Green Cheek x Fidens collab - same beer"
+    },
+    "monkish-diggin-and-diggin": {
+      "url": "https://cdn.shopify.com/s/files/1/0503/4347/7444/files/rn-image_picker_lib_temp_3b0ff426-0ec9-4303-8b07-15cefad82fd6.jpg?v=1778239230",
+      "source": "addicted2craftbeer.eu",
+      "type": "shopify_cdn"
+    },
+    "brujos-populas": {
+      "url": "https://cdn.shopify.com/s/files/1/0503/4347/7444/files/rn-image_picker_lib_temp_36c84f79-2d44-497b-8740-3bf0ba5179fd.jpg?v=1763903772",
+      "source": "addicted2craftbeer.eu",
+      "type": "shopify_cdn",
+      "note": "Listed as 'Populus' on store, 'Populas' in our CSV"
+    },
+    "troon-cususcating-flame": {
+      "url": "https://cdn.shopify.com/s/files/1/0503/4347/7444/files/rn-image_picker_lib_temp_e42565e1-7e2d-46e3-a83d-ebf07c52f55f.jpg?v=1773256905",
+      "source": "addicted2craftbeer.eu",
+      "type": "shopify_cdn",
+      "note": "Listed as 'Coruscating Flame' on store, 'cususcating flame' in our CSV (typo in CSV)"
+    },
+    "troon-slumbering-wraith": {
+      "url": "https://cdn.shopify.com/s/files/1/0503/4347/7444/files/rn-image_picker_lib_temp_be00bf33-8ac3-49f7-bec6-75d9f6543247.jpg?v=1778239230",
+      "source": "addicted2craftbeer.eu",
+      "type": "shopify_cdn"
+    },
+    "troon-praying-with-anger": {
+      "url": "https://cdn.shopify.com/s/files/1/0503/4347/7444/files/rn-image_picker_lib_temp_d735f0c7-cf9a-4501-9f4c-e0f6d6eb79cf.jpg?v=1778239231",
+      "source": "addicted2craftbeer.eu",
+      "type": "shopify_cdn"
+    },
+    "troon-can-time-be-stopped": {
+      "url": "https://cdn.shopify.com/s/files/1/0503/4347/7444/files/rn-image_picker_lib_temp_9c89fb06-3f16-4138-a78e-124bbc33d8b5.jpg?v=1778239231",
+      "source": "addicted2craftbeer.eu",
+      "type": "shopify_cdn"
+    },
+    "troon-corrupt-to-the-core": {
+      "url": "https://cdn.shopify.com/s/files/1/0503/4347/7444/files/rn-image_picker_lib_temp_ca43a9f4-13b7-4b06-8ebe-c3e99cea53ab.jpg?v=1778239232",
+      "source": "addicted2craftbeer.eu",
+      "type": "shopify_cdn"
+    },
+    "fidens-wrath-of-the-reaper": {
+      "url": "https://cdn.shopify.com/s/files/1/0503/4347/7444/files/rn-image_picker_lib_temp_047b6a03-52bc-49f4-8228-c5b92ed9a2ca.jpg?v=1778220108",
+      "source": "addicted2craftbeer.eu",
+      "type": "shopify_cdn",
+      "note": "Fidens x Messorem collab"
+    },
+    "fidens-triple-jasper": {
+      "url": "https://cdn.shopify.com/s/files/1/0503/4347/7444/files/rn-image_picker_lib_temp_f7bae01c-592b-4d95-9bff-7355a0eeffe0.jpg?v=1767456955",
+      "source": "addicted2craftbeer.eu",
+      "type": "shopify_cdn",
+      "note": "Triple Jasper with Nelson variant"
+    },
+    "fidens-no-written-record": {
+      "url": "https://cdn.shopify.com/s/files/1/0503/4347/7444/files/rn-image_picker_lib_temp_085fd689-cbf5-478b-be8c-7e3c9f479045.jpg?v=1767455293",
+      "source": "addicted2craftbeer.eu",
+      "type": "shopify_cdn"
+    },
+    "tall-trees-lupo-transmogrifier": {
+      "url": "data/product-images/tall-trees-lupo-transmogrifier.jpg",
+      "source": "instagram/@empirestateofbeer (DWt3ki0D1FT)",
+      "type": "local_file"
+    },
+    "threat-xlviii-still-learning-without-you": {
+      "url": "data/product-images/threat-xlviii-still-learning-without-you.jpg",
+      "source": "instagram/@hoptopian (DXeul9KDZeh)",
+      "type": "local_file"
+    },
+    "lolev-parabellum": {
+      "url": "data/product-images/lolev-parabellum.jpg",
+      "source": "instagram/@empirestateofbeer (DYcl497pG6q)",
+      "type": "local_file",
+      "note": "Lolev x Off Script collab"
+    },
+    "bakes-snappy-buckets": {
+      "url": "data/product-images/bakes-snappy-buckets.jpg",
+      "source": "instagram/@empirestateofbeer (DYPljQqv0G3)",
+      "type": "local_file"
+    },
+    "lolev-harvest-ii": {
+      "url": "data/product-images/lolev-harvest-ii.jpg",
+      "source": "instagram/@hoptopian (DXKdPFtD1lV)",
+      "type": "local_file"
+    },
+    "fidens-elemental-art": {
+      "url": "https://cdn.shopify.com/s/files/1/0503/4347/7444/files/rn-image_picker_lib_temp_6be8c102-155f-4b8c-a557-5803e087e899.jpg?v=1767455293",
+      "source": "addicted2craftbeer.eu",
+      "type": "shopify_cdn",
+      "note": "Listed as 'Elements of Art' on store, 'Elemental Art' in our CSV"
+    },
+    "other-half-green-flowers": {
+      "url": "https://craftpeak-cooler-images.imgix.net/other-half-brewing/Green-Flowers_Printed-Can.png?auto=compress%2Cformat&fit=scale&h=1440&ixlib=php-3.3.1&w=1440",
+      "source": "otherhalfbrewing.com",
+      "type": "brewery_cdn",
+      "note": "Official can render from brewery website"
+    },
+    "other-half-all-green-everything": {
+      "url": "https://craftpeak-cooler-images.imgix.net/other-half-brewing/All-Green-Everything.png?auto=compress%2Cformat&fit=scale&h=1536&ixlib=php-3.3.1&w=1536",
+      "source": "otherhalfbrewing.com",
+      "type": "brewery_cdn",
+      "note": "Official can render from brewery website"
+    },
+    "monkish-heads-nor-tails": {
+      "url": "https://www.mybeercollectibles.com/uploads/1000012426.jpg",
+      "source": "mybeercollectibles.com",
+      "type": "mbc_upload"
+    },
+    "north-park-cloudcaster": {
+      "url": "https://www.mybeercollectibles.com/uploads/1000012515.png",
+      "source": "mybeercollectibles.com",
+      "type": "mbc_upload"
+    },
+    "hill-farmstead-double-nelson": {
+      "url": "https://www.mybeercollectibles.com/uploads/Screenshot2022-12-07at08-46-37DoubleNelson-HillFarmsteadBreweryPhotos-Untappd.png",
+      "source": "mybeercollectibles.com (from Untappd screenshot)",
+      "type": "mbc_upload",
+      "note": "Untappd screenshot - not ideal quality but usable"
+    },
+    "brujos-el-sacerdote-arana": {
+      "url": "https://www.mybeercollectibles.com/uploads/1000010819.png",
+      "source": "mybeercollectibles.com",
+      "type": "mbc_upload",
+      "note": "Brujos x Rar collab"
+    },
+    "rar-eternal-prankster": {
+      "url": "https://www.mybeercollectibles.com/uploads/1000012431-(1).png",
+      "source": "mybeercollectibles.com",
+      "type": "mbc_upload",
+      "note": "Rar x Brujos collab"
+    },
+    "lolev-tiger": {
+      "url": "https://static.wixstatic.com/media/b4b5c0_e0a234fbead14d10b2147f4ba1b66c81~mv2.png/v1/fill/w_996,h_996,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/b4b5c0_e0a234fbead14d10b2147f4ba1b66c81~mv2.png",
+      "source": "leftfieldbeer.co.uk (Wix static CDN)",
+      "type": "wix_cdn",
+      "note": "Left Field Beer UK product page - permanent URL"
+    },
+    "monkish-taste-bud": {
+      "url": "https://www.mybeercollectibles.com/uploads/1000012492.jpg",
+      "source": "mybeercollectibles.com",
+      "type": "mbc_upload"
+    },
+    "fidens-parliament": {
+      "url": "https://file1.jiuhuar.com/bg-FpRqN4NZkAL6C1vDfYo9FFMUvzsw",
+      "source": "jiuhuar.com (Chinese beer app)",
+      "type": "qiniu_cdn",
+      "note": "Fidens x Troon x Wild Bird Research Group collab"
+    },
+    "troon-i-sleep-standing-up": {
+      "url": "https://winesandspirits.ch/wp-content/uploads/2026/05/Troon-I-sleep-standing-up-10-4-2026-rotated.jpg",
+      "source": "winesandspirits.ch",
+      "type": "wordpress_cdn",
+      "note": "Swiss beer shop - permanent WP media URL"
+    },
+    "brujos-verba-volant": {
+      "url": "data/product-images/brujos-verba-volant.jpg",
+      "source": "instagram/@steveysips (DWKO0QUEe8l)",
+      "type": "local_file",
+      "note": "Brujos x Lyric collab - downloaded from IG"
+    },
+    "fidens-excelsior": {
+      "url": "data/product-images/fidens-excelsior.jpg",
+      "source": "instagram/@thebeerbarrelaus (DWh8yhSCf3M)",
+      "type": "local_file",
+      "note": "TDH Double IPA - downloaded from IG. BevWire label also at https://bevwire.com/labels/excelsior-fidens-brewing-co-26075001001049.jpg"
+    },
+    "bakes-medalist": {
+      "url": "https://www.mybeercollectibles.com/uploads/1000010718.png",
+      "source": "mybeercollectibles.com",
+      "type": "mbc_upload",
+      "note": "Core IPA 6.8%"
+    }
+  },
+  "_still_needed": {
+    "lolev": ["Capex II (actually Capax II on their site)", "Waves II", "Zebra"],
+    "fidens": ["Broadway", "Devil I met", "Fairy Ring", "Made in Colonie"],
+    "monkish": ["Flip Fly Flows"],
+    "brujos": ["No Better Times", "Satan to the Masses", "Señor Murcielago (2026)"],
+    "hill_farmstead": ["Society & Solitude #6"],
+    "north_park": ["Art3", "Deja-Fu!"],
+    "troon": ["alone again at last", "free beer for a year"],
+    "human_robot": ["Collective: Citra Eggers SPX", "Single Axis"],
+    "bakes": [],
+    "rar": ["Personal Plague"],
+    "fallside": ["Experimental #23", "Nala"],
+    "tall_trees": ["Upgrade your green matter"],
+    "threat": ["XLVII. We Came Back Changed"],
+    "off_script": ["We're Not Worthy Hazy"],
+    "trillium": ["Twice Daily Serving: Raspberry"],
+    "freak_folk": ["Bleak (2026)", "Yodel"]
+  },
+  "_search_tips": {
+    "lolev": "lolev.beer/beer/{slug} has individual pages. Images render client-side. Try @lolevbeer Instagram or @hoptopian who reviews them regularly.",
+    "fidens": "@fidensbrewing Instagram. @thebeerbarrelaus carries them (AU shop).",
+    "troon": "@troonbrewing Instagram has all crowler releases. addicted2craftbeer.eu has some.",
+    "monkish": "@monkishbrewing Instagram.",
+    "brujos": "@brujos_brewing Instagram.",
+    "fallside": "@fallsidebrewing Instagram (very small NJ brewery).",
+    "north_park": "@northparkbeerco Instagram.",
+    "threat": "@threatbeer Instagram. @hoptopian reviews them regularly.",
+    "human_robot": "@humanrobotbrewing Instagram.",
+    "tall_trees": "@talltreesbrewlab Instagram."
+  }
+}

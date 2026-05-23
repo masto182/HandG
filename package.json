@@ -1,0 +1,48 @@
+{
+  "name": "retail-example",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test",
+    "clean": "turbo clean",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.5.0",
+    "@commitlint/config-conventional": "^19.5.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.2.10",
+    "prettier": "^3.4.2",
+    "turbo": "^2.9.14"
+  },
+  "packageManager": "pnpm@10.33.2",
+  "engines": {
+    "node": ">=20.20.2",
+    "pnpm": ">=10.33.2"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,json,md,yml,yaml}": [
+      "prettier --write"
+    ],
+    "apps/storefront/**/*.{ts,tsx,js,jsx}": [
+      "pnpm --filter storefront exec next lint --fix --file"
+    ]
+  },
+  "pnpm": {
+    "overrides": {
+      "rollup": ">=4.22.4",
+      "lodash": ">=4.17.21",
+      "@mikro-orm/core": ">=6.4.0",
+      "@mikro-orm/knex": ">=6.6.14",
+      "@opentelemetry/sdk-node": ">=0.217.0",
+      "@opentelemetry/exporter-prometheus": ">=0.217.0",
+      "fast-xml-builder": ">=1.1.7"
+    }
+  }
+}

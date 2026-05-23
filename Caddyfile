@@ -1,0 +1,81 @@
+# Production reverse proxy.
+#
+# Single-domain model: everything served from {$DOMAIN}.
+#   - Backend (Medusa) routes:  /store/*, /admin/*, /auth/*, /webhooks/*,
+#                                {$MEDUSA_ADMIN_PATH:-/admin}/*, /health
+#   - Storefront (Next.js):     all other paths
+#
+# Caddy auto-issues Let's Encrypt certs for both apex and www; www is 301'd
+# to apex so the apex is the canonical hostname.
+#
+# Configuration via environment variables (set in docker-compose.prod.yml):
+#   DOMAIN          - production apex domain (e.g. example.com)
+#   STAGING_DOMAIN  - staging hostname (e.g. staging.example.com)
+
+(security_headers) {
+	# HSTS 2 years, includeSubDomains, preload-eligible. Single source of truth at the edge.
+	header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+	header X-Content-Type-Options "nosniff"
+	header X-Frame-Options "DENY"
+	header Referrer-Policy "strict-origin-when-cross-origin"
+	header Permissions-Policy "camera=(), microphone=(), geolocation=()"
+	header -Server
+}
+
+# www -> apex (301)
+www.{$DOMAIN} {
+	redir https://{$DOMAIN}{uri} permanent
+}
+
+# Apex (canonical)
+{$DOMAIN} {
+	encode zstd gzip
+	import security_headers
+
+	# Backend health probes
+	@backendHealth path /health /health/live /health/ready
+	handle @backendHealth {
+		reverse_proxy backend:9000
+	}
+
+	# Medusa REST API + Auth + webhooks
+	@backendApi path /store* /admin* /auth* /webhooks*
+	handle @backendApi {
+		reverse_proxy backend:9000
+	}
+
+	# Medusa admin UI (path configurable via MEDUSA_ADMIN_PATH env var; default /admin
+	# is already covered by /admin* above. Override here if MEDUSA_ADMIN_PATH is set
+	# to a custom obscured path - update the path matcher below to match.
+	# Example for MEDUSA_ADMIN_PATH=/troon/admin:
+	#   @adminUi path /troon/admin*
+	#   handle @adminUi {
+	#     reverse_proxy backend:9000
+	#   }
+
+	# Storefront default
+	handle {
+		reverse_proxy storefront:3000
+	}
+}
+
+# Staging mirror (separate hostname)
+{$STAGING_DOMAIN} {
+	encode zstd gzip
+	import security_headers
+	header X-Robots-Tag "noindex, nofollow"
+
+	@backendHealth path /health /health/live /health/ready
+	handle @backendHealth {
+		reverse_proxy backend:9000
+	}
+
+	@backendApi path /store* /admin* /auth* /webhooks*
+	handle @backendApi {
+		reverse_proxy backend:9000
+	}
+
+	handle {
+		reverse_proxy storefront:3000
+	}
+}
