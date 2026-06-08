@@ -36,12 +36,7 @@ export async function POST(
         continue
       }
 
-      await productModule.updateProducts([
-        {
-          id: product_id,
-          thumbnail: url,
-        },
-      ])
+      await productModule.updateProducts(product_id, { thumbnail: url })
 
       updated++
     } catch (e: any) {

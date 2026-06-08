@@ -439,9 +439,15 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
       }
 
       // Look up existing product
-      const existingProducts = await productModule.listProducts({ title: row.name })
+      const existingProducts = await productModule.listProducts(
+        { title: row.name },
+        {
+          select: ["id", "title", "status", "thumbnail", "metadata"],
+          relations: ["variants", "variants.prices", "images"],
+        }
+      )
       const existing = existingProducts.find(
-        (p: any) => p.title === row.name && p.status === "published"
+        (p: any) => p.title === row.name && (p.status === "published" || p.status === "draft")
       )
 
       const containerValue = row.container || "Can 440ml"
