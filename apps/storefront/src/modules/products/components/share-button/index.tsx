@@ -6,13 +6,28 @@ export default function ShareButton() {
   const [copied, setCopied] = useState(false)
 
   const handleShare = async () => {
+    const url = window.location.href
+    const title = typeof document !== "undefined" ? document.title : ""
+
+    if (
+      typeof navigator !== "undefined" &&
+      typeof navigator.share === "function"
+    ) {
+      try {
+        await navigator.share({ title, url })
+        return
+      } catch (err) {
+        if ((err as DOMException)?.name === "AbortError") return
+      }
+    }
+
     try {
-      await navigator.clipboard.writeText(window.location.href)
+      await navigator.clipboard.writeText(url)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
       const input = document.createElement("input")
-      input.value = window.location.href
+      input.value = url
       document.body.appendChild(input)
       input.select()
       document.execCommand("copy")
@@ -29,14 +44,29 @@ export default function ShareButton() {
     >
       {copied ? (
         <>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-green-400">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            className="text-green-400"
+          >
             <polyline points="20 6 9 17 4 12" />
           </svg>
           Copied!
         </>
       ) : (
         <>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
             <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
             <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
           </svg>

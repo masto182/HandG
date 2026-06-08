@@ -12,6 +12,7 @@ import AnnouncementStrip from "@modules/layout/components/announcement-strip"
 import Icon from "@modules/common/components/icon"
 import SearchBar from "@modules/search/components/search-bar"
 import VipBadge from "@modules/layout/components/vip-badge"
+import NotificationDropdown from "@modules/layout/components/notification-dropdown"
 import { MembershipStatus, isApprovedMember } from "@lib/data/membership"
 import { breweryLabel } from "@lib/util/brewery-label"
 
@@ -20,7 +21,10 @@ type NavProps = {
   customer?: HttpTypes.StoreCustomer | null
 }
 
-export default async function Nav({ membershipStatus = "public", customer }: NavProps) {
+export default async function Nav({
+  membershipStatus = "public",
+  customer,
+}: NavProps) {
   const [regions, locales, currentLocale] = await Promise.all([
     listRegions().then((regions: StoreRegion[]) => regions),
     listLocales(),
@@ -30,17 +34,30 @@ export default async function Nav({ membershipStatus = "public", customer }: Nav
   const isApproved = isApprovedMember(membershipStatus)
   const isLoggedIn = membershipStatus !== "public"
 
-  const avatarUrl = (customer?.metadata as Record<string, string> | null)?.avatar_url
+  const avatarUrl = (customer?.metadata as Record<string, string> | null)
+    ?.avatar_url
   const initial = customer?.first_name?.charAt(0)?.toUpperCase() || "?"
 
   return (
     <div className="sticky top-0 inset-x-0 z-50 group">
       <AnnouncementStrip />
-      <header className="relative h-20 w-full border-b border-hg-border backdrop-blur-lg" style={{ backgroundColor: "color-mix(in srgb, var(--color-bg) 90%, transparent)" }}>
+      <header
+        className="relative h-20 w-full border-b border-hg-border backdrop-blur-lg"
+        style={{
+          backgroundColor:
+            "color-mix(in srgb, var(--color-bg) 90%, transparent)",
+        }}
+      >
         <div className="mx-auto flex h-full max-w-[1440px] items-center justify-between px-6 lg:px-10">
           <div className="flex items-center gap-12">
             <div className="small:hidden">
-              <SideMenu regions={regions} locales={locales} currentLocale={currentLocale} isApproved={isApproved} isLoggedIn={isLoggedIn} />
+              <SideMenu
+                regions={regions}
+                locales={locales}
+                currentLocale={currentLocale}
+                isApproved={isApproved}
+                isLoggedIn={isLoggedIn}
+              />
             </div>
             <LocalizedClientLink
               href="/"
@@ -51,15 +68,33 @@ export default async function Nav({ membershipStatus = "public", customer }: Nav
                 Hops <span className="text-hg-gold">&amp;</span> Glory
               </span>
             </LocalizedClientLink>
-            <nav className="hidden items-center gap-8 lg:flex">
-              <LocalizedClientLink href="/store" className="text-sm font-medium text-hg-text-secondary tracking-tight transition-colors hover:text-hg-text">
+            <nav
+              className="hidden items-center gap-8 lg:flex"
+              aria-label="Main navigation"
+            >
+              <LocalizedClientLink
+                href="/store"
+                className="text-sm font-medium text-hg-text-secondary tracking-tight transition-colors hover:text-hg-text"
+              >
                 Collection
               </LocalizedClientLink>
-              <LocalizedClientLink href="/breweries" className="text-sm font-medium text-hg-text-secondary tracking-tight transition-colors hover:text-hg-text">
+              <LocalizedClientLink
+                href="/breweries"
+                className="text-sm font-medium text-hg-text-secondary tracking-tight transition-colors hover:text-hg-text"
+              >
                 {breweryLabel(isApproved)}
               </LocalizedClientLink>
+              <LocalizedClientLink
+                href="/hops"
+                className="text-sm font-medium text-hg-text-secondary tracking-tight transition-colors hover:text-hg-text"
+              >
+                Hops
+              </LocalizedClientLink>
               {isApproved && (
-                <LocalizedClientLink href="/account/wishlist" className="text-sm font-medium text-hg-text-secondary tracking-tight transition-colors hover:text-hg-text">
+                <LocalizedClientLink
+                  href="/account/wishlist"
+                  className="text-sm font-medium text-hg-text-secondary tracking-tight transition-colors hover:text-hg-text"
+                >
                   Wishlist
                 </LocalizedClientLink>
               )}
@@ -78,8 +113,18 @@ export default async function Nav({ membershipStatus = "public", customer }: Nav
                     href="/account/referrals"
                     className="flex items-center gap-1.5 text-sm font-semibold text-hg-gold tracking-tight transition-opacity hover:opacity-80 mr-2"
                   >
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                      <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" strokeLinecap="round" strokeLinejoin="round" />
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
                     </svg>
                     <span className="hidden sm:inline">Referrals</span>
                   </LocalizedClientLink>
@@ -88,12 +133,21 @@ export default async function Nav({ membershipStatus = "public", customer }: Nav
               )}
 
               {isApproved ? (
-                <LocalizedClientLink href="/account" className="h-8 w-8 rounded-full overflow-hidden border border-hg-border hover:border-hg-gold transition-colors">
+                <LocalizedClientLink
+                  href="/account"
+                  className="h-8 w-8 rounded-full overflow-hidden border border-hg-border hover:border-hg-gold transition-colors"
+                >
                   {avatarUrl ? (
-                    <img src={avatarUrl} alt="Profile" className="h-full w-full object-cover" />
+                    <img
+                      src={avatarUrl}
+                      alt="Profile"
+                      className="h-full w-full object-cover"
+                    />
                   ) : (
                     <div className="h-full w-full bg-hg-surface flex items-center justify-center">
-                      <span className="text-xs font-bold text-hg-text-secondary">{initial}</span>
+                      <span className="text-xs font-bold text-hg-text-secondary">
+                        {initial}
+                      </span>
                     </div>
                   )}
                 </LocalizedClientLink>
@@ -116,6 +170,8 @@ export default async function Nav({ membershipStatus = "public", customer }: Nav
                 </>
               )}
 
+              {isApproved && <NotificationDropdown />}
+
               {isApproved && (
                 <Suspense
                   fallback={
@@ -124,10 +180,22 @@ export default async function Nav({ membershipStatus = "public", customer }: Nav
                       href="/cart"
                       data-testid="nav-cart-link"
                     >
-                      <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+                      <svg
+                        className="h-6 w-6"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="1.5"
+                        />
                       </svg>
-                      <span className="hidden text-sm font-medium sm:inline">Cart</span>
+                      <span className="hidden text-sm font-medium sm:inline">
+                        Cart
+                      </span>
                     </LocalizedClientLink>
                   }
                 >

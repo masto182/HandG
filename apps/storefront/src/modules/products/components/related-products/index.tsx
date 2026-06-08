@@ -28,21 +28,15 @@ export default async function RelatedProducts({
   if (product.collection_id) {
     queryParams.collection_id = [product.collection_id]
   }
-  if (product.tags) {
-    queryParams.tag_id = product.tags
-      .map((t) => t.id)
-      .filter(Boolean) as string[]
-  }
   queryParams.is_giftcard = false
 
-  const products = await listProducts({
-    queryParams,
-    countryCode,
-  }).then(({ response }) => {
-    return response.products.filter(
-      (responseProduct) => responseProduct.id !== product.id
-    )
-  })
+  let products: HttpTypes.StoreProduct[] = []
+  try {
+    const { response } = await listProducts({ queryParams, countryCode })
+    products = response.products.filter((p) => p.id !== product.id)
+  } catch {
+    return null
+  }
 
   if (!products.length) {
     return null
@@ -51,9 +45,7 @@ export default async function RelatedProducts({
   return (
     <section className="mt-24">
       <div className="flex justify-between items-end mb-8">
-        <h2 className="text-h2 text-hg-text uppercase">
-          MEMBERS ALSO BOUGHT
-        </h2>
+        <h2 className="text-h2 text-hg-text uppercase">MEMBERS ALSO BOUGHT</h2>
         <LocalizedClientLink
           href="/store"
           className="text-hl-primary font-semibold text-label-caps uppercase hover:underline"
@@ -66,13 +58,22 @@ export default async function RelatedProducts({
           const meta = p.metadata as Record<string, any> | null
           const breweryName = meta?.brewery_name || meta?.brewery
           const abv = canSeePricing ? meta?.abv : null
-          const stockRemaining = p.variants?.reduce((sum: number, v: any) => sum + (v.inventory_quantity ?? 0), 0) ?? 0
+          const stockRemaining =
+            p.variants?.reduce(
+              (sum: number, v: any) => sum + (v.inventory_quantity ?? 0),
+              0,
+            ) ?? 0
           const price = p.variants?.[0]?.calculated_price?.calculated_amount
-          const currencyCode = p.variants?.[0]?.calculated_price?.currency_code || "aud"
+          const currencyCode =
+            p.variants?.[0]?.calculated_price?.currency_code || "aud"
 
-          const formattedPrice = price != null
-            ? new Intl.NumberFormat("en-AU", { style: "currency", currency: currencyCode }).format(price)
-            : null
+          const formattedPrice =
+            price != null
+              ? new Intl.NumberFormat("en-AU", {
+                  style: "currency",
+                  currency: currencyCode,
+                }).format(price)
+              : null
 
           return (
             <LocalizedClientLink
@@ -91,14 +92,24 @@ export default async function RelatedProducts({
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-hg-text-muted/20">
+                    <svg
+                      width="48"
+                      height="48"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1"
+                      className="text-hg-text-muted/20"
+                    >
                       <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
                       <circle cx="8.5" cy="8.5" r="1.5" />
                       <polyline points="21 15 16 10 5 21" />
                     </svg>
                   </div>
                 )}
-                <div className={`absolute top-4 right-4 w-3 h-3 rounded-full ${stockRemaining <= 0 ? "bg-red-400" : stockRemaining <= 5 ? "bg-hl-accent animate-pulse" : "bg-hl-accent"}`} />
+                <div
+                  className={`absolute top-4 right-4 w-3 h-3 rounded-full ${stockRemaining <= 0 ? "bg-red-400" : stockRemaining <= 5 ? "bg-hl-accent animate-pulse" : "bg-hl-accent"}`}
+                />
               </div>
               <div className="p-6">
                 {breweryName && (
@@ -111,10 +122,14 @@ export default async function RelatedProducts({
                 </h4>
                 <div className="flex justify-between items-center">
                   {canSeePricing && formattedPrice && (
-                    <span className="text-price text-hl-price">{formattedPrice}</span>
+                    <span className="text-price text-hl-price">
+                      {formattedPrice}
+                    </span>
                   )}
                   {abv && (
-                    <span className="text-hg-text-muted text-body-sm">{abv}% ABV</span>
+                    <span className="text-hg-text-muted text-body-sm">
+                      {abv}% ABV
+                    </span>
                   )}
                 </div>
               </div>

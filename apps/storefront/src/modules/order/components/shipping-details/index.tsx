@@ -15,7 +15,9 @@ function isPickupOrder(order: HttpTypes.StoreOrder): boolean {
 
 const ShippingDetails = ({ order }: ShippingDetailsProps) => {
   const pickup = isPickupOrder(order)
-  const shippingMethod = order.shipping_methods?.[0] as { name?: string } | undefined
+  const shippingMethod = order.shipping_methods?.[0] as
+    | { name?: string }
+    | undefined
 
   return (
     <div>
@@ -25,7 +27,10 @@ const ShippingDetails = ({ order }: ShippingDetailsProps) => {
 
       {pickup ? (
         <div className="flex items-start gap-x-8">
-          <div className="flex flex-col w-1/2" data-testid="pickup-location-summary">
+          <div
+            className="flex flex-col w-1/2"
+            data-testid="pickup-location-summary"
+          >
             <Text className="txt-medium-plus text-hg-text mb-1">
               Pickup Location
             </Text>
@@ -34,7 +39,10 @@ const ShippingDetails = ({ order }: ShippingDetailsProps) => {
             </Text>
           </div>
 
-          <div className="flex flex-col w-1/2" data-testid="pickup-contact-summary">
+          <div
+            className="flex flex-col w-1/2"
+            data-testid="pickup-contact-summary"
+          >
             <Text className="txt-medium-plus text-hg-text mb-1">
               Arrange Pickup
             </Text>
@@ -60,15 +68,16 @@ const ShippingDetails = ({ order }: ShippingDetailsProps) => {
               {order.shipping_address?.last_name}
             </Text>
             <Text className="txt-medium text-hg-text-secondary">
-              {order.shipping_address?.address_1}{" "}
-              {order.shipping_address?.address_2}
+              {order.shipping_address?.address_1}
             </Text>
+            {order.shipping_address?.address_2 && (
+              <Text className="txt-medium text-hg-text-secondary">
+                {order.shipping_address.address_2}
+              </Text>
+            )}
             <Text className="txt-medium text-hg-text-secondary">
-              {order.shipping_address?.postal_code},{" "}
-              {order.shipping_address?.city}
-            </Text>
-            <Text className="txt-medium text-hg-text-secondary">
-              {order.shipping_address?.country_code?.toUpperCase()}
+              {order.shipping_address?.city} {order.shipping_address?.province}{" "}
+              {order.shipping_address?.postal_code}
             </Text>
           </div>
 
@@ -80,7 +89,9 @@ const ShippingDetails = ({ order }: ShippingDetailsProps) => {
             <Text className="txt-medium text-hg-text-secondary">
               {order.shipping_address?.phone}
             </Text>
-            <Text className="txt-medium text-hg-text-secondary">{order.email}</Text>
+            <Text className="txt-medium text-hg-text-secondary">
+              {order.email}
+            </Text>
           </div>
 
           <div

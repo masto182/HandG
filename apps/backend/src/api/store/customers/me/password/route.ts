@@ -1,7 +1,4 @@
-import {
-  AuthenticatedMedusaRequest,
-  MedusaResponse,
-} from "@medusajs/framework/http"
+import { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
 /**
  * Authenticated password change for the current customer. Verifies the old
@@ -25,14 +22,10 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
     return res.status(400).json({ error: "old_password required" })
   }
   if (!newPassword || newPassword.length < 12) {
-    return res
-      .status(400)
-      .json({ error: "new_password must be at least 12 characters" })
+    return res.status(400).json({ error: "new_password must be at least 12 characters" })
   }
   if (oldPassword === newPassword) {
-    return res
-      .status(400)
-      .json({ error: "new_password must differ from old_password" })
+    return res.status(400).json({ error: "new_password must differ from old_password" })
   }
 
   // Resolve customer to find email (which is the auth identity entity_id).
@@ -68,13 +61,12 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
 
   // 2. Update password
   const update = await authModule.updateProvider("emailpass", {
+    // workflow-exempt
     entity_id: email,
     password: newPassword,
   })
   if (!update?.success) {
-    return res
-      .status(500)
-      .json({ error: update?.error || "password update failed" })
+    return res.status(500).json({ error: update?.error || "password update failed" })
   }
 
   return res.json({ ok: true })

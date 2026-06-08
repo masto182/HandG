@@ -10,27 +10,40 @@ export type OrderPaymentCapturedProps = {
   storeUrl: string
 }
 
-export const subject = (p: OrderPaymentCapturedProps) =>
-  `Payment received · #${p.orderDisplayId}`
+export const subject = (p: OrderPaymentCapturedProps) => `Payment confirmed · #${p.orderDisplayId}`
 
 export default function OrderPaymentCapturedEmail({
-  name,
-  orderDisplayId,
-  storeUrl,
+  name = "Alex",
+  orderDisplayId = "1234",
+  storeUrl = "https://hopsandglory.au",
 }: OrderPaymentCapturedProps) {
   return (
     <Layout
-      preview={`Payment received for order #${orderDisplayId}`}
+      preview={`Payment received for order #${orderDisplayId} — your order is being prepared`}
       storeUrl={storeUrl}
     >
-      <Heading>Payment Received</Heading>
-      <Text>Hi {name},</Text>
-      <Text>
-        We&apos;ve received your payment for order{" "}
-        <strong>#{orderDisplayId}</strong>. We&apos;ll let you know as soon as
-        it ships.
+      <Heading>Payment confirmed</Heading>
+      <Text style={body}>Hi {name},</Text>
+      <Text style={body}>
+        We&apos;ve received your payment for order <strong>#{orderDisplayId}</strong>. Your order is
+        now being prepared.
       </Text>
+      <Text style={muted}>We&apos;ll send a shipping notification once it&apos;s on its way.</Text>
       <Button href={`${storeUrl}/account/orders`}>View Order</Button>
     </Layout>
   )
+}
+
+const body = {
+  color: "#1E2421",
+  fontSize: "15px",
+  lineHeight: "1.6",
+  margin: "0 0 16px",
+}
+
+const muted = {
+  color: "#66706B",
+  fontSize: "14px",
+  lineHeight: "1.5",
+  margin: "0 0 8px",
 }

@@ -1,5 +1,16 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
-import { Container, Heading, Button, Input, Label, Switch, Badge, Table, Text } from "@medusajs/ui"
+import {
+  Container,
+  Heading,
+  Button,
+  Input,
+  Label,
+  Switch,
+  Badge,
+  Table,
+  Text,
+  usePrompt,
+} from "@medusajs/ui"
 import { useEffect, useState } from "react"
 import { sdk } from "../../lib/sdk"
 
@@ -40,6 +51,7 @@ const FROM_ADDRESS_KEYS = [
 const TOGGLE_KEYS = ["heat_hold_enabled", "auto_pick_cheapest_label"] as const
 
 const ShippingPage = () => {
+  const prompt = usePrompt()
   const [config, setConfig] = useState<Record<string, ConfigEntry>>({})
   const [draft, setDraft] = useState<Record<string, string>>({})
   const [carriers, setCarriers] = useState<Carrier[]>([])
@@ -74,7 +86,7 @@ const ShippingPage = () => {
     try {
       const res = await sdk.client.fetch<{ mode: "live" | "stub"; carriers: Carrier[] }>(
         "/admin/shipping/refresh-carriers",
-        { method: "POST" },
+        { method: "POST" }
       )
       setMode(res.mode)
       setCarriers(res.carriers)
@@ -89,7 +101,7 @@ const ShippingPage = () => {
     try {
       const res = await sdk.client.fetch<{ heat_hold_enabled: boolean; orders: HeldOrder[] }>(
         "/admin/orders/heat-held",
-        { method: "GET" },
+        { method: "GET" }
       )
       setHeldEnabled(res.heat_hold_enabled)
       setHeldOrders(res.orders)
@@ -109,7 +121,7 @@ const ShippingPage = () => {
     setError(null)
     try {
       await sdk.client.fetch(`/admin/site-config/${encodeURIComponent(key)}`, {
-        method: "PATCH",
+        method: "POST",
         body: { value },
       })
       await loadConfig()
@@ -133,8 +145,10 @@ const ShippingPage = () => {
     <Container className="p-6 space-y-6">
       <Heading level="h1">Shipping</Heading>
       <Text className="text-ui-fg-subtle">
-        ShipEngine integration ({mode === "live" ? <Badge>live</Badge> : <Badge color="orange">stub</Badge>}).
-        See <code>apps/backend/src/modules/shipengine/README.md</code> for cost model + AU carrier guidance.
+        ShipEngine integration (
+        {mode === "live" ? <Badge>live</Badge> : <Badge color="orange">stub</Badge>}). See{" "}
+        <code>apps/backend/src/modules/shipengine/README.md</code> for cost model + AU carrier
+        guidance.
       </Text>
 
       {error ? (
@@ -163,7 +177,20 @@ const ShippingPage = () => {
               <Switch
                 checked={checked}
                 disabled={savingKey === k}
-                onCheckedChange={(v) => patch(k, v)}
+                onCheckedChange={async (v) => {
+                  if (k === "heat_hold_enabled" && v) {
+                    const ok = await prompt({
+                      title: "Enable heat hold?",
+                      description:
+                        "All shipments will be blocked immediately. This affects every pending and future order until heat hold is disabled.",
+                      confirmText: "Enable heat hold",
+                      cancelText: "Cancel",
+                      variant: "danger",
+                    })
+                    if (!ok) return
+                  }
+                  patch(k, v)
+                }}
               />
             </div>
           )
@@ -171,8 +198,8 @@ const ShippingPage = () => {
         {heldEnabled && heldOrders.length > 0 ? (
           <Container className="bg-yellow-50 border border-yellow-300 p-3 rounded">
             <Text>
-              <strong>{heldOrders.length}</strong> order(s) currently held by heat hold. Toggle off OR mark
-              ready-to-ship with override per order.
+              <strong>{heldOrders.length}</strong> order(s) currently held by heat hold. Toggle off
+              OR mark ready-to-ship with override per order.
             </Text>
           </Container>
         ) : null}
@@ -182,7 +209,8 @@ const ShippingPage = () => {
       <Container className="border p-4 space-y-4">
         <Heading level="h2">Ship-from address</Heading>
         <Text className="text-ui-fg-subtle text-xs">
-          Used for every label. Match the address registered with your AusPost MyPost Business pickup.
+          Used for every label. Match the address registered with your AusPost MyPost Business
+          pickup.
         </Text>
         <div className="grid grid-cols-2 gap-3">
           {FROM_ADDRESS_KEYS.map((k) => {
@@ -212,7 +240,11 @@ const ShippingPage = () => {
       <Container className="border p-4 space-y-4">
         <div className="flex items-center justify-between">
           <Heading level="h2">Carriers</Heading>
-          <Button onClick={() => void refreshCarriers()} disabled={carriersLoading} variant="secondary">
+          <Button
+            onClick={() => void refreshCarriers()}
+            disabled={carriersLoading}
+            variant="secondary"
+          >
             {carriersLoading ? "Refreshing..." : "Refresh from ShipEngine"}
           </Button>
         </div>
@@ -232,8 +264,13 @@ const ShippingPage = () => {
               :
             </Text>
             <ol className="list-decimal pl-6 text-ui-fg-subtle text-sm mt-2 space-y-1">
-              <li>Enable <strong>CouriersPlease</strong> + <strong>Aramex Australia</strong> from the "ShipStation Carriers" list (cheaper rates, no contract).</li>
-              <li>Connect <strong>Australia Post MyPost Business</strong> (your own credentials).</li>
+              <li>
+                Enable <strong>CouriersPlease</strong> + <strong>Aramex Australia</strong> from the
+                "ShipStation Carriers" list (cheaper rates, no contract).
+              </li>
+              <li>
+                Connect <strong>Australia Post MyPost Business</strong> (your own credentials).
+              </li>
               <li>Refresh this panel and tick the carriers you want to use.</li>
             </ol>
           </Container>
@@ -259,12 +296,19 @@ const ShippingPage = () => {
                     />
                   </Table.Cell>
                   <Table.Cell>{c.friendly_name}</Table.Cell>
-                  <Table.Cell><code>{c.carrier_code}</code></Table.Cell>
+                  <Table.Cell>
+                    <code>{c.carrier_code}</code>
+                  </Table.Cell>
                   <Table.Cell className="text-xs">
-                    {c.services.slice(0, 4).map((s) => s.service_code).join(", ")}
+                    {c.services
+                      .slice(0, 4)
+                      .map((s) => s.service_code)
+                      .join(", ")}
                     {c.services.length > 4 ? ` (+${c.services.length - 4})` : ""}
                   </Table.Cell>
-                  <Table.Cell className="text-xs"><code>{c.carrier_id}</code></Table.Cell>
+                  <Table.Cell className="text-xs">
+                    <code>{c.carrier_id}</code>
+                  </Table.Cell>
                 </Table.Row>
               ))}
             </Table.Body>
@@ -279,13 +323,15 @@ const ShippingPage = () => {
 }
 
 const RateComparisonSnapshot = () => {
-  const [rows, setRows] = useState<Array<{
-    sampled_at: string
-    label: string
-    cheapest_carrier_code: string
-    cheapest_amount_cents: number
-    carrier_results: Array<{ carrier_code: string; amount_cents: number }>
-  }>>([])
+  const [rows, setRows] = useState<
+    Array<{
+      sampled_at: string
+      label: string
+      cheapest_carrier_code: string
+      cheapest_amount_cents: number
+      carrier_results: Array<{ carrier_code: string; amount_cents: number }>
+    }>
+  >([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -301,13 +347,15 @@ const RateComparisonSnapshot = () => {
     <Container className="border p-4 space-y-4">
       <Heading level="h2">Rate comparison (last sample)</Heading>
       <Text className="text-ui-fg-subtle text-xs">
-        Weekly cron quotes 4 sample shipments across configured carriers. Used to spot pricing trends and
-        validate the carrier mix.
+        Weekly cron quotes 4 sample shipments across configured carriers. Used to spot pricing
+        trends and validate the carrier mix.
       </Text>
       {loading ? <Text>Loading…</Text> : null}
       {error ? <Text className="text-red-600">{error}</Text> : null}
       {!loading && rows.length === 0 ? (
-        <Text className="text-ui-fg-subtle">No samples yet. The cron runs weekly; first run will populate this card.</Text>
+        <Text className="text-ui-fg-subtle">
+          No samples yet. The cron runs weekly; first run will populate this card.
+        </Text>
       ) : null}
       {rows.length > 0 ? (
         <Table>
@@ -324,14 +372,18 @@ const RateComparisonSnapshot = () => {
             {rows.map((r, i) => (
               <Table.Row key={i}>
                 <Table.Cell>{r.label}</Table.Cell>
-                <Table.Cell><code>{r.cheapest_carrier_code}</code></Table.Cell>
+                <Table.Cell>
+                  <code>{r.cheapest_carrier_code}</code>
+                </Table.Cell>
                 <Table.Cell>${(r.cheapest_amount_cents / 100).toFixed(2)}</Table.Cell>
                 <Table.Cell className="text-xs">
                   {r.carrier_results
                     .map((c) => `${c.carrier_code}=$${(c.amount_cents / 100).toFixed(2)}`)
                     .join(", ")}
                 </Table.Cell>
-                <Table.Cell className="text-xs">{new Date(r.sampled_at).toLocaleString()}</Table.Cell>
+                <Table.Cell className="text-xs">
+                  {new Date(r.sampled_at).toLocaleString()}
+                </Table.Cell>
               </Table.Row>
             ))}
           </Table.Body>

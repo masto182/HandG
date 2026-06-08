@@ -1,0 +1,17 @@
+# Staging compose override.
+#
+# Usage: docker compose -f docker-compose.prod.yml -f docker-compose.staging.yml \
+#          --env-file .env.staging up -d
+#
+# Swaps the Caddy config to Caddyfile.staging (single site block, no mirror block)
+# so the staging VM can use PRIMARY_DOMAIN=staging.hopsandglory.au without Caddy
+# erroring on a duplicate site address.
+
+services:
+  caddy:
+    volumes:
+      - ./Caddyfile.staging:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      DOMAIN: ${PRIMARY_DOMAIN}

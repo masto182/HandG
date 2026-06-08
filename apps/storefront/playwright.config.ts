@@ -2,6 +2,7 @@ import { defineConfig } from "@playwright/test"
 
 export default defineConfig({
   testDir: "./e2e",
+  globalSetup: "./e2e/globalSetup.ts",
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
@@ -19,5 +20,8 @@ export default defineConfig({
       use: { browserName: "chromium" },
     },
   ],
-  timeout: 30000,
+  // Bumped from 30s — VIP tier-walk and buy-now flows go through several
+  // server-side workflows (cart → payment session → capture → score recompute)
+  // and need headroom on slower CI runners.
+  timeout: 90_000,
 })

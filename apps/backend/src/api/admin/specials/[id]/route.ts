@@ -1,14 +1,8 @@
-import {
-  AuthenticatedMedusaRequest,
-  MedusaResponse,
-} from "@medusajs/framework/http"
+import { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { CAMPAIGN_MODULE } from "../../../../modules/campaign"
 import type CampaignModuleService from "../../../../modules/campaign/service"
 
-export async function GET(
-  req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
-) {
+export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   const svc = req.scope.resolve(CAMPAIGN_MODULE) as CampaignModuleService
   const { id } = req.params
   try {
@@ -19,10 +13,7 @@ export async function GET(
   }
 }
 
-export async function POST(
-  req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
-) {
+export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   const svc = req.scope.resolve(CAMPAIGN_MODULE) as CampaignModuleService
   const { id } = req.params
   const body = req.body as Record<string, unknown>
@@ -37,20 +28,19 @@ export async function POST(
   res.json({ campaign: updated })
 }
 
-export async function DELETE(
-  req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
-) {
+export async function DELETE(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   const svc = req.scope.resolve(CAMPAIGN_MODULE) as CampaignModuleService
   const { id } = req.params
 
   const campaign = await (svc as any).retrieveSpecialCampaign(id)
+
+  // Delete the price list first. If this throws, we surface the error rather
+  // than silently continuing and leaving an orphaned campaign record with a
+  // dangling price_list_id reference.
   if (campaign.price_list_id) {
-    try {
-      const { Modules } = await import("@medusajs/framework/utils")
-      const pricingModule = req.scope.resolve(Modules.PRICING) as any
-      await pricingModule.deletePriceLists([campaign.price_list_id])
-    } catch {}
+    const { Modules } = await import("@medusajs/framework/utils")
+    const pricingModule = req.scope.resolve(Modules.PRICING) as any
+    await pricingModule.deletePriceLists([campaign.price_list_id]) // workflow-exempt
   }
 
   await (svc as any).deleteSpecialCampaigns([id])

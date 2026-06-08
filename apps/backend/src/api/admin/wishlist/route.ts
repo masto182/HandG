@@ -1,10 +1,13 @@
 import { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { Modules } from "@medusajs/framework/utils"
+import { Modules, ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { VIP_SCORE_MODULE } from "../../../modules/vip-score"
 
 export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   const wishlistService = req.scope.resolve("wishlist") as any
   const customerModule = req.scope.resolve(Modules.CUSTOMER) as any
   const productModule = req.scope.resolve(Modules.PRODUCT) as any
+  const vipScoreService = req.scope.resolve(VIP_SCORE_MODULE) as any
+  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
   const mode = (req.query.mode as string) || "price_point"
   const pending = req.query.pending === "true"
@@ -22,6 +25,39 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
   if (pending) filter.admin_approved_offer = false
   const items = await wishlistService.listWishlists(filter)
 
+  // Preload VIP tiers keyed by customer for fast lookup
+  const tierByCustomer = new Map<string, string>()
+  try {
+    const scores = await vipScoreService.listVipScores({})
+    for (const s of scores) {
+      tierByCustomer.set((s as any).customer_id, (s as any).current_tier)
+    }
+  } catch {}
+
+  // Stock for a product = sum of available_quantity across its variants'
+  // inventory levels (mirrors api/store/inventory; avoids the list-endpoint
+  // inventory_quantity bug by querying product_variant directly).
+  const stockForProduct = async (productId: string): Promise<number | null> => {
+    try {
+      const { data: variants } = await query.graph({
+        entity: "product_variant",
+        fields: ["id", "inventory_items.inventory.location_levels.available_quantity"],
+        filters: { product_id: productId },
+      })
+      let total = 0
+      for (const v of variants as any[]) {
+        for (const ii of v.inventory_items || []) {
+          for (const ll of ii.inventory?.location_levels || []) {
+            total += Number(ll.available_quantity || 0)
+          }
+        }
+      }
+      return total
+    } catch {
+      return null
+    }
+  }
+
   const enriched = await Promise.all(
     items.map(async (item: any) => {
       let customer_email: string | undefined
@@ -32,19 +68,30 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
         customer_email = c?.email
       } catch {}
       try {
-        const [p] = await productModule.listProducts(
-          { id: item.product_id },
-          { select: ["id", "title"], relations: ["variants", "variants.prices"] }
-        )
-        product_title = p?.title
-        const prices: number[] = []
-        for (const v of p?.variants || []) {
-          for (const pr of v.prices || []) {
-            if (pr.currency_code === currency) prices.push(Number(pr.amount))
+        const { data: productData } = await query.graph({
+          entity: "product",
+          filters: { id: item.product_id },
+          fields: [
+            "id",
+            "title",
+            "variants.id",
+            "variants.prices.amount",
+            "variants.prices.currency_code",
+          ],
+        })
+        if (productData?.[0]) {
+          product_title = (productData[0] as any).title
+          const prices: number[] = []
+          for (const v of (productData[0] as any).variants || []) {
+            for (const pr of (v as any).prices || []) {
+              if ((pr as any).currency_code?.toLowerCase() === currency)
+                prices.push(Number((pr as any).amount))
+            }
           }
+          if (prices.length) current_price = Math.min(...prices)
         }
-        if (prices.length) current_price = Math.min(...prices)
       } catch {}
+      const stock = await stockForProduct(item.product_id)
       return {
         id: item.id,
         customer_id: item.customer_id,
@@ -54,8 +101,10 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
         admin_offer_price: item.admin_offer_price,
         admin_offer_expires_at: item.admin_offer_expires_at,
         customer_email,
+        customer_tier: tierByCustomer.get(item.customer_id) || "approved",
         product_title,
         current_price,
+        stock,
       }
     })
   )

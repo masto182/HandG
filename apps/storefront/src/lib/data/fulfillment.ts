@@ -5,7 +5,11 @@ import { HttpTypes } from "@medusajs/types"
 import { isStaleCartError } from "@lib/util/medusa-error"
 import { getAuthHeaders, getCacheOptions } from "./cookies"
 
-export type CarrierGroup = "australia_post" | "couriers_please" | "aramex" | "other"
+export type CarrierGroup =
+  | "australia_post"
+  | "couriers_please"
+  | "aramex"
+  | "other"
 export type ServiceTier = "standard" | "express"
 export type DeliveryBehaviour = "attempted" | "leave_at_door" | "signature"
 
@@ -85,7 +89,10 @@ export async function getCarrierRates(
       carrier_unavailable: res?.carrier_unavailable ?? [],
       require_signature: res?.require_signature ?? !!opts?.requireSignature,
     }))
-    .catch(() => empty)
+    .catch((err) => {
+      console.error("[getCarrierRates] failed:", err?.message ?? err)
+      return empty
+    })
 }
 
 export const listCartShippingMethods = async (cartId: string) => {
@@ -104,11 +111,14 @@ export const listCartShippingMethods = async (cartId: string) => {
       `/store/shipping-options`,
       {
         method: "GET",
-        query: { cart_id: cartId, fields: "+service_zone.fulfillment_set.type,+type.code" },
+        query: {
+          cart_id: cartId,
+          fields: "+service_zone.fulfillment_set.type,+type.code",
+        },
         headers,
         next,
         cache: "no-store",
-      }
+      },
     )
     .then(({ shipping_options }) => {
       return shipping_options
@@ -117,7 +127,10 @@ export const listCartShippingMethods = async (cartId: string) => {
       // Stale cart references (cart deleted server-side, cookie still in
       // browser) are recoverable on the next mutation — don't pollute logs.
       if (!isStaleCartError(e)) {
-        console.error("[Fulfillment] listCartShippingMethods error:", e?.message ?? e)
+        console.error(
+          "[Fulfillment] listCartShippingMethods error:",
+          e?.message ?? e,
+        )
       }
       return null
     })
@@ -126,7 +139,7 @@ export const listCartShippingMethods = async (cartId: string) => {
 export const calculatePriceForShippingOption = async (
   optionId: string,
   cartId: string,
-  data?: Record<string, unknown>
+  data?: Record<string, unknown>,
 ) => {
   const headers = {
     ...(await getAuthHeaders()),
@@ -150,7 +163,7 @@ export const calculatePriceForShippingOption = async (
         body,
         headers,
         next,
-      }
+      },
     )
     .then(({ shipping_option }) => shipping_option)
     .catch((_e) => {

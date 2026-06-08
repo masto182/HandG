@@ -1,20 +1,15 @@
-import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import type { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { recordAuspostTrackingWorkflow } from "../../../../../../workflows/record-auspost-tracking"
 
 /**
  * POST /admin/orders/:id/auspost/tracking
  *
- * Body: {
- *   fulfillment_id: string,
- *   tracking_numbers: string[],   // one per parcel
- *   carrier_url?: string,         // optional override (default Australia Post tracking)
- * }
- *
  * Records the tracking numbers the operator pasted from MyPost Business after
- * lodging the parcels manually. Sets the fulfillment's shipped_at and emits
- * the order.shipment_created event so the order-shipped-email subscriber fires.
+ * lodging the parcels manually. Wrapped in a compensatable workflow step so
+ * the metadata write can be rolled back if subsequent operations fail.
  */
-export async function POST(req: MedusaRequest, res: MedusaResponse) {
+export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   const orderId = req.params.id
   const body = (req.body ?? {}) as {
     fulfillment_id?: string
@@ -42,7 +37,6 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
 
   const fulfillmentModule = req.scope.resolve(Modules.FULFILLMENT) as {
     retrieveFulfillment(id: string): Promise<any>
-    updateFulfillment(id: string, update: Record<string, unknown>): Promise<any>
   }
 
   let fulfillment: any
@@ -55,31 +49,17 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
 
   const existingData = (fulfillment?.data ?? {}) as Record<string, unknown>
   if (!existingData.manual_lodgement) {
-    res.status(400).json({
-      message: "fulfillment is not a manual_lodgement (auspost) fulfillment",
-    })
+    res.status(400).json({ message: "fulfillment is not a manual_lodgement (auspost) fulfillment" })
     return
   }
 
-  const trackingUrl = (n: string) =>
-    body.carrier_url
-      ? `${body.carrier_url}${encodeURIComponent(n)}`
-      : `https://auspost.com.au/mypost/track/details/${encodeURIComponent(n)}`
-
-  const labels = tracking.map((n) => ({
-    tracking_number: n,
-    tracking_url: trackingUrl(n),
-    label_url: "",
-  }))
-
-  await fulfillmentModule.updateFulfillment(body.fulfillment_id, {
-    data: {
-      ...existingData,
+  const { result } = await recordAuspostTrackingWorkflow(req.scope).run({
+    input: {
+      order_id: orderId,
+      fulfillment_id: body.fulfillment_id,
       tracking_numbers: tracking,
-      lodged_at: new Date().toISOString(),
+      carrier_url: body.carrier_url,
     },
-    labels,
-    shipped_at: new Date(),
   })
 
   // Emit shipment_created so the order-shipped-email subscriber notifies the customer.
@@ -95,13 +75,10 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       },
     ])
   } catch (err) {
-    logger.warn(`[auspost] tracking saved but shipment_created emit failed: ${(err as Error).message}`)
+    logger.warn(
+      `[auspost] tracking saved but shipment_created emit failed: ${(err as Error).message}`
+    )
   }
 
-  res.json({
-    ok: true,
-    fulfillment_id: body.fulfillment_id,
-    tracking_numbers: tracking,
-    labels,
-  })
+  res.json(result)
 }

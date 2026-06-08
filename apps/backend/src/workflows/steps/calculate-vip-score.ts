@@ -58,8 +58,8 @@ type OrderRow = {
   id: string
   total?: number | string | null
   created_at?: string | Date | null
-  payment_status?: string | null
   customer_id?: string | null
+  payment_collections?: Array<{ status?: string | null; captured_amount?: number | null }> | null
 }
 
 function windowStart(now: Date, rollingWindowMonths: number): Date {
@@ -75,9 +75,14 @@ function sumCaptured(orders: OrderRow[], since: Date): { total: number; count: n
     if (!o.created_at) continue
     const createdAt = new Date(o.created_at as any)
     if (createdAt < since) continue
-    // Only captured payments contribute. Treat missing payment_status as not captured
-    // so unpaid PayID orders during the 24h hold do not inflate scores.
-    if (o.payment_status !== "captured") continue
+    // Determine captured status from payment_collections (payment_status is not
+    // a scalar on the order entity in Medusa v2 query.graph).
+    const collections = o.payment_collections ?? []
+    const isCaptured =
+      collections.length === 0
+        ? false
+        : collections.some((pc) => pc.status === "completed" || (pc.captured_amount ?? 0) > 0)
+    if (!isCaptured) continue
     total += Number(o.total ?? 0) || 0
     count += 1
   }
@@ -87,7 +92,14 @@ function sumCaptured(orders: OrderRow[], since: Date): { total: number; count: n
 async function fetchCustomerOrders(query: any, customerId: string): Promise<OrderRow[]> {
   const { data } = await query.graph({
     entity: "order",
-    fields: ["id", "total", "created_at", "payment_status", "customer_id"],
+    fields: [
+      "id",
+      "total",
+      "created_at",
+      "customer_id",
+      "payment_collections.status",
+      "payment_collections.captured_amount",
+    ],
     filters: { customer_id: customerId },
   })
   return (data || []) as OrderRow[]
@@ -168,9 +180,9 @@ export async function calculateVipScore(
     vipConfig.directMultiplier * directSpend +
     vipConfig.indirectMultiplier * indirectSpend
 
-  // Upsert vip_score row. Legacy column names kept to avoid a migration:
+  // Upsert vip_score row.
   //   personal_spend_12mo  -> personal spend in the rolling window
-  //   network_spend_12mo   -> direct + indirect referral spend (raw, pre-multiplier)
+  //   direct/indirect_spend_12mo -> referral spend breakdown (raw, pre-multiplier)
   //   order_count_12mo     -> personal orders in the rolling window
   const existing = await vipScoreService.listVipScores({
     customer_id: input.customer_id,
@@ -182,21 +194,33 @@ export async function calculateVipScore(
     // the score breakdown without re-deriving on each request.
     direct_spend_12mo: directSpend,
     indirect_spend_12mo: indirectSpend,
-    network_spend_12mo: directSpend + indirectSpend,
     vip_score: vipScore,
     order_count_12mo: personal.count,
     last_evaluated_at: now,
   }
 
   if (existing.length) {
-    await vipScoreService.updateVipScores(existing[0].id, payload)
+    await vipScoreService.updateVipScores({ id: existing[0].id, ...payload })
   } else {
-    await vipScoreService.createVipScores({
-      customer_id: input.customer_id,
-      current_tier: "approved",
-      tier_achieved_at: now,
-      ...payload,
-    })
+    try {
+      await vipScoreService.createVipScores({
+        customer_id: input.customer_id,
+        current_tier: "approved",
+        tier_achieved_at: now,
+        ...payload,
+      })
+    } catch (err) {
+      // A concurrent run may have created the row first (unique customer_id).
+      // Re-read and update rather than failing.
+      const [again] = await vipScoreService.listVipScores({
+        customer_id: input.customer_id,
+      })
+      if (again) {
+        await vipScoreService.updateVipScores({ id: again.id, ...payload })
+      } else {
+        throw err
+      }
+    }
   }
 
   return {

@@ -5,13 +5,16 @@ type Order = {
   customer_id: string
   total: number
   created_at: string
-  payment_status?: string
+  payment_collections?: Array<{ status?: string | null; captured_amount?: number | null }>
 }
 
 function buildDeps(opts: {
   now: Date
   ordersByCustomer: Record<string, Order[]>
-  referralsByReferrer: Record<string, Array<{ referred_customer_id: string; stealth_mode?: boolean }>>
+  referralsByReferrer: Record<
+    string,
+    Array<{ referred_customer_id: string; stealth_mode?: boolean }>
+  >
   existing?: Array<{ id: string }>
 }) {
   const updates: any[] = []
@@ -38,8 +41,8 @@ function buildDeps(opts: {
         async listVipScores() {
           return opts.existing || []
         },
-        async updateVipScores(id: string, data: any) {
-          updates.push({ id, data })
+        async updateVipScores(data: any) {
+          updates.push(data)
         },
         async createVipScores(data: any) {
           creates.push(data)
@@ -61,7 +64,13 @@ describe("calculateVipScore", () => {
       now,
       ordersByCustomer: {
         A: [
-          { id: "o1", customer_id: "A", total: 300, created_at: inWindow, payment_status: "captured" },
+          {
+            id: "o1",
+            customer_id: "A",
+            total: 300,
+            created_at: inWindow,
+            payment_collections: [{ status: "completed", captured_amount: 300 }],
+          },
         ],
       },
       referralsByReferrer: {},
@@ -80,8 +89,24 @@ describe("calculateVipScore", () => {
     const { deps } = buildDeps({
       now,
       ordersByCustomer: {
-        A: [{ id: "a1", customer_id: "A", total: 100, created_at: inWindow, payment_status: "captured" }],
-        B: [{ id: "b1", customer_id: "B", total: 200, created_at: inWindow, payment_status: "captured" }],
+        A: [
+          {
+            id: "a1",
+            customer_id: "A",
+            total: 100,
+            created_at: inWindow,
+            payment_collections: [{ status: "completed", captured_amount: 100 }],
+          },
+        ],
+        B: [
+          {
+            id: "b1",
+            customer_id: "B",
+            total: 200,
+            created_at: inWindow,
+            payment_collections: [{ status: "completed", captured_amount: 200 }],
+          },
+        ],
       },
       referralsByReferrer: {
         A: [{ referred_customer_id: "B" }],
@@ -99,9 +124,33 @@ describe("calculateVipScore", () => {
     const { deps } = buildDeps({
       now,
       ordersByCustomer: {
-        A: [{ id: "a1", customer_id: "A", total: 100, created_at: inWindow, payment_status: "captured" }],
-        B: [{ id: "b1", customer_id: "B", total: 200, created_at: inWindow, payment_status: "captured" }],
-        C: [{ id: "c1", customer_id: "C", total: 500, created_at: inWindow, payment_status: "captured" }],
+        A: [
+          {
+            id: "a1",
+            customer_id: "A",
+            total: 100,
+            created_at: inWindow,
+            payment_collections: [{ status: "completed", captured_amount: 100 }],
+          },
+        ],
+        B: [
+          {
+            id: "b1",
+            customer_id: "B",
+            total: 200,
+            created_at: inWindow,
+            payment_collections: [{ status: "completed", captured_amount: 200 }],
+          },
+        ],
+        C: [
+          {
+            id: "c1",
+            customer_id: "C",
+            total: 500,
+            created_at: inWindow,
+            payment_collections: [{ status: "completed", captured_amount: 500 }],
+          },
+        ],
       },
       referralsByReferrer: {
         A: [{ referred_customer_id: "B" }],
@@ -122,8 +171,20 @@ describe("calculateVipScore", () => {
       now,
       ordersByCustomer: {
         A: [
-          { id: "old", customer_id: "A", total: 999, created_at: outsideWindow, payment_status: "captured" },
-          { id: "new", customer_id: "A", total: 50, created_at: inWindow, payment_status: "captured" },
+          {
+            id: "old",
+            customer_id: "A",
+            total: 999,
+            created_at: outsideWindow,
+            payment_collections: [{ status: "completed", captured_amount: 999 }],
+          },
+          {
+            id: "new",
+            customer_id: "A",
+            total: 50,
+            created_at: inWindow,
+            payment_collections: [{ status: "completed", captured_amount: 50 }],
+          },
         ],
       },
       referralsByReferrer: {},
@@ -139,10 +200,34 @@ describe("calculateVipScore", () => {
       now,
       ordersByCustomer: {
         A: [
-          { id: "paid", customer_id: "A", total: 100, created_at: inWindow, payment_status: "captured" },
-          { id: "pending", customer_id: "A", total: 500, created_at: inWindow, payment_status: "pending" },
-          { id: "authed", customer_id: "A", total: 300, created_at: inWindow, payment_status: "authorized" },
-          { id: "no_status", customer_id: "A", total: 200, created_at: inWindow },
+          {
+            id: "paid",
+            customer_id: "A",
+            total: 100,
+            created_at: inWindow,
+            payment_collections: [{ status: "completed", captured_amount: 100 }],
+          },
+          {
+            id: "pending",
+            customer_id: "A",
+            total: 500,
+            created_at: inWindow,
+            payment_collections: [{ status: "not_paid", captured_amount: 0 }],
+          },
+          {
+            id: "authed",
+            customer_id: "A",
+            total: 300,
+            created_at: inWindow,
+            payment_collections: [{ status: "authorized", captured_amount: 0 }],
+          },
+          {
+            id: "no_status",
+            customer_id: "A",
+            total: 200,
+            created_at: inWindow,
+            payment_collections: [],
+          },
         ],
       },
       referralsByReferrer: {},
@@ -158,8 +243,24 @@ describe("calculateVipScore", () => {
       now,
       ordersByCustomer: {
         A: [],
-        B: [{ id: "b1", customer_id: "B", total: 300, created_at: inWindow, payment_status: "captured" }],
-        C: [{ id: "c1", customer_id: "C", total: 400, created_at: inWindow, payment_status: "captured" }],
+        B: [
+          {
+            id: "b1",
+            customer_id: "B",
+            total: 300,
+            created_at: inWindow,
+            payment_collections: [{ status: "completed", captured_amount: 300 }],
+          },
+        ],
+        C: [
+          {
+            id: "c1",
+            customer_id: "C",
+            total: 400,
+            created_at: inWindow,
+            payment_collections: [{ status: "completed", captured_amount: 400 }],
+          },
+        ],
       },
       referralsByReferrer: {
         A: [
@@ -177,7 +278,15 @@ describe("calculateVipScore", () => {
     const { deps, updates, creates } = buildDeps({
       now,
       ordersByCustomer: {
-        A: [{ id: "o1", customer_id: "A", total: 10, created_at: inWindow, payment_status: "captured" }],
+        A: [
+          {
+            id: "o1",
+            customer_id: "A",
+            total: 10,
+            created_at: inWindow,
+            payment_collections: [{ status: "completed", captured_amount: 10 }],
+          },
+        ],
       },
       referralsByReferrer: {},
       existing: [{ id: "vs_existing" }],
@@ -187,6 +296,6 @@ describe("calculateVipScore", () => {
     expect(creates).toHaveLength(0)
     expect(updates).toHaveLength(1)
     expect(updates[0].id).toBe("vs_existing")
-    expect(updates[0].data.personal_spend_12mo).toBe(10)
+    expect(updates[0].personal_spend_12mo).toBe(10)
   })
 })

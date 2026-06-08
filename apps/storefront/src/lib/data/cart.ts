@@ -27,7 +27,7 @@ import { getLocale } from "./locale-actions"
  */
 async function withStaleCartRecovery<T>(
   op: () => Promise<T>,
-  retryOp?: () => Promise<T>
+  retryOp?: () => Promise<T>,
 ): Promise<T> {
   try {
     return await op()
@@ -48,7 +48,7 @@ async function withStaleCartRecovery<T>(
       // No retry path: surface a friendly message so the UI can re-render
       // with a clean cart on next request.
       throw new Error(
-        "Your cart was reset because it referenced items that are no longer available. Please try again."
+        "Your cart was reset because it referenced items that are no longer available. Please try again.",
       )
     }
     return medusaError(err)
@@ -138,7 +138,7 @@ export async function getOrSetCart(countryCode: string) {
     const cartResp = await sdk.store.cart.create(
       { region_id: region.id, locale: locale || undefined },
       {},
-      headers
+      headers,
     )
     await setCartId(cartResp.cart.id)
     const cartCacheTag = await getCacheTag("carts")
@@ -157,7 +157,7 @@ export async function getOrSetCart(countryCode: string) {
           cart!.id,
           { region_id: region.id },
           {},
-          headers
+          headers,
         )
         const cartCacheTag = await getCacheTag("carts")
         revalidateTag(cartCacheTag)
@@ -165,7 +165,7 @@ export async function getOrSetCart(countryCode: string) {
       },
       // Retry path: the existing cart was unrecoverable (stale variants from
       // a region wipe). Create a fresh one in the right region.
-      createFreshCart
+      createFreshCart,
     )
   }
 
@@ -222,7 +222,7 @@ export async function addToCart({
         cart!.id,
         { variant_id: variantId, quantity },
         {},
-        headers
+        headers,
       )
       const cartCacheTag = await getCacheTag("carts")
       revalidateTag(cartCacheTag)
@@ -242,13 +242,13 @@ export async function addToCart({
         fresh.id,
         { variant_id: variantId, quantity },
         {},
-        retryHeaders
+        retryHeaders,
       )
       const cartCacheTag = await getCacheTag("carts")
       revalidateTag(cartCacheTag)
       const fulfillmentCacheTag = await getCacheTag("fulfillment")
       revalidateTag(fulfillmentCacheTag)
-    }
+    },
   )
 }
 
@@ -274,7 +274,13 @@ export async function updateLineItem({
   }
 
   await withStaleCartRecovery(async () => {
-    await sdk.store.cart.updateLineItem(cartId, lineId, { quantity }, {}, headers)
+    await sdk.store.cart.updateLineItem(
+      cartId,
+      lineId,
+      { quantity },
+      {},
+      headers,
+    )
     const cartCacheTag = await getCacheTag("carts")
     revalidateTag(cartCacheTag)
     const fulfillmentCacheTag = await getCacheTag("fulfillment")
@@ -324,7 +330,7 @@ export async function setShippingMethod({
       cartId,
       { option_id: shippingMethodId, data },
       {},
-      headers
+      headers,
     )
     const cartCacheTag = await getCacheTag("carts")
     revalidateTag(cartCacheTag)
@@ -334,20 +340,23 @@ export async function setShippingMethod({
 
 export async function initiatePaymentSession(
   cart: HttpTypes.StoreCart,
-  data: HttpTypes.StoreInitializePaymentSession
+  data: HttpTypes.StoreInitializePaymentSession,
 ) {
   const headers = {
     ...(await getAuthHeaders()),
   }
 
-  return sdk.store.payment
-    .initiatePaymentSession(cart, data, {}, headers)
-    .then(async (resp) => {
-      const cartCacheTag = await getCacheTag("carts")
-      revalidateTag(cartCacheTag)
-      return resp
-    })
-    .catch(medusaError)
+  return withStaleCartRecovery(async () => {
+    const resp = await sdk.store.payment.initiatePaymentSession(
+      cart,
+      data,
+      {},
+      headers,
+    )
+    const cartCacheTag = await getCacheTag("carts")
+    revalidateTag(cartCacheTag)
+    return resp
+  })
 }
 
 export async function applyPromotions(codes: string[]) {
@@ -372,7 +381,7 @@ export async function applyPromotions(codes: string[]) {
 
 export async function submitPromotionForm(
   currentState: unknown,
-  formData: FormData
+  formData: FormData,
 ) {
   const code = formData.get("code") as string
   try {
@@ -402,7 +411,11 @@ export type SetAddressesInput = {
   same_as_billing?: boolean
 }
 
-export async function setAddresses(currentState: unknown, input: SetAddressesInput) {
+export async function setAddresses(
+  currentState: unknown,
+  input: SetAddressesInput,
+  saveAddress?: boolean,
+) {
   try {
     const cartId = await getCartId()
     if (!cartId) {
@@ -421,6 +434,35 @@ export async function setAddresses(currentState: unknown, input: SetAddressesInp
     }
 
     await updateCart(data)
+
+    if (saveAddress && input.shipping_address) {
+      const headers = { ...(await getAuthHeaders()) }
+      if ((headers as Record<string, string>).authorization) {
+        const addr = input.shipping_address
+        await sdk.store.customer
+          .createAddress(
+            {
+              first_name: addr.first_name || "",
+              last_name: addr.last_name || "",
+              address_1: addr.address_1 || "",
+              address_2: addr.address_2 || "",
+              company: addr.company || "",
+              city: addr.city || "",
+              province: addr.province || "",
+              postal_code: addr.postal_code || "",
+              country_code: addr.country_code || "",
+              phone: addr.phone || "",
+            },
+            {},
+            headers,
+          )
+          .then(async () => {
+            const customerCacheTag = await getCacheTag("customers")
+            revalidateTag(customerCacheTag)
+          })
+          .catch(() => {})
+      }
+    }
   } catch (e: any) {
     return e.message
   }
@@ -460,7 +502,7 @@ export async function placeOrder(cartId?: string) {
     const orderCacheTag = await getCacheTag("orders")
     revalidateTag(orderCacheTag)
 
-    removeCartId()
+    await removeCartId()
     redirect(`/order/${cartRes?.order.id}/confirmed`)
   }
 
@@ -507,9 +549,11 @@ export async function listCartOptions() {
   return await sdk.client.fetch<{
     shipping_options: HttpTypes.StoreCartShippingOption[]
   }>("/store/shipping-options", {
-    query: { cart_id: cartId, fields: "+service_zone.fulfillment_set.type,+type.code" },
+    query: {
+      cart_id: cartId,
+      fields: "+service_zone.fulfillment_set.type,+type.code",
+    },
     next,
     headers,
-    cache: "no-store",
   })
 }

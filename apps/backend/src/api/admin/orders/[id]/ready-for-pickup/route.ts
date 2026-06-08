@@ -1,28 +1,22 @@
-import {
-  AuthenticatedMedusaRequest,
-  MedusaResponse,
-} from "@medusajs/framework/http"
+import { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { Modules } from "@medusajs/framework/utils"
-import {
-  sendTemplate,
-  refreshEmailConfig,
-  getStoreUrl,
-} from "../../../../../lib/email"
+import { sendTemplate, refreshEmailConfig, getStoreUrl } from "../../../../../lib/email"
 import * as OrderReadyForPickupTpl from "../../../../../emails/order-ready-for-pickup"
 
 /**
  * POST /admin/orders/:id/ready-for-pickup
  *
- * Marks the order as ready for pickup (writes timestamp + optional location
- * metadata) and sends the customer the pickup-ready email. Idempotent:
- * re-calling will overwrite `ready_for_pickup_at` and re-send the email.
+ * Marks the order as ready for pickup (writes timestamp metadata) and sends
+ * the pickup-ready email. Idempotent: re-calling overwrites ready_for_pickup_at
+ * and re-sends.
+ *
+ * Compensation: if the email send fails after the metadata write, the timestamp
+ * is already set — this is acceptable since the endpoint is idempotent and the
+ * admin can re-call to re-send the email.
  */
-export const POST = async (
-  req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
-) => {
+export const POST = async (req: AuthenticatedMedusaRequest, res: MedusaResponse) => {
   const orderId = req.params.id
-  const orderModule = req.scope.resolve(Modules.ORDER)
+  const orderModule = req.scope.resolve(Modules.ORDER) as any
   const order = await orderModule.retrieveOrder(orderId)
   if (!order) {
     return res.status(404).json({ error: "Order not found" })
@@ -32,21 +26,16 @@ export const POST = async (
   }
 
   const body = (req.body || {}) as {
-    location_id?: string
     location_name?: string
     location_address?: string
     location_hours?: string
   }
 
-  // Prefer pickup snapshot from cart metadata if present (Sprint 2 pattern).
   const snapshot = (order as any).metadata?.pickup_location
-  const locationName =
-    body.location_name || snapshot?.name || "Hops & Glory pickup point"
+  const locationName = body.location_name || snapshot?.name || "Hops & Glory pickup point"
   const locationAddress =
     body.location_address ||
-    [snapshot?.address_line, snapshot?.suburb, snapshot?.postcode]
-      .filter(Boolean)
-      .join(", ") ||
+    [snapshot?.address_line, snapshot?.suburb, snapshot?.postcode].filter(Boolean).join(", ") ||
     ""
   const locationHours = body.location_hours || snapshot?.hours_summary
 

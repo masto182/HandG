@@ -33,16 +33,22 @@ const addWishlistItemStep = createStep(
   async (input: AddWishlistInput, { container }) => {
     const wishlistService = container.resolve(WISHLIST_MODULE) as any
 
+    const mode = input.mode || "buy_later"
+
+    // Dedupe per (customer, product, mode) to match the unique index — a
+    // customer may hold the same product under different modes (e.g. "like"
+    // plus "buy_later").
     const existing = await wishlistService.listWishlists({
       customer_id: input.customer_id,
       product_id: input.product_id,
+      mode,
     })
 
     if (existing.length) {
       const prev = { ...existing[0] }
       const updated = await wishlistService.updateWishlists({
         id: existing[0].id,
-        mode: input.mode || existing[0].mode || "buy_later",
+        mode,
         target_price: input.target_price ?? existing[0].target_price ?? null,
         stock_threshold: input.stock_threshold ?? existing[0].stock_threshold ?? 2,
       })
@@ -52,7 +58,7 @@ const addWishlistItemStep = createStep(
     const item = await wishlistService.createWishlists({
       customer_id: input.customer_id,
       product_id: input.product_id,
-      mode: input.mode || "buy_later",
+      mode,
       target_price: input.target_price ?? null,
       stock_threshold: input.stock_threshold ?? 2,
     })

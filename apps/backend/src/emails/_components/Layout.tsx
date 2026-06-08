@@ -14,72 +14,108 @@ import {
 export type LayoutProps = {
   preview: string
   storeUrl: string
-  /**
-   * When true, the footer renders an "Update email preferences" link.
-   * Transactional emails (orders, applications) MUST pass false.
-   */
   isMarketing?: boolean
   children: React.ReactNode
 }
 
 const main = {
-  backgroundColor: "#f6f6f6",
+  backgroundColor: "#F5F7F4",
   fontFamily:
-    "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
 }
 
 const container = {
-  backgroundColor: "#ffffff",
-  margin: "0 auto",
-  maxWidth: "560px",
-  padding: "40px 24px",
+  backgroundColor: "#FFFFFF",
+  border: "1px solid #D9E0DA",
+  borderRadius: "8px",
+  margin: "32px auto",
+  maxWidth: "600px",
+  padding: "0",
+}
+
+const topBar = {
+  backgroundColor: "#3F7C62",
+  borderRadius: "8px 8px 0 0",
+  height: "4px",
+  width: "100%",
+  display: "block",
+}
+
+const header = {
+  padding: "24px 32px 20px",
+  borderBottom: "1px solid #D9E0DA",
+}
+
+const wordmark = {
+  color: "#1E2421",
+  fontSize: "13px",
+  fontWeight: 700,
+  letterSpacing: "0.12em",
+  margin: 0,
+  textTransform: "uppercase" as const,
+}
+
+const content = {
+  padding: "32px 32px 24px",
 }
 
 const footer = {
-  color: "#666666",
+  borderTop: "1px solid #D9E0DA",
+  padding: "20px 32px 24px",
+}
+
+const footerText = {
+  color: "#66706B",
   fontSize: "12px",
   lineHeight: "20px",
-  marginTop: "32px",
-  textAlign: "center" as const,
+  margin: "0 0 4px",
 }
 
 const footerLink = {
-  color: "#666666",
-  textDecoration: "underline",
+  color: "#3F7C62",
+  textDecoration: "none",
 }
 
-export function Layout({
-  preview,
-  storeUrl,
-  isMarketing = false,
-  children,
-}: LayoutProps) {
+const footerAddress = {
+  color: "#8A948E",
+  fontSize: "11px",
+  lineHeight: "18px",
+  margin: "8px 0 0",
+}
+
+export function Layout({ preview, storeUrl, isMarketing = false, children }: LayoutProps) {
   return (
     <Html>
       <Head />
       <Preview>{preview}</Preview>
       <Body style={main}>
         <Container style={container}>
-          <Section>{children}</Section>
-          <Hr style={{ borderColor: "#eeeeee", margin: "32px 0 16px" }} />
-          <Text style={footer}>
-            — The {process.env.BRAND_NAME || "Example Store"} Team
-            <br />
-            <Link href={storeUrl} style={footerLink}>
-              {(storeUrl || "").replace(/^https?:\/\//, "")}
-            </Link>
-            {isMarketing ? (
-              <>
-                {" · "}
-                <Link
-                  href={`${storeUrl}/account/email-settings`}
-                  style={footerLink}
-                >
-                  Update email preferences
-                </Link>
-              </>
-            ) : null}
-          </Text>
+          <Section style={topBar} />
+          <Section style={header}>
+            <Text style={wordmark}>Hops &amp; Glory</Text>
+          </Section>
+          <Section style={content}>{children}</Section>
+          <Section style={footer}>
+            <Hr style={{ borderColor: "#D9E0DA", margin: "0 0 16px" }} />
+            <Text style={footerText}>
+              — The {process.env.BRAND_NAME || "Hops & Glory"} Team
+              {" · "}
+              <Link href={storeUrl} style={footerLink}>
+                {(storeUrl || "hopsandglory.au").replace(/^https?:\/\//, "")}
+              </Link>
+              {isMarketing ? (
+                <>
+                  {" · "}
+                  <Link href={`${storeUrl}/account/email-settings`} style={footerLink}>
+                    Update email preferences
+                  </Link>
+                </>
+              ) : null}
+            </Text>
+            <Text style={footerAddress}>
+              {process.env.STORE_ADDRESS || "Hops & Glory · Melbourne VIC 3000, Australia"}
+            </Text>
+          </Section>
         </Container>
       </Body>
     </Html>

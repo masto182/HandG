@@ -1,0 +1,152 @@
+[
+  {
+    "viewport": "desktop (1440px)",
+    "page": "/",
+    "innerWidth": 1440,
+    "mobileNavCount": 1,
+    "cartLinkCount": 1,
+    "navLabels": "HOPS & GLORY Collection Producers Hops search Search ⌘K SIGN",
+    "consoleErrors": 0,
+    "firstError": ""
+  },
+  {
+    "viewport": "desktop (1440px)",
+    "page": "/store",
+    "innerWidth": 1440,
+    "mobileNavCount": 1,
+    "cartLinkCount": 1,
+    "navLabels": "HOPS & GLORY Collection Producers Hops search Search ⌘K SIGN",
+    "consoleErrors": 0,
+    "firstError": ""
+  },
+  {
+    "viewport": "desktop (1440px)",
+    "page": "/products/e2e-test-pale-ale",
+    "innerWidth": 1440,
+    "mobileNavCount": 1,
+    "cartLinkCount": 1,
+    "navLabels": "HOPS & GLORY Collection Producers Hops search Search ⌘K SIGN",
+    "consoleErrors": 0,
+    "firstError": ""
+  },
+  {
+    "viewport": "desktop (1440px)",
+    "page": "/breweries",
+    "innerWidth": 1440,
+    "mobileNavCount": 1,
+    "cartLinkCount": 1,
+    "navLabels": "HOPS & GLORY Collection Producers Hops search Search ⌘K SIGN",
+    "consoleErrors": 0,
+    "firstError": ""
+  },
+  {
+    "viewport": "desktop (1440px)",
+    "page": "/apply",
+    "innerWidth": 1440,
+    "mobileNavCount": 1,
+    "cartLinkCount": 1,
+    "navLabels": "HOPS & GLORY Collection Producers Hops search Search ⌘K SIGN",
+    "consoleErrors": 0,
+    "firstError": ""
+  },
+  {
+    "viewport": "tablet (768px)",
+    "page": "/",
+    "innerWidth": 768,
+    "mobileNavCount": 1,
+    "cartLinkCount": 1,
+    "navLabels": "HOPS & GLORY search SIGN IN APPLY",
+    "consoleErrors": 0,
+    "firstError": ""
+  },
+  {
+    "viewport": "tablet (768px)",
+    "page": "/store",
+    "innerWidth": 768,
+    "mobileNavCount": 1,
+    "cartLinkCount": 1,
+    "navLabels": "HOPS & GLORY search SIGN IN APPLY",
+    "consoleErrors": 0,
+    "firstError": ""
+  },
+  {
+    "viewport": "tablet (768px)",
+    "page": "/products/e2e-test-pale-ale",
+    "innerWidth": 768,
+    "mobileNavCount": 1,
+    "cartLinkCount": 1,
+    "navLabels": "HOPS & GLORY search SIGN IN APPLY",
+    "consoleErrors": 0,
+    "firstError": ""
+  },
+  {
+    "viewport": "tablet (768px)",
+    "page": "/breweries",
+    "innerWidth": 768,
+    "mobileNavCount": 1,
+    "cartLinkCount": 1,
+    "navLabels": "HOPS & GLORY search SIGN IN APPLY",
+    "consoleErrors": 0,
+    "firstError": ""
+  },
+  {
+    "viewport": "tablet (768px)",
+    "page": "/apply",
+    "innerWidth": 768,
+    "mobileNavCount": 1,
+    "cartLinkCount": 1,
+    "navLabels": "HOPS & GLORY search SIGN IN APPLY",
+    "consoleErrors": 0,
+    "firstError": ""
+  },
+  {
+    "viewport": "mobile (390px)",
+    "page": "/",
+    "innerWidth": 390,
+    "mobileNavCount": 1,
+    "cartLinkCount": 1,
+    "navLabels": "HOPS & GLORY search SIGN IN APPLY",
+    "consoleErrors": 0,
+    "firstError": ""
+  },
+  {
+    "viewport": "mobile (390px)",
+    "page": "/store",
+    "innerWidth": 390,
+    "mobileNavCount": 1,
+    "cartLinkCount": 1,
+    "navLabels": "HOPS & GLORY search SIGN IN APPLY",
+    "consoleErrors": 0,
+    "firstError": ""
+  },
+  {
+    "viewport": "mobile (390px)",
+    "page": "/products/e2e-test-pale-ale",
+    "innerWidth": 390,
+    "mobileNavCount": 1,
+    "cartLinkCount": 1,
+    "navLabels": "HOPS & GLORY search SIGN IN APPLY",
+    "consoleErrors": 0,
+    "firstError": ""
+  },
+  {
+    "viewport": "mobile (390px)",
+    "page": "/breweries",
+    "innerWidth": 390,
+    "mobileNavCount": 1,
+    "cartLinkCount": 1,
+    "navLabels": "HOPS & GLORY search SIGN IN APPLY",
+    "consoleErrors": 0,
+    "firstError": ""
+  },
+  {
+    "viewport": "mobile (390px)",
+    "page": "/apply",
+    "innerWidth": 390,
+    "mobileNavCount": 1,
+    "cartLinkCount": 1,
+    "navLabels": "HOPS & GLORY search SIGN IN APPLY",
+    "consoleErrors": 0,
+    "firstError": ""
+  }
+]

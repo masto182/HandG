@@ -37,18 +37,18 @@ jobs:
           username: ${{ secrets.ORACLE_USER }}
           key: ${{ secrets.ORACLE_SSH_KEY }}
           command_timeout: 15m
-          envs: "GITHUB_SHA"
+          envs: "GITHUB_SHA,GHCR_USER,GHCR_TOKEN"
           script: |
             set -euo pipefail
             cd /opt/retail-example-staging
             git fetch origin main
             git reset --hard origin/main
-            export BACKEND_IMAGE="ghcr.io/sfc-gh-cmasterson/backend:staging"
-            export STOREFRONT_IMAGE="ghcr.io/sfc-gh-cmasterson/storefront:staging"
+            export BACKEND_IMAGE="ghcr.io/masto182/backend:staging"
+            export STOREFRONT_IMAGE="ghcr.io/masto182/storefront:staging"
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
-            docker compose -f docker-compose.prod.yml --env-file .env.staging pull
-            docker compose -f docker-compose.prod.yml --env-file .env.staging up -d --remove-orphans
-            docker compose -f docker-compose.prod.yml --env-file .env.staging exec -T backend npx medusa db:migrate || true
+            docker compose -f docker-compose.prod.yml -f docker-compose.staging.yml --env-file .env.staging pull
+            docker compose -f docker-compose.prod.yml -f docker-compose.staging.yml --env-file .env.staging up -d --remove-orphans
+            docker compose -f docker-compose.prod.yml -f docker-compose.staging.yml --env-file .env.staging exec -T backend npx medusa db:migrate || true
         env:
           GHCR_USER: ${{ github.repository_owner }}
           GHCR_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
@@ -66,4 +66,3 @@ jobs:
           done
           echo "Staging health probe failed"
           exit 1
-

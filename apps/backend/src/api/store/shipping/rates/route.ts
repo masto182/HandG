@@ -1,4 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import { randomUUID } from "crypto"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { getShipEngineClient } from "../../../../modules/shipengine/factory"
 import {
@@ -56,7 +57,7 @@ type CarrierRate = {
     delivery_days?: number | null
     estimated_delivery_date?: string | null
     rate_quoted_at: string
-    cover_total_aud?: number    // v3: AusPost - cover allocated for this rate (0 if none)
+    cover_total_aud?: number // v3: AusPost - cover allocated for this rate (0 if none)
   }
 }
 
@@ -117,12 +118,24 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     cart = carts?.[0] ?? null
   } catch (err) {
     logger.warn(`[shipping/rates] cart query failed: ${(err as Error).message}`)
-    res.json({ rates: [], groups: [], best_price_rate_id: null, carrier_unavailable: [], error: "cart_not_found" })
+    res.json({
+      rates: [],
+      groups: [],
+      best_price_rate_id: null,
+      carrier_unavailable: [],
+      error: "cart_not_found",
+    })
     return
   }
 
   if (!cart) {
-    res.json({ rates: [], groups: [], best_price_rate_id: null, carrier_unavailable: [], error: "cart_not_found" })
+    res.json({
+      rates: [],
+      groups: [],
+      best_price_rate_id: null,
+      carrier_unavailable: [],
+      error: "cart_not_found",
+    })
     return
   }
 
@@ -154,9 +167,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 
   // ---------- Build packed boxes once ----------
   const defaultWeightG = await sc<number>("shipping_default_item_weight_g", 750)
-  const variantIds = (cart.items ?? [])
-    .map((it: any) => it.variant_id)
-    .filter(Boolean) as string[]
+  const variantIds = (cart.items ?? []).map((it: any) => it.variant_id).filter(Boolean) as string[]
 
   const variantWeightMap: Record<string, { weight: number; containerType: string }> = {}
   if (variantIds.length) {
@@ -181,7 +192,9 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         }
       }
     } catch (err) {
-      logger.warn(`[shipping/rates] variant query failed, using defaults: ${(err as Error).message}`)
+      logger.warn(
+        `[shipping/rates] variant query failed, using defaults: ${(err as Error).message}`
+      )
     }
   }
 
@@ -290,10 +303,13 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const bestPriceRateId = visibleSorted.length ? visibleSorted[0].id : null
 
   res.json({
-    rates: allRates,        // includes hidden signature siblings for selection lookup
-    groups,                 // visible rows only
+    rates: allRates, // includes hidden signature siblings for selection lookup
+    groups, // visible rows only
     best_price_rate_id: bestPriceRateId,
     require_signature: requireSignature,
+    // Surface carrier errors when 0 rates returned so the storefront can show
+    // a meaningful message rather than silently showing an empty list.
+    ...(allRates.length === 0 ? { errors: debugInfo } : {}),
     ...(debug ? { debug: debugInfo } : {}),
   })
 }
@@ -374,7 +390,21 @@ async function fetchShipEngineRates(args: {
   debugInfo: DebugInfo
 }): Promise<{ rates: CarrierRate[] }> {
   const { packages, cart, sc, logger, currency, debug, debugInfo } = args
-  const carrierIds = await sc<string[]>("shipengine_carrier_ids", ["se-5530570", "se-5530571"])
+  const carrierIds = (
+    await sc<string[]>("shipengine_carrier_ids", ["se-5530570", "se-5530571"])
+  ).filter(Boolean)
+  if (!carrierIds.length) {
+    logger.warn("[shipping/rates] no ShipEngine carrier IDs configured; skipping")
+    if (debug) {
+      debugInfo.shipengine = {
+        rate_count: 0,
+        invalid_rate_count: 0,
+        invalid_rates: [],
+        errors: [{ message: "no carrier IDs configured" }],
+      }
+    }
+    return { rates: [] }
+  }
   const fromAddress = {
     shipping_from_name: await sc<string>("shipping_from_name", "Hops & Glory"),
     shipping_from_phone: await sc<string>("shipping_from_phone", "+61 400 000 000"),
@@ -386,7 +416,7 @@ async function fetchShipEngineRates(args: {
   }
   const validateMode = await sc<"no_validation" | "validate_only" | "validate_and_clean">(
     "shipping_validate_address_mode",
-    "validate_and_clean",
+    "no_validation"
   )
 
   const body = cartToShipEngineShipment({
@@ -397,7 +427,10 @@ async function fetchShipEngineRates(args: {
     validateMode,
   })
 
-  const client = getShipEngineClient()
+  const client = getShipEngineClient({
+    apiKey: process.env.SHIPENGINE_API_KEY,
+    base: process.env.SHIPENGINE_API_BASE,
+  })
   let rates: any[] = []
   let invalidRates: any[] = []
   let errors: any[] = []
@@ -407,7 +440,9 @@ async function fetchShipEngineRates(args: {
     invalidRates = response?.rate_response?.invalid_rates ?? []
     errors = response?.rate_response?.errors ?? []
     if (!rates.length && errors.length) {
-      logger.warn(`[shipping/rates] shipengine returned errors: ${JSON.stringify(errors.map((e: any) => e.message))}`)
+      logger.warn(
+        `[shipping/rates] shipengine returned errors: ${JSON.stringify(errors.map((e: any) => e.message))}`
+      )
     }
   } catch (err) {
     logger.warn(`[shipping/rates] shipengine getRates failed: ${(err as Error).message}`)
@@ -465,7 +500,12 @@ async function fetchAusPostRates(args: {
   const enabled = await sc<boolean>("auspost_enabled", false)
   if (!enabled) {
     if (debug) {
-      debugInfo.auspost = { enabled: false, rate_count: 0, errors: [], require_signature: requireSignature }
+      debugInfo.auspost = {
+        enabled: false,
+        rate_count: 0,
+        errors: [],
+        require_signature: requireSignature,
+      }
     }
     return { rates: [] }
   }
@@ -486,7 +526,10 @@ async function fetchAusPostRates(args: {
   }
   if (currency !== "aud") return { rates: [] }
 
-  const services = await sc<string[]>("auspost_services_enabled", ["AUS_PARCEL_REGULAR", "AUS_PARCEL_EXPRESS"])
+  const services = await sc<string[]>("auspost_services_enabled", [
+    "AUS_PARCEL_REGULAR",
+    "AUS_PARCEL_EXPRESS",
+  ])
   const opts: AusPostRateOptions = {
     coverThresholdAud: await sc<number>("auspost_extra_cover_threshold_aud", 200),
     sodTriggerAud: await sc<number>("auspost_sod_trigger_aud", 300),
@@ -494,12 +537,13 @@ async function fetchAusPostRates(args: {
     discountPctExpress: await sc<number>("auspost_discount_pct_express", 0),
   }
 
-  const cartSubtotalAud = Math.max(0, ((cart.subtotal ?? 0) as number) / 100)
+  // cart.subtotal is in dollars (Medusa major units), not cents.
+  const cartSubtotalAud = Math.max(0, (cart.subtotal ?? 0) as number)
   const client = getAusPostClient()
   const now = new Date().toISOString()
 
   const validServices = services.filter(
-    (s): s is PacServiceCode => s === "AUS_PARCEL_REGULAR" || s === "AUS_PARCEL_EXPRESS",
+    (s): s is PacServiceCode => s === "AUS_PARCEL_REGULAR" || s === "AUS_PARCEL_EXPRESS"
   )
 
   // v3: For each enabled service, quote BOTH states (without and with SOD) in parallel.
@@ -541,7 +585,7 @@ async function fetchAusPostRates(args: {
       if (sigRes.status === "fulfilled") out.sig = sigRes.value
       else out.sigErr = `${serviceCode} sig: ${sigRes.reason?.message ?? sigRes.reason}`
       return out
-    }),
+    })
   )
 
   const out: CarrierRate[] = []
@@ -588,9 +632,9 @@ function auspostQuoteToCarrierRate(
   quote: AusPostShipmentQuote,
   currency: string,
   quotedAt: string,
-  isSignatureVariant: boolean,
+  isSignatureVariant: boolean
 ): CarrierRate {
-  const rateId = `auspost-${quote.serviceCode.toLowerCase()}-${isSignatureVariant ? "sig-" : "std-"}${Date.now()}`
+  const rateId = `auspost-${quote.serviceCode.toLowerCase()}-${isSignatureVariant ? "sig-" : "std-"}${randomUUID()}`
   const isExpress = quote.serviceCode === "AUS_PARCEL_EXPRESS"
   const baseRate = {
     id: rateId,

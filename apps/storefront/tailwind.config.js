@@ -33,6 +33,8 @@ module.exports = {
           text: "var(--color-text)",
           "text-secondary": "var(--color-text-muted)",
           "text-muted": "var(--color-text-faint)",
+          "overlay-bg": "var(--color-overlay-bg)",
+          "overlay-text": "var(--color-overlay-text)",
         },
         hl: {
           primary: "var(--color-primary)",
@@ -102,14 +104,26 @@ module.exports = {
       },
       fontSize: {
         "3xl": "2rem",
-        "h1": ["48px", { lineHeight: "1.1", letterSpacing: "-0.04em", fontWeight: "700" }],
-        "h2": ["32px", { lineHeight: "1.2", letterSpacing: "-0.02em", fontWeight: "700" }],
-        "h3": ["24px", { lineHeight: "1.3", letterSpacing: "-0.01em", fontWeight: "600" }],
+        h1: [
+          "48px",
+          { lineHeight: "1.1", letterSpacing: "-0.04em", fontWeight: "700" },
+        ],
+        h2: [
+          "32px",
+          { lineHeight: "1.2", letterSpacing: "-0.02em", fontWeight: "700" },
+        ],
+        h3: [
+          "24px",
+          { lineHeight: "1.3", letterSpacing: "-0.01em", fontWeight: "600" },
+        ],
         "body-lg": ["18px", { lineHeight: "1.6", fontWeight: "400" }],
         "body-md": ["16px", { lineHeight: "1.5", fontWeight: "400" }],
         "body-sm": ["14px", { lineHeight: "1.5", fontWeight: "400" }],
-        "label-caps": ["12px", { lineHeight: "1", letterSpacing: "0.05em", fontWeight: "600" }],
-        "price": ["20px", { lineHeight: "1", fontWeight: "700" }],
+        "label-caps": [
+          "12px",
+          { lineHeight: "1", letterSpacing: "0.05em", fontWeight: "600" },
+        ],
+        price: ["20px", { lineHeight: "1", fontWeight: "700" }],
       },
       fontFamily: {
         sans: [

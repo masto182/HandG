@@ -1,3 +1,4 @@
+import Image from "next/image"
 import { MembershipStatus, isApprovedMember } from "@lib/data/membership"
 
 type HeroProps = {
@@ -6,13 +7,23 @@ type HeroProps = {
   lowStockCount?: number
 }
 
-const Hero = ({ membershipStatus, newDropsCount = 0, lowStockCount = 0 }: HeroProps) => {
+const Hero = ({
+  membershipStatus,
+  newDropsCount = 0,
+  lowStockCount = 0,
+}: HeroProps) => {
   const isApproved = isApprovedMember(membershipStatus)
   const isPending = membershipStatus === "pending"
 
   if (isApproved) {
     return (
-      <div className="w-full border-b border-hg-border/50" style={{ background: "linear-gradient(180deg, var(--color-surface-2) 0%, var(--color-bg) 100%)" }}>
+      <div
+        className="w-full border-b border-hg-border/50"
+        style={{
+          background:
+            "linear-gradient(180deg, var(--color-surface-2) 0%, var(--color-bg) 100%)",
+        }}
+      >
         <div className="content-container py-6 small:py-8">
           <div className="flex flex-col small:flex-row small:items-center small:justify-between gap-4">
             <div>
@@ -55,11 +66,14 @@ const Hero = ({ membershipStatus, newDropsCount = 0, lowStockCount = 0 }: HeroPr
   return (
     <section className="relative h-[85vh] min-h-[600px] w-full flex items-center justify-center overflow-hidden">
       <div className="absolute inset-0 z-0">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          className="w-full h-full object-cover scale-105"
+        <Image
           src="/images/hero-bg.jpg"
-          alt="Exclusive private collection"
+          alt=""
+          aria-hidden="true"
+          fill
+          priority
+          className="object-cover scale-105"
+          sizes="100vw"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-bg)] via-[var(--color-bg)]/40 to-transparent" />
         <div className="absolute inset-0 bg-black/40" />
@@ -72,7 +86,8 @@ const Hero = ({ membershipStatus, newDropsCount = 0, lowStockCount = 0 }: HeroPr
           The world&apos;s most coveted, limited releases. Curated for the few.
         </h1>
         <p className="text-lg text-white/70 mb-10 max-w-2xl mx-auto leading-relaxed">
-          For the few who strive for the very best. Ultra-limited editions, secured by invitation.
+          For the few who strive for the very best. Ultra-limited editions,
+          secured by invitation.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           {isPending ? (

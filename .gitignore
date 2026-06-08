@@ -3,6 +3,7 @@ node_modules
 .env.*
 !.env.example
 !.env.test
+!.env.staging.example
 .medusa
 .next
 dist
@@ -13,3 +14,18 @@ backups/
 storybook-static
 *.tsbuildinfo
 
+
+# local dev.sh logs/pids
+.dev/
+
+# IDE / tooling config (personal, not project-specific)
+.claude/
+.snowflake/
+
+# stray curl/http response files
+apps/backend/400
+apps/storefront/800
+
+# Playwright artifacts
+apps/storefront/playwright-report/
+apps/storefront/test-results/

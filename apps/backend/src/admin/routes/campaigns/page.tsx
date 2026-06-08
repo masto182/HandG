@@ -5,12 +5,17 @@ import {
   Button,
   Input,
   Label,
+  Textarea,
+  Select,
+  Badge,
   Table,
   Drawer,
-  Select,
-  Textarea,
-  Badge,
+  FocusModal,
   Tabs,
+  Checkbox,
+  Text,
+  toast,
+  usePrompt,
 } from "@medusajs/ui"
 import { useEffect, useState } from "react"
 import { sdk } from "../../lib/sdk"
@@ -42,137 +47,353 @@ type AgingCandidate = {
   campaign_id: string | null
 }
 
+type ProductLite = { id: string; title: string; thumbnail?: string | null }
+type Group = { id: string; name: string }
+
 const TYPE_BADGES: Record<string, { label: string; color: "red" | "purple" | "orange" }> = {
   flash_sale: { label: "Flash Sale", color: "red" },
   vip_exclusive: { label: "VIP Exclusive", color: "purple" },
   aging_markdown: { label: "Aging Markdown", color: "orange" },
 }
 
-const STATUS_BADGES: Record<string, { label: string; color: "grey" | "blue" | "green" | "red" }> = {
-  draft: { label: "Draft", color: "grey" },
-  scheduled: { label: "Scheduled", color: "blue" },
-  active: { label: "Active", color: "green" },
-  expired: { label: "Expired", color: "red" },
+const LIFECYCLE = ["draft", "scheduled", "active", "expired"] as const
+
+const fmtDate = (s?: string | null) =>
+  s ? new Date(s).toLocaleDateString("en-AU", { day: "numeric", month: "short" }) : "—"
+
+const toLocalInput = (iso?: string | null) => {
+  if (!iso) return ""
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return ""
+  const p = (n: number) => String(n).padStart(2, "0")
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(
+    d.getMinutes()
+  )}`
+}
+const fromLocalInput = (v: string) => (v ? new Date(v).toISOString() : null)
+
+function LifecyclePill({ status }: { status: Campaign["status"] }) {
+  const idx = LIFECYCLE.indexOf(status as any)
+  const color =
+    status === "active"
+      ? "text-ui-tag-green-text"
+      : status === "scheduled"
+        ? "text-ui-tag-blue-text"
+        : status === "expired"
+          ? "text-ui-tag-red-text"
+          : "text-ui-fg-muted"
+  return (
+    <div className="flex items-center gap-1.5">
+      {LIFECYCLE.map((s, i) => (
+        <div key={s} className="flex items-center gap-1.5">
+          <span
+            className={`inline-block w-1.5 h-1.5 rounded-full ${
+              i === idx
+                ? status === "active"
+                  ? "bg-ui-tag-green-icon"
+                  : status === "scheduled"
+                    ? "bg-ui-tag-blue-icon"
+                    : status === "expired"
+                      ? "bg-ui-tag-red-icon"
+                      : "bg-ui-fg-muted"
+                : "bg-ui-border-base"
+            }`}
+          />
+          {i < LIFECYCLE.length - 1 && <span className="w-3 h-px bg-ui-border-base" />}
+        </div>
+      ))}
+      <span className={`text-xs ml-1 capitalize ${color}`}>{status}</span>
+    </div>
+  )
 }
 
-function CampaignForm({
-  onSave,
-  onCancel,
-  saving,
-  error,
-}: {
-  onSave: (payload: any) => Promise<void>
-  onCancel: () => void
-  saving: boolean
-  error: string | null
-}) {
-  const [title, setTitle] = useState("")
-  const [slug, setSlug] = useState("")
-  const [type, setType] = useState<string>("flash_sale")
-  const [description, setDescription] = useState("")
-  const [startsAt, setStartsAt] = useState("")
-  const [endsAt, setEndsAt] = useState("")
-  const [discountType, setDiscountType] = useState<string>("percentage")
-  const [discountValue, setDiscountValue] = useState("10")
-  const [productIds, setProductIds] = useState("")
-  const [customerGroups, setCustomerGroups] = useState("")
+type FormState = {
+  title: string
+  slug: string
+  slugTouched: boolean
+  type: string
+  description: string
+  starts_at: string
+  ends_at: string
+  discount_type: string
+  discount_value: string
+}
 
-  const handleSave = () => {
-    onSave({
-      title,
-      slug: slug || title.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-      type,
-      description: description || null,
-      starts_at: startsAt || new Date().toISOString(),
-      ends_at: endsAt || null,
-      discount_type: discountType,
-      discount_value: Number(discountValue),
-      target_product_ids: productIds
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean),
-      target_customer_groups: customerGroups
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean),
-      status: "scheduled",
-    })
+const EMPTY_FORM: FormState = {
+  title: "",
+  slug: "",
+  slugTouched: false,
+  type: "flash_sale",
+  description: "",
+  starts_at: "",
+  ends_at: "",
+  discount_type: "percentage",
+  discount_value: "10",
+}
+
+const slugify = (s: string) =>
+  s
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+
+function CampaignFields({
+  form,
+  set,
+  products,
+  setProducts,
+  groups,
+  selectedGroups,
+  setSelectedGroups,
+}: {
+  form: FormState
+  set: (p: Partial<FormState>) => void
+  products: ProductLite[]
+  setProducts: (p: ProductLite[]) => void
+  groups: Group[]
+  selectedGroups: string[]
+  setSelectedGroups: (g: string[]) => void
+}) {
+  const [q, setQ] = useState("")
+  const [results, setResults] = useState<ProductLite[]>([])
+  const [searching, setSearching] = useState(false)
+
+  useEffect(() => {
+    if (!q.trim()) {
+      setResults([])
+      return
+    }
+    const t = setTimeout(() => {
+      setSearching(true)
+      sdk.admin.product
+        .list({ q, limit: 8, fields: "id,title,thumbnail" } as any)
+        .then((r: any) => setResults(r.products || []))
+        .catch(() => setResults([]))
+        .finally(() => setSearching(false))
+    }, 300)
+    return () => clearTimeout(t)
+  }, [q])
+
+  const addProduct = (p: ProductLite) => {
+    if (!products.find((x) => x.id === p.id)) setProducts([...products, p])
   }
+  const removeProduct = (id: string) => setProducts(products.filter((x) => x.id !== id))
+  const toggleGroup = (id: string) =>
+    setSelectedGroups(
+      selectedGroups.includes(id) ? selectedGroups.filter((g) => g !== id) : [...selectedGroups, id]
+    )
+
+  const isVipType = form.type === "vip_exclusive"
 
   return (
-    <Drawer.Body className="space-y-3 overflow-y-auto">
-      <div>
-        <Label>Title</Label>
-        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="10% off Tree House — 24h Flash" />
+    <div className="space-y-4">
+      <div className="space-y-1">
+        <Label size="small" weight="plus">
+          Title
+        </Label>
+        <Input
+          value={form.title}
+          onChange={(e) =>
+            set({
+              title: e.target.value,
+              ...(form.slugTouched ? {} : { slug: slugify(e.target.value) }),
+            })
+          }
+          placeholder="10% off Garage Project — 48h Flash"
+        />
+        <Text size="small" className="text-ui-fg-muted">
+          Slug: {form.slug || "—"}
+        </Text>
       </div>
-      <div>
-        <Label>Slug</Label>
-        <Input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="auto-generated from title" />
-      </div>
-      <div>
-        <Label>Type</Label>
-        <Select value={type} onValueChange={setType}>
-          <Select.Trigger><Select.Value /></Select.Trigger>
-          <Select.Content>
-            <Select.Item value="flash_sale">Flash Sale</Select.Item>
-            <Select.Item value="vip_exclusive">VIP Exclusive</Select.Item>
-            <Select.Item value="aging_markdown">Aging Markdown</Select.Item>
-          </Select.Content>
-        </Select>
-      </div>
-      <div>
-        <Label>Description (shown to customers)</Label>
-        <Input value={description} onChange={(e) => setDescription(e.target.value)} />
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label>Starts at</Label>
-          <Input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
-        </div>
-        <div>
-          <Label>Ends at (optional)</Label>
-          <Input type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} />
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label>Discount type</Label>
-          <Select value={discountType} onValueChange={setDiscountType}>
-            <Select.Trigger><Select.Value /></Select.Trigger>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1">
+          <Label size="small" weight="plus">
+            Type
+          </Label>
+          <Select value={form.type} onValueChange={(v) => set({ type: v })}>
+            <Select.Trigger>
+              <Select.Value />
+            </Select.Trigger>
             <Select.Content>
-              <Select.Item value="percentage">Percentage (%)</Select.Item>
-              <Select.Item value="fixed">Fixed ($)</Select.Item>
+              <Select.Item value="flash_sale">Flash Sale</Select.Item>
+              <Select.Item value="vip_exclusive">VIP Exclusive</Select.Item>
+              <Select.Item value="aging_markdown">Aging Markdown</Select.Item>
             </Select.Content>
           </Select>
         </div>
-        <div>
-          <Label>Discount value</Label>
-          <Input type="number" value={discountValue} onChange={(e) => setDiscountValue(e.target.value)} />
+        <div className="space-y-1">
+          <Label size="small" weight="plus">
+            Discount
+          </Label>
+          <div className="flex gap-2">
+            <Select value={form.discount_type} onValueChange={(v) => set({ discount_type: v })}>
+              <Select.Trigger className="w-32">
+                <Select.Value />
+              </Select.Trigger>
+              <Select.Content>
+                <Select.Item value="percentage">Percentage (%)</Select.Item>
+                <Select.Item value="fixed">Fixed ($)</Select.Item>
+              </Select.Content>
+            </Select>
+            <Input
+              type="number"
+              value={form.discount_value}
+              onChange={(e) => set({ discount_value: e.target.value })}
+            />
+          </div>
+          <Text size="small" className="text-ui-fg-muted">
+            {form.discount_type === "percentage"
+              ? `${form.discount_value || 0}% off selected products`
+              : `$${form.discount_value || 0} off selected products`}
+          </Text>
         </div>
       </div>
-      <div>
-        <Label>Product IDs (comma-separated)</Label>
-        <Textarea rows={2} value={productIds} onChange={(e) => setProductIds(e.target.value)} placeholder="prod_01ABC, prod_02DEF" />
+
+      <div className="space-y-1">
+        <Label size="small" weight="plus">
+          Description (shown to members)
+        </Label>
+        <Input value={form.description} onChange={(e) => set({ description: e.target.value })} />
       </div>
-      <div>
-        <Label>Customer group IDs (comma-separated, empty = all members)</Label>
-        <Input value={customerGroups} onChange={(e) => setCustomerGroups(e.target.value)} placeholder="Leave empty for all approved+" />
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1">
+          <Label size="small" weight="plus">
+            Starts at
+          </Label>
+          <Input
+            type="datetime-local"
+            value={form.starts_at}
+            onChange={(e) => set({ starts_at: e.target.value })}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label size="small" weight="plus">
+            Ends at (optional)
+          </Label>
+          <Input
+            type="datetime-local"
+            value={form.ends_at}
+            onChange={(e) => set({ ends_at: e.target.value })}
+          />
+        </div>
       </div>
-      {error && <p className="text-ui-fg-error text-sm">{error}</p>}
-      <div className="flex justify-end gap-2 pt-3">
-        <Button variant="secondary" onClick={onCancel}>Cancel</Button>
-        <Button isLoading={saving} onClick={handleSave}>Create Campaign</Button>
+
+      {/* Product picker */}
+      <div className="space-y-2">
+        <Label size="small" weight="plus">
+          Products
+        </Label>
+        {products.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {products.map((p) => (
+              <span
+                key={p.id}
+                className="flex items-center gap-1.5 bg-ui-bg-subtle border border-ui-border-base rounded-md pl-1 pr-2 py-1 text-sm"
+              >
+                {p.thumbnail && (
+                  <img src={p.thumbnail} alt="" className="w-5 h-5 rounded object-cover" />
+                )}
+                {p.title}
+                <button
+                  type="button"
+                  onClick={() => removeProduct(p.id)}
+                  className="text-ui-fg-muted hover:text-ui-fg-base"
+                >
+                  x
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+        <Input
+          placeholder="Search products to add…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+        {(searching || results.length > 0) && (
+          <div className="border border-ui-border-base rounded-md max-h-48 overflow-y-auto divide-y divide-ui-border-base">
+            {searching && (
+              <Text size="small" className="text-ui-fg-muted p-2">
+                Searching…
+              </Text>
+            )}
+            {results.map((p) => {
+              const added = !!products.find((x) => x.id === p.id)
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  disabled={added}
+                  onClick={() => addProduct(p)}
+                  className="flex items-center gap-2 w-full text-left p-2 hover:bg-ui-bg-subtle disabled:opacity-50"
+                >
+                  {p.thumbnail && (
+                    <img src={p.thumbnail} alt="" className="w-6 h-6 rounded object-cover" />
+                  )}
+                  <span className="text-sm flex-1">{p.title}</span>
+                  {added && (
+                    <Badge size="2xsmall" color="green">
+                      added
+                    </Badge>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        )}
+        <Text size="small" className="text-ui-fg-muted">
+          {products.length} product{products.length === 1 ? "" : "s"} selected
+        </Text>
       </div>
-    </Drawer.Body>
+
+      {/* Group picker */}
+      <div className="space-y-2">
+        <Label size="small" weight="plus">
+          Visible to
+        </Label>
+        <div className="flex flex-wrap gap-3">
+          {groups.map((g) => (
+            <label key={g.id} className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={selectedGroups.includes(g.id)}
+                onCheckedChange={() => toggleGroup(g.id)}
+              />
+              {g.name}
+            </label>
+          ))}
+        </div>
+        <Text size="small" className="text-ui-fg-muted">
+          {isVipType
+            ? "VIP tiers suggested for VIP Exclusive campaigns."
+            : "Leave empty for all approved members."}
+        </Text>
+      </div>
+
+      <div className="rounded-md bg-ui-bg-subtle p-2">
+        <Text size="small" className="text-ui-fg-muted">
+          Activating creates a Medusa price list and applies it to the selected products.
+        </Text>
+      </div>
+    </div>
   )
 }
 
 function CampaignsTab() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
+  const [groups, setGroups] = useState<Group[]>([])
   const [loading, setLoading] = useState(true)
-  const [showCreate, setShowCreate] = useState(false)
+  const [mode, setMode] = useState<"create" | "edit" | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [form, setForm] = useState<FormState>(EMPTY_FORM)
+  const [selProducts, setSelProducts] = useState<ProductLite[]>([])
+  const [selGroups, setSelGroups] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const prompt = usePrompt()
+
+  const set = (p: Partial<FormState>) => setForm((f) => ({ ...f, ...p }))
 
   const load = async () => {
     setLoading(true)
@@ -184,45 +405,156 @@ function CampaignsTab() {
     }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    load()
+    sdk.admin.customerGroup
+      .list({ limit: 100, fields: "id,name" } as any)
+      .then((r: any) => setGroups(r.customer_groups || []))
+      .catch(() => setGroups([]))
+  }, [])
 
-  const handleCreate = async (payload: any) => {
-    setError(null)
+  const openCreate = () => {
+    setForm(EMPTY_FORM)
+    setSelProducts([])
+    setSelGroups([])
+    setEditingId(null)
+    setMode("create")
+  }
+
+  const openEdit = async (c: Campaign) => {
+    setForm({
+      title: c.title,
+      slug: c.slug,
+      slugTouched: true,
+      type: c.type,
+      description: c.description || "",
+      starts_at: toLocalInput(c.starts_at),
+      ends_at: toLocalInput(c.ends_at),
+      discount_type: c.discount_type,
+      discount_value: String(c.discount_value),
+    })
+    setSelGroups(c.target_customer_groups || [])
+    setEditingId(c.id)
+    setMode("edit")
+    setSelProducts([])
+    if (c.target_product_ids?.length) {
+      try {
+        const r: any = await sdk.admin.product.list({
+          id: c.target_product_ids,
+          fields: "id,title,thumbnail",
+          limit: 100,
+        } as any)
+        setSelProducts(r.products || [])
+      } catch {
+        setSelProducts(c.target_product_ids.map((id) => ({ id, title: id })))
+      }
+    }
+  }
+
+  const close = () => {
+    setMode(null)
+    setEditingId(null)
+  }
+
+  const buildBody = () => ({
+    title: form.title,
+    slug: form.slug || slugify(form.title),
+    type: form.type,
+    description: form.description || null,
+    starts_at: fromLocalInput(form.starts_at) || new Date().toISOString(),
+    ends_at: fromLocalInput(form.ends_at),
+    discount_type: form.discount_type,
+    discount_value: Number(form.discount_value),
+    target_product_ids: selProducts.map((p) => p.id),
+    target_customer_groups: selGroups,
+  })
+
+  const handleSave = async () => {
+    if (!form.title.trim()) {
+      toast.error("Title is required")
+      return
+    }
     setSaving(true)
     try {
-      await sdk.client.fetch("/admin/specials", { method: "POST", body: payload })
-      setShowCreate(false)
+      if (mode === "create") {
+        await sdk.client.fetch("/admin/specials", { method: "POST", body: buildBody() })
+        toast.success("Campaign created (scheduled)")
+      } else if (editingId) {
+        await sdk.client.fetch(`/admin/specials/${editingId}`, {
+          method: "POST",
+          body: buildBody(),
+        })
+        toast.success("Campaign updated")
+      }
+      close()
       load()
     } catch (e: any) {
-      setError(e?.message || String(e))
+      toast.error(e?.message || "Save failed")
     } finally {
       setSaving(false)
     }
   }
 
-  const handleActivate = async (id: string) => {
-    await sdk.client.fetch(`/admin/specials/${id}/activate`, { method: "POST" })
-    load()
+  const lifecycle = async (id: string, action: "activate" | "expire") => {
+    const ok = await prompt({
+      title: action === "expire" ? "Expire campaign?" : "Activate campaign?",
+      description:
+        action === "expire"
+          ? "This will immediately end the campaign. Active promotions will stop applying."
+          : "This will activate the campaign and make its promotions live.",
+      confirmText: action === "expire" ? "Expire" : "Activate",
+      cancelText: "Cancel",
+      variant: action === "expire" ? "danger" : "confirmation",
+    })
+    if (!ok) return
+    try {
+      await sdk.client.fetch(`/admin/specials/${id}/${action}`, { method: "POST" })
+      toast.success(`Campaign ${action}d`)
+      load()
+    } catch (e: any) {
+      toast.error(e?.message || "Action failed")
+    }
   }
 
-  const handleExpire = async (id: string) => {
-    await sdk.client.fetch(`/admin/specials/${id}/expire`, { method: "POST" })
-    load()
+  const handleDelete = async (c: Campaign) => {
+    const ok = await prompt({
+      title: `Delete "${c.title}"?`,
+      description: "This removes the campaign and its price list.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      variant: "danger",
+    })
+    if (!ok) return
+    try {
+      await sdk.client.fetch(`/admin/specials/${c.id}`, { method: "DELETE" })
+      toast.success("Campaign deleted")
+      load()
+    } catch (e: any) {
+      toast.error(e?.message || "Delete failed")
+    }
   }
 
-  const handleDelete = async (id: string) => {
-    await sdk.client.fetch(`/admin/specials/${id}`, { method: "DELETE" })
-    load()
-  }
+  const FormActions = (
+    <div className="flex items-center gap-2">
+      <Button variant="secondary" size="small" onClick={close} disabled={saving}>
+        Cancel
+      </Button>
+      <Button size="small" onClick={handleSave} isLoading={saving} disabled={!form.title.trim()}>
+        {mode === "create" ? "Create campaign" : "Save changes"}
+      </Button>
+    </div>
+  )
 
   return (
     <div>
       <div className="flex justify-end mb-4">
-        <Button onClick={() => setShowCreate(true)}>Create Campaign</Button>
+        <Button size="small" onClick={openCreate}>
+          Create campaign
+        </Button>
       </div>
 
       {loading ? (
-        <p className="text-ui-fg-muted">Loading…</p>
+        <Text className="text-ui-fg-muted">Loading…</Text>
       ) : (
         <Table>
           <Table.Header>
@@ -232,104 +564,208 @@ function CampaignsTab() {
               <Table.HeaderCell>Status</Table.HeaderCell>
               <Table.HeaderCell>Discount</Table.HeaderCell>
               <Table.HeaderCell>Products</Table.HeaderCell>
-              <Table.HeaderCell>Dates</Table.HeaderCell>
-              <Table.HeaderCell></Table.HeaderCell>
+              <Table.HeaderCell>Schedule</Table.HeaderCell>
+              <Table.HeaderCell />
             </Table.Row>
           </Table.Header>
           <Table.Body>
             {campaigns.map((c) => {
               const tb = TYPE_BADGES[c.type]
-              const sb = STATUS_BADGES[c.status]
               return (
                 <Table.Row key={c.id}>
-                  <Table.Cell className="font-medium">{c.title}</Table.Cell>
-                  <Table.Cell><Badge color={tb?.color}>{tb?.label}</Badge></Table.Cell>
-                  <Table.Cell><Badge color={sb?.color}>{sb?.label}</Badge></Table.Cell>
+                  <Table.Cell className="font-medium">
+                    <div className="flex items-center gap-1.5">
+                      {c.title}
+                      {c.price_list_id && (
+                        <span title="Price list active" className="text-ui-fg-muted text-xs">
+                          (price list)
+                        </span>
+                      )}
+                    </div>
+                  </Table.Cell>
                   <Table.Cell>
-                    {c.discount_value}{c.discount_type === "percentage" ? "%" : " AUD"} off
+                    <Badge size="2xsmall" color={tb?.color}>
+                      {tb?.label}
+                    </Badge>
+                  </Table.Cell>
+                  <Table.Cell>
+                    <LifecyclePill status={c.status} />
+                  </Table.Cell>
+                  <Table.Cell>
+                    {c.discount_value}
+                    {c.discount_type === "percentage" ? "%" : " AUD"} off
                   </Table.Cell>
                   <Table.Cell>{c.target_product_ids?.length || 0}</Table.Cell>
-                  <Table.Cell className="text-xs">
-                    {new Date(c.starts_at).toLocaleDateString()}
-                    {c.ends_at ? ` → ${new Date(c.ends_at).toLocaleDateString()}` : " → ongoing"}
+                  <Table.Cell className="text-xs text-ui-fg-subtle">
+                    {fmtDate(c.starts_at)}
+                    {c.ends_at ? ` → ${fmtDate(c.ends_at)}` : " → ongoing"}
                   </Table.Cell>
                   <Table.Cell>
-                    <div className="flex gap-1">
+                    <div className="flex justify-end gap-1">
                       {["draft", "scheduled"].includes(c.status) && (
-                        <Button size="small" onClick={() => handleActivate(c.id)}>Activate</Button>
+                        <>
+                          <Button size="small" variant="secondary" onClick={() => openEdit(c)}>
+                            Edit
+                          </Button>
+                          <Button size="small" onClick={() => lifecycle(c.id, "activate")}>
+                            Activate
+                          </Button>
+                        </>
                       )}
                       {c.status === "active" && (
-                        <Button size="small" variant="secondary" onClick={() => handleExpire(c.id)}>Expire</Button>
+                        <Button
+                          size="small"
+                          variant="secondary"
+                          onClick={() => lifecycle(c.id, "expire")}
+                        >
+                          Expire
+                        </Button>
                       )}
                       {c.status !== "active" && (
-                        <Button size="small" variant="danger" onClick={() => handleDelete(c.id)}>Delete</Button>
+                        <Button size="small" variant="danger" onClick={() => handleDelete(c)}>
+                          Delete
+                        </Button>
                       )}
                     </div>
                   </Table.Cell>
                 </Table.Row>
               )
             })}
+            {campaigns.length === 0 && (
+              <Table.Row>
+                <Table.Cell colSpan={7}>
+                  <div className="text-center text-ui-fg-subtle py-8">No campaigns yet.</div>
+                </Table.Cell>
+              </Table.Row>
+            )}
           </Table.Body>
         </Table>
       )}
 
-      <Drawer open={showCreate} onOpenChange={(o) => { if (!o) setShowCreate(false) }}>
+      {/* Create — FocusModal */}
+      <FocusModal open={mode === "create"} onOpenChange={(o) => !o && close()}>
+        <FocusModal.Content>
+          <FocusModal.Header>
+            <Text weight="plus">Create campaign</Text>
+            {FormActions}
+          </FocusModal.Header>
+          <FocusModal.Body className="overflow-y-auto p-6">
+            <div className="max-w-2xl mx-auto">
+              <CampaignFields
+                form={form}
+                set={set}
+                products={selProducts}
+                setProducts={setSelProducts}
+                groups={groups}
+                selectedGroups={selGroups}
+                setSelectedGroups={setSelGroups}
+              />
+            </div>
+          </FocusModal.Body>
+        </FocusModal.Content>
+      </FocusModal>
+
+      {/* Edit — Drawer */}
+      <Drawer open={mode === "edit"} onOpenChange={(o) => !o && close()}>
         <Drawer.Content>
-          <Drawer.Header><Drawer.Title>Create Campaign</Drawer.Title></Drawer.Header>
-          <CampaignForm
-            onSave={handleCreate}
-            onCancel={() => setShowCreate(false)}
-            saving={saving}
-            error={error}
-          />
+          <Drawer.Header>
+            <Drawer.Title>Edit campaign</Drawer.Title>
+          </Drawer.Header>
+          <Drawer.Body className="overflow-y-auto">
+            <CampaignFields
+              form={form}
+              set={set}
+              products={selProducts}
+              setProducts={setSelProducts}
+              groups={groups}
+              selectedGroups={selGroups}
+              setSelectedGroups={setSelGroups}
+            />
+          </Drawer.Body>
+          <Drawer.Footer>{FormActions}</Drawer.Footer>
         </Drawer.Content>
       </Drawer>
     </div>
   )
 }
 
+const suggestedMarkdown = (days: number) => (days >= 90 ? 25 : 15)
+
 function AgingTab() {
   const [candidates, setCandidates] = useState<AgingCandidate[]>([])
   const [loading, setLoading] = useState(true)
-  const [markdownId, setMarkdownId] = useState<string | null>(null)
-  const [discountType, setDiscountType] = useState<string>("fixed")
-  const [discountValue, setDiscountValue] = useState("2")
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [discountType, setDiscountType] = useState("percentage")
+  const [discountValue, setDiscountValue] = useState("15")
   const [actioning, setActioning] = useState(false)
+  const prompt = usePrompt()
 
   const load = async () => {
     setLoading(true)
     try {
-      const data = await sdk.client.fetch<{ candidates: AgingCandidate[] }>("/admin/aging-candidates")
+      const data = await sdk.client.fetch<{ candidates: AgingCandidate[] }>(
+        "/admin/aging-candidates"
+      )
       setCandidates(data.candidates || [])
     } finally {
       setLoading(false)
     }
   }
+  useEffect(() => {
+    load()
+  }, [])
 
-  useEffect(() => { load() }, [])
+  const toggle = (id: string) =>
+    setSelected((prev) => {
+      const n = new Set(prev)
+      n.has(id) ? n.delete(id) : n.add(id)
+      return n
+    })
 
-  const handleApprove = async (id: string) => {
+  const bulkMarkdown = async () => {
+    const ids = [...selected]
+    if (!ids.length) return
     setActioning(true)
     try {
-      await sdk.client.fetch(`/admin/aging-candidates/${id}/approve`, {
-        method: "POST",
-        body: { discount_type: discountType, discount_value: Number(discountValue) },
-      })
-      setMarkdownId(null)
+      for (const id of ids) {
+        await sdk.client.fetch(`/admin/aging-candidates/${id}/approve`, {
+          method: "POST",
+          body: { discount_type: discountType, discount_value: Number(discountValue) },
+        })
+      }
+      toast.success(`Marked down ${ids.length} product${ids.length > 1 ? "s" : ""}`)
+      setSelected(new Set())
       load()
+    } catch (e: any) {
+      toast.error(e?.message || "Markdown failed")
     } finally {
       setActioning(false)
     }
   }
 
-  const handleDismiss = async (id: string) => {
+  const bulkDismiss = async () => {
+    const ids = [...selected]
+    if (!ids.length) return
+    const ok = await prompt({
+      title: `Dismiss ${ids.length} candidate${ids.length > 1 ? "s" : ""}?`,
+      description: "Marks them as 'ages well' and removes them from this list.",
+      confirmText: "Dismiss",
+      cancelText: "Cancel",
+    })
+    if (!ok) return
     setActioning(true)
     try {
-      await sdk.client.fetch(`/admin/aging-candidates/${id}/dismiss`, {
-        method: "POST",
-        body: { reason: "Ages well" },
-      })
+      for (const id of ids) {
+        await sdk.client.fetch(`/admin/aging-candidates/${id}/dismiss`, {
+          method: "POST",
+          body: { reason: "Ages well" },
+        })
+      }
+      toast.success(`Dismissed ${ids.length}`)
+      setSelected(new Set())
       load()
+    } catch (e: any) {
+      toast.error(e?.message || "Dismiss failed")
     } finally {
       setActioning(false)
     }
@@ -337,65 +773,73 @@ function AgingTab() {
 
   return (
     <div>
-      <p className="text-ui-fg-subtle text-sm mb-4">
-        Products with packaged_date older than 60 days. Approve to create a markdown, or dismiss if the beer ages well.
-      </p>
+      <Text size="small" className="text-ui-fg-subtle mb-4 block">
+        Beers packaged more than 60 days ago. Mark down to clear stock, or dismiss if it ages well.
+      </Text>
+
+      {selected.size > 0 && (
+        <div className="flex items-center justify-between px-3 py-2 mb-3 bg-ui-bg-subtle border border-ui-border-base rounded-md">
+          <Text size="small" weight="plus">
+            {selected.size} selected
+          </Text>
+          <div className="flex items-center gap-2">
+            <Select value={discountType} onValueChange={setDiscountType}>
+              <Select.Trigger className="w-28">
+                <Select.Value />
+              </Select.Trigger>
+              <Select.Content>
+                <Select.Item value="percentage">%</Select.Item>
+                <Select.Item value="fixed">$</Select.Item>
+              </Select.Content>
+            </Select>
+            <Input
+              type="number"
+              className="w-20"
+              value={discountValue}
+              onChange={(e) => setDiscountValue(e.target.value)}
+            />
+            <Button size="small" isLoading={actioning} onClick={bulkMarkdown}>
+              Mark down {selected.size}
+            </Button>
+            <Button size="small" variant="secondary" disabled={actioning} onClick={bulkDismiss}>
+              Dismiss {selected.size}
+            </Button>
+          </div>
+        </div>
+      )}
 
       {loading ? (
-        <p className="text-ui-fg-muted">Loading…</p>
+        <Text className="text-ui-fg-muted">Loading…</Text>
       ) : candidates.length === 0 ? (
-        <p className="text-ui-fg-muted">No aging candidates pending review.</p>
+        <Text className="text-ui-fg-muted">No aging candidates pending review.</Text>
       ) : (
         <Table>
           <Table.Header>
             <Table.Row>
+              <Table.HeaderCell className="w-10" />
               <Table.HeaderCell>Product</Table.HeaderCell>
               <Table.HeaderCell>Packaged</Table.HeaderCell>
-              <Table.HeaderCell>Days Aged</Table.HeaderCell>
-              <Table.HeaderCell></Table.HeaderCell>
+              <Table.HeaderCell>Days aged</Table.HeaderCell>
+              <Table.HeaderCell>Suggested</Table.HeaderCell>
             </Table.Row>
           </Table.Header>
           <Table.Body>
             {candidates.map((c) => (
               <Table.Row key={c.id}>
+                <Table.Cell onClick={(e) => e.stopPropagation()}>
+                  <Checkbox checked={selected.has(c.id)} onCheckedChange={() => toggle(c.id)} />
+                </Table.Cell>
                 <Table.Cell className="font-medium">{c.product_title || c.product_id}</Table.Cell>
-                <Table.Cell className="text-sm">
-                  {new Date(c.packaged_date).toLocaleDateString()}
+                <Table.Cell className="text-sm">{fmtDate(c.packaged_date)}</Table.Cell>
+                <Table.Cell>
+                  <Badge size="2xsmall" color={c.days_aged > 90 ? "red" : "orange"}>
+                    {c.days_aged}d
+                  </Badge>
                 </Table.Cell>
                 <Table.Cell>
-                  <Badge color={c.days_aged > 90 ? "red" : "orange"}>{c.days_aged}d</Badge>
-                </Table.Cell>
-                <Table.Cell>
-                  {markdownId === c.id ? (
-                    <div className="flex gap-2 items-center">
-                      <Select value={discountType} onValueChange={setDiscountType}>
-                        <Select.Trigger className="w-20"><Select.Value /></Select.Trigger>
-                        <Select.Content>
-                          <Select.Item value="fixed">$</Select.Item>
-                          <Select.Item value="percentage">%</Select.Item>
-                        </Select.Content>
-                      </Select>
-                      <Input
-                        type="number"
-                        className="w-16"
-                        value={discountValue}
-                        onChange={(e) => setDiscountValue(e.target.value)}
-                      />
-                      <Button size="small" isLoading={actioning} onClick={() => handleApprove(c.id)}>
-                        Apply
-                      </Button>
-                      <Button size="small" variant="secondary" onClick={() => setMarkdownId(null)}>
-                        Cancel
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex gap-1">
-                      <Button size="small" onClick={() => setMarkdownId(c.id)}>Mark Down</Button>
-                      <Button size="small" variant="secondary" isLoading={actioning} onClick={() => handleDismiss(c.id)}>
-                        Dismiss
-                      </Button>
-                    </div>
-                  )}
+                  <Text size="small" className="text-ui-fg-subtle">
+                    {suggestedMarkdown(c.days_aged)}% off
+                  </Text>
                 </Table.Cell>
               </Table.Row>
             ))}
@@ -409,14 +853,20 @@ function AgingTab() {
 const CampaignsPage = () => {
   return (
     <Container>
-      <Heading level="h1" className="mb-4">Campaigns & Specials</Heading>
+      <Heading level="h1" className="mb-4">
+        Campaigns &amp; Specials
+      </Heading>
       <Tabs defaultValue="campaigns">
         <Tabs.List>
           <Tabs.Trigger value="campaigns">Campaigns</Tabs.Trigger>
-          <Tabs.Trigger value="aging">Aging Candidates</Tabs.Trigger>
+          <Tabs.Trigger value="aging">Aging candidates</Tabs.Trigger>
         </Tabs.List>
-        <Tabs.Content value="campaigns"><CampaignsTab /></Tabs.Content>
-        <Tabs.Content value="aging"><AgingTab /></Tabs.Content>
+        <Tabs.Content value="campaigns" className="pt-4">
+          <CampaignsTab />
+        </Tabs.Content>
+        <Tabs.Content value="aging" className="pt-4">
+          <AgingTab />
+        </Tabs.Content>
       </Tabs>
     </Container>
   )

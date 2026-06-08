@@ -9,7 +9,9 @@ import { getProductPrice } from "@lib/util/get-product-price"
 import Thumbnail from "@modules/products/components/thumbnail"
 import { getBreweryBySlug } from "@lib/data/breweries"
 import { getBreweryCollabs } from "@lib/data/brewery-collabs"
+import { getMyBreweryFollow } from "@lib/data/brewery-follows"
 import ProductPill from "@modules/products/components/product-pill"
+import FollowBreweryButton from "@modules/breweries/components/follow-brewery-button"
 
 type Props = {
   params: Promise<{ slug: string }>
@@ -21,27 +23,31 @@ async function getBrewery(slug: string) {
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
   const { slug } = await props.params
-  const brewery = await getBrewery(slug)
+  const result = await getBrewery(slug)
 
-  if (!brewery) {
+  if (!result) {
     return { title: "Supplier Not Found" }
   }
 
+  const { brewery } = result
+
   return {
     title: `${brewery.name} | Hops & Glory`,
-    description: brewery.description || `${brewery.name} — featured producer in the Hops & Glory private collection`,
+    description:
+      brewery.description ||
+      `${brewery.name} — featured producer in the Hops & Glory private collection`,
   }
 }
 
-
-
 export default async function BreweryDetailPage(props: Props) {
   const { slug } = await props.params
-  const brewery = await getBrewery(slug)
+  const result = await getBrewery(slug)
 
-  if (!brewery) {
+  if (!result) {
     notFound()
   }
+
+  const { brewery, product_ids } = result
 
   const membershipStatus = await getMembershipStatus()
   const canSeePricing = isApprovedMember(membershipStatus)
@@ -50,18 +56,20 @@ export default async function BreweryDetailPage(props: Props) {
   if (!region) return null
 
   let products: any[] = []
-  try {
-    const { response: { products: allProducts } } = await listProducts({
-      queryParams: { limit: 100 },
-      countryCode: "au",
-    })
+  if (product_ids.length) {
+    try {
+      const {
+        response: { products: linkedProducts },
+      } = await listProducts({
+        queryParams: { id: product_ids, limit: product_ids.length },
+        countryCode: "au",
+      })
+      products = linkedProducts || []
+    } catch {}
+  }
 
-    products = (allProducts || []).filter((p: any) => {
-      const meta = p.metadata as any
-      const breweryName = meta?.brewery_name || meta?.brewery || ""
-      return breweryName.toLowerCase() === brewery.name.toLowerCase()
-    })
-  } catch {}
+  const existingFollow = await getMyBreweryFollow(brewery.id)
+  const isFollowing = !!existingFollow
 
   const collabs = await getBreweryCollabs(brewery.slug)
 
@@ -89,7 +97,10 @@ export default async function BreweryDetailPage(props: Props) {
           )}
           <div
             className="absolute inset-0"
-            style={{ background: "linear-gradient(to top, var(--color-bg), color-mix(in srgb, var(--color-bg) 40%, transparent), transparent)" }}
+            style={{
+              background:
+                "linear-gradient(to top, var(--color-bg), color-mix(in srgb, var(--color-bg) 40%, transparent), transparent)",
+            }}
           />
         </div>
         <div className="relative z-10 max-w-[1440px] mx-auto px-8 w-full">
@@ -99,16 +110,18 @@ export default async function BreweryDetailPage(props: Props) {
                 {brewery.location}
               </span>
             )}
-            <h1 className="text-h1 text-hg-text">
-              {brewery.name}
-            </h1>
+            <h1 className="text-h1 text-hg-text">{brewery.name}</h1>
             <div className="flex gap-4 mt-6">
-              <button className="px-8 py-3 bg-hl-primary text-white font-bold rounded-xl active:scale-95 transition-transform">
-                Follow {breweryLabel(canSeePricing, false)}
-              </button>
-              <button className="px-8 py-3 bg-transparent border border-hg-border text-hg-text font-bold rounded-xl hover:bg-hg-surface active:scale-95 transition-transform">
+              <FollowBreweryButton
+                breweryId={brewery.id}
+                initialFollowing={isFollowing}
+              />
+              <Link
+                href={`/store?brewery=${encodeURIComponent(brewery.name)}`}
+                className="px-8 py-3 bg-transparent border border-hg-border text-hg-text font-bold rounded-xl hover:bg-hg-surface active:scale-95 transition-transform"
+              >
                 View Releases
-              </button>
+              </Link>
             </div>
           </div>
         </div>
@@ -137,14 +150,20 @@ export default async function BreweryDetailPage(props: Props) {
             <div className="grid grid-cols-1 gap-6">
               {meta?.founded && (
                 <div className="flex justify-between items-center py-3 border-b border-hg-border/50">
-                  <span className="text-hg-text-muted font-medium">Founded</span>
+                  <span className="text-hg-text-muted font-medium">
+                    Founded
+                  </span>
                   <span className="text-hg-text font-bold">{meta.founded}</span>
                 </div>
               )}
               {meta?.head_brewer && (
                 <div className="flex justify-between items-center py-3 border-b border-hg-border/50">
-                  <span className="text-hg-text-muted font-medium">Head Brewer</span>
-                  <span className="text-hg-text font-bold">{meta.head_brewer}</span>
+                  <span className="text-hg-text-muted font-medium">
+                    Head Brewer
+                  </span>
+                  <span className="text-hg-text font-bold">
+                    {meta.head_brewer}
+                  </span>
                 </div>
               )}
               {meta?.focus && (
@@ -155,40 +174,102 @@ export default async function BreweryDetailPage(props: Props) {
               )}
               {meta?.annual_production && (
                 <div className="flex justify-between items-center py-3">
-                  <span className="text-hg-text-muted font-medium">Annual Production</span>
-                  <span className="text-hg-text font-bold">{meta.annual_production}</span>
+                  <span className="text-hg-text-muted font-medium">
+                    Annual Production
+                  </span>
+                  <span className="text-hg-text font-bold">
+                    {meta.annual_production}
+                  </span>
                 </div>
               )}
-              {!meta?.founded && !meta?.head_brewer && !meta?.focus && !meta?.annual_production && (
-                <>
-                  <div className="flex justify-between items-center py-3 border-b border-hg-border/50">
-                    <span className="text-hg-text-muted font-medium">Location</span>
-                    <span className="text-hg-text font-bold">{brewery.location || "—"}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-3">
-                    <span className="text-hg-text-muted font-medium">Products</span>
-                    <span className="text-hg-text font-bold">{products.length}</span>
-                  </div>
-                </>
-              )}
+              {!meta?.founded &&
+                !meta?.head_brewer &&
+                !meta?.focus &&
+                !meta?.annual_production && (
+                  <>
+                    <div className="flex justify-between items-center py-3 border-b border-hg-border/50">
+                      <span className="text-hg-text-muted font-medium">
+                        Location
+                      </span>
+                      <span className="text-hg-text font-bold">
+                        {brewery.location || "—"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-3">
+                      <span className="text-hg-text-muted font-medium">
+                        Products
+                      </span>
+                      <span className="text-hg-text font-bold">
+                        {products.length}
+                      </span>
+                    </div>
+                  </>
+                )}
             </div>
           </div>
 
           {/* Social Links */}
           <div className="flex gap-4">
             {brewery.website_url && (
-              <a href={brewery.website_url} target="_blank" rel="noopener noreferrer" className="text-hg-text-muted hover:text-hl-primary transition-colors">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" /></svg>
+              <a
+                href={brewery.website_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-hg-text-muted hover:text-hl-primary transition-colors"
+              >
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="2" y1="12" x2="22" y2="12" />
+                  <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
+                </svg>
               </a>
             )}
             {brewery.instagram_url && (
-              <a href={brewery.instagram_url} target="_blank" rel="noopener noreferrer" className="text-hg-text-muted hover:text-hl-primary transition-colors">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="20" rx="5" /><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z" /><line x1="17.5" y1="6.5" x2="17.51" y2="6.5" /></svg>
+              <a
+                href={brewery.instagram_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-hg-text-muted hover:text-hl-primary transition-colors"
+              >
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <rect x="2" y="2" width="20" height="20" rx="5" />
+                  <path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z" />
+                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+                </svg>
               </a>
             )}
             {brewery.untappd_url && (
-              <a href={brewery.untappd_url} target="_blank" rel="noopener noreferrer" className="text-hg-text-muted hover:text-hl-primary transition-colors">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3l1.5 3.5L17 8l-2.5 2.5.5 3.5L12 12.5 9 14l.5-3.5L7 8l3.5-1.5z" /><path d="M8 14l-2 7h12l-2-7" /></svg>
+              <a
+                href={brewery.untappd_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-hg-text-muted hover:text-hl-primary transition-colors"
+              >
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M12 3l1.5 3.5L17 8l-2.5 2.5.5 3.5L12 12.5 9 14l.5-3.5L7 8l3.5-1.5z" />
+                  <path d="M8 14l-2 7h12l-2-7" />
+                </svg>
               </a>
             )}
           </div>
@@ -198,9 +279,7 @@ export default async function BreweryDetailPage(props: Props) {
         <section className="lg:col-span-8">
           <div className="flex justify-between items-end mb-10">
             <div>
-              <h2 className="text-h2 text-hg-text">
-                Current Releases
-              </h2>
+              <h2 className="text-h2 text-hg-text">Current Releases</h2>
               <p className="text-hg-text-muted mt-2">
                 The latest collection from {brewery.name}.
               </p>
@@ -210,7 +289,17 @@ export default async function BreweryDetailPage(props: Props) {
               className="flex items-center gap-2 text-hl-primary font-bold text-sm group"
             >
               <span>View All Releases</span>
-              <svg className="group-hover:translate-x-1 transition-transform" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+              <svg
+                className="group-hover:translate-x-1 transition-transform"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
             </Link>
           </div>
 
@@ -222,9 +311,12 @@ export default async function BreweryDetailPage(props: Props) {
                 const style = pMeta?.style || ""
                 const abv = pMeta?.abv ? `${pMeta.abv}% ABV` : ""
                 const isArchived = pMeta?.status === "archived"
-                const isSoldOut = product.variants?.every((v: any) => (v.inventory_quantity ?? 0) <= 0)
+                const isSoldOut = product.variants?.every(
+                  (v: any) => (v.inventory_quantity ?? 0) <= 0,
+                )
 
-                const breweryName = pMeta?.brewery_name || pMeta?.brewery || brewery.name
+                const breweryName =
+                  pMeta?.brewery_name || pMeta?.brewery || brewery.name
                 const beerName = (() => {
                   const sep = (product.title || "").indexOf(" — ")
                   if (sep !== -1) return product.title.slice(sep + 3)
@@ -232,7 +324,10 @@ export default async function BreweryDetailPage(props: Props) {
                 })()
 
                 return (
-                  <div key={product.id} className={`group flex flex-col h-full ${isArchived ? "opacity-70 grayscale hover:grayscale-0 hover:opacity-100 transition-all" : ""}`}>
+                  <div
+                    key={product.id}
+                    className={`group flex flex-col h-full ${isArchived ? "opacity-70 grayscale hover:grayscale-0 hover:opacity-100 transition-all" : ""}`}
+                  >
                     <Link href={`/products/${product.handle}`}>
                       <div className="aspect-square bg-hg-surface-dim rounded-xl overflow-hidden relative mb-4">
                         <Thumbnail
@@ -255,13 +350,17 @@ export default async function BreweryDetailPage(props: Props) {
                       </Link>
                       {canSeePricing && (style || abv) && (
                         <span className="text-sm text-hg-text-muted mb-4">
-                          {style}{style && abv ? " • " : ""}{abv}
+                          {style}
+                          {style && abv ? " • " : ""}
+                          {abv}
                         </span>
                       )}
                       {canSeePricing && (
                         <div className="mt-auto flex justify-between items-center pt-4 border-t border-hg-border/30">
                           {cheapestPrice ? (
-                            <span className={`text-xl font-bold ${isArchived || isSoldOut ? "text-hg-text-muted" : "text-hg-text"}`}>
+                            <span
+                              className={`text-xl font-bold ${isArchived || isSoldOut ? "text-hg-text-muted" : "text-hg-text"}`}
+                            >
                               {cheapestPrice.calculated_price}
                             </span>
                           ) : (
@@ -287,7 +386,9 @@ export default async function BreweryDetailPage(props: Props) {
               })}
             </div>
           ) : (
-            <p className="text-hg-text-muted">No items currently available from this producer.</p>
+            <p className="text-hg-text-muted">
+              No items currently available from this producer.
+            </p>
           )}
 
           {/* Collaborations Section */}
@@ -296,14 +397,19 @@ export default async function BreweryDetailPage(props: Props) {
               <div className="flex justify-between items-end mb-10">
                 <div>
                   <h2 className="text-h2 text-hg-text">Collaborations</h2>
-                  <p className="text-hg-text-muted mt-2">Beers brewed in partnership with {brewery.name}.</p>
+                  <p className="text-hg-text-muted mt-2">
+                    Beers brewed in partnership with {brewery.name}.
+                  </p>
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-y-12 gap-x-6">
                 {collabs.map((product: any) => {
                   const { cheapestPrice } = getProductPrice({ product })
                   return (
-                    <div key={product.id} className="group flex flex-col h-full">
+                    <div
+                      key={product.id}
+                      className="group flex flex-col h-full"
+                    >
                       <Link href={`/products/${product.handle}`}>
                         <div className="aspect-square bg-hg-surface-dim rounded-xl overflow-hidden relative mb-4">
                           <Thumbnail
@@ -331,33 +437,6 @@ export default async function BreweryDetailPage(props: Props) {
               </div>
             </div>
           )}
-
-          {/* Technical Mastery Banner */}
-          <div className="mt-16 relative rounded-2xl overflow-hidden h-64 flex items-center p-12">
-            <div
-              className="absolute inset-0 bg-hl-primary/20"
-              style={{ backdropFilter: "blur(2px)" }}
-            />
-            {brewery.hero_image_url && (
-              <img
-                className="absolute inset-0 w-full h-full object-cover opacity-40"
-                src={brewery.hero_image_url}
-                alt=""
-              />
-            )}
-            <div className="absolute inset-0" style={{ background: "color-mix(in srgb, var(--color-primary) 20%, transparent)" }} />
-            <div className="relative z-10 max-w-lg">
-              <h3 className="text-h3 text-white mb-2">
-                Technical Mastery
-              </h3>
-              <p className="text-white/80 text-base">
-                Learn more about {brewery.name}&apos;s approach to craft brewing and their unique production methods.
-              </p>
-              <button className="mt-4 text-white font-bold underline decoration-hl-primary underline-offset-8 hover:text-hl-primary transition-colors">
-                Read the Dossier
-              </button>
-            </div>
-          </div>
         </section>
       </div>
     </div>

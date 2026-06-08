@@ -1,7 +1,4 @@
-import {
-  ContainerRegistrationKeys,
-  Modules,
-} from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import type { ExecArgs } from "@medusajs/framework/types"
 import { PICKUP_LOCATION_MODULE } from "../modules/pickup-location"
 import type PickupLocationModuleService from "../modules/pickup-location/service"
@@ -29,27 +26,26 @@ import type PickupLocationModuleService from "../modules/pickup-location/service
  *   pnpm exec medusa exec ./src/scripts/seed.ts
  */
 
-const BRAND_NAME = process.env.BRAND_NAME || "Retail Example"
-const CURRENCY = (process.env.DEFAULT_CURRENCY || "usd").toLowerCase()
-const COUNTRY = (process.env.DEFAULT_COUNTRY || "us").toLowerCase()
+const BRAND_NAME = process.env.BRAND_NAME || "Hops & Glory"
+const CURRENCY = (process.env.DEFAULT_CURRENCY || "aud").toLowerCase()
+const COUNTRY = (process.env.DEFAULT_COUNTRY || "au").toLowerCase()
 const REGION_NAME =
   process.env.DEFAULT_REGION_NAME ||
-  ({ us: "United States", au: "Australia", gb: "United Kingdom", ca: "Canada", nz: "New Zealand" } as Record<string, string>)[COUNTRY] ||
+  (
+    {
+      us: "United States",
+      au: "Australia",
+      gb: "United Kingdom",
+      ca: "Canada",
+      nz: "New Zealand",
+    } as Record<string, string>
+  )[COUNTRY] ||
   COUNTRY.toUpperCase()
 
 const WAREHOUSE_NAME = `${BRAND_NAME} Warehouse`
 const SALES_CHANNEL_NAME = `${BRAND_NAME} Store`
 
-const CUSTOMER_GROUPS = [
-  "pending",
-  "approved",
-  "vip1",
-  "vip2",
-  "vip3",
-  "vip4",
-  "vip5",
-  "suspended",
-]
+const CUSTOMER_GROUPS = ["pending", "approved", "vip1", "vip2", "vip3", "vip4", "vip5", "suspended"]
 
 const PICKUP_LOCATIONS = [
   {
@@ -122,6 +118,7 @@ export default async function seed({ container }: ExecArgs) {
       name: REGION_NAME,
       currency_code: CURRENCY,
       countries: [COUNTRY],
+      automatic_taxes: true,
     })
     logger.info(`Created region: ${region.name} (${region.id})`)
   } else {
@@ -256,6 +253,41 @@ export default async function seed({ container }: ExecArgs) {
       `warehouse → shipping set`
     )
 
+    // 5a-ii. Calculated shipping options for live-rate providers
+    const shipengineProvider = providers.find((p: any) => p.id.includes("shipengine"))
+    if (shipengineProvider) {
+      await findOrCreateShippingOption("ShipEngine Live Rates", {
+        name: "ShipEngine Live Rates",
+        price_type: "calculated",
+        service_zone_id: shippingZone.id,
+        shipping_profile_id: profileId,
+        provider_id: shipengineProvider.id,
+        type: {
+          label: "ShipEngine Calculated",
+          description: "Live carrier rates via ShipEngine",
+          code: "shipengine-calculated",
+        },
+        rules: [],
+      })
+    }
+
+    const auspostProvider = providers.find((p: any) => p.id.includes("auspost"))
+    if (auspostProvider) {
+      await findOrCreateShippingOption("Australia Post Live Rates", {
+        name: "Australia Post Live Rates",
+        price_type: "calculated",
+        service_zone_id: shippingZone.id,
+        shipping_profile_id: profileId,
+        provider_id: auspostProvider.id,
+        type: {
+          label: "Australia Post Calculated",
+          description: "Live carrier rates via Australia Post PAC",
+          code: "auspost-calculated",
+        },
+        rules: [],
+      })
+    }
+
     // 5b. Pickup sets, one per pickup location
     for (const pl of PICKUP_LOCATIONS) {
       const setName = `Pickup - ${pl.stock_location_name}`
@@ -289,7 +321,7 @@ export default async function seed({ container }: ExecArgs) {
   // 6. Payment provider link (system default; adopters add Stripe/PayPal/etc.)
   // ---------------------------------------------------------------------------
   const paymentProviders = await paymentModule.listPaymentProviders()
-  for (const pid of ["pp_system_default"]) {
+  for (const pid of ["pp_system_default", "pp_payid_payid"]) {
     if (!paymentProviders.find((p: any) => p.id === pid)) continue
     try {
       await remoteLink.create({
@@ -375,7 +407,7 @@ export default async function seed({ container }: ExecArgs) {
           body: { email: acct.email, password: acct.password },
         } as any)
         const token: string =
-          typeof reg === "string" ? reg : reg?.authIdentity?.id ?? reg?.location ?? reg?.id
+          typeof reg === "string" ? reg : (reg?.authIdentity?.id ?? reg?.location ?? reg?.id)
         if (!token) continue
 
         const authIdentityId = token.includes(".")

@@ -47,23 +47,27 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     }) => Promise<{ data: Array<Record<string, unknown>> }>
   }
 
-  // Find the fulfillment whose labels reference this tracking number.
-  // Stored in fulfillment.labels (Medusa native) or fulfillment.metadata.
+  // Find the fulfillment whose label references this tracking number. Query the
+  // fulfillment_label entity by its own tracking_number column — filtering a
+  // `fulfillment` by the nested `labels.tracking_number` relation is not
+  // supported by query.graph and silently returned nothing (the webhook was a
+  // no-op). H2.
   let fulfillmentId: string | null = null
   let orderId: string | null = null
   try {
     const result = await query.graph({
-      entity: "fulfillment",
-      fields: ["id", "metadata", "labels.tracking_number", "shipment.order_id"],
-      filters: { labels: { tracking_number: update.tracking_number } },
+      entity: "fulfillment_label",
+      fields: ["tracking_number", "fulfillment.id", "fulfillment.shipment.order_id"],
+      filters: { tracking_number: update.tracking_number },
       pagination: { take: 1 },
     })
     const row = result.data?.[0] as
-      | { id?: string; metadata?: Record<string, unknown>; shipment?: { order_id?: string } }
+      | { fulfillment?: { id?: string; shipment?: { order_id?: string } } }
       | undefined
-    if (row?.id) {
-      fulfillmentId = row.id
-      orderId = row.shipment?.order_id ?? null
+    const ful = row?.fulfillment
+    if (ful?.id) {
+      fulfillmentId = ful.id
+      orderId = ful.shipment?.order_id ?? null
     }
   } catch (err) {
     logger.warn(`[shipengine-webhook] fulfillment lookup failed: ${(err as Error).message}`)
@@ -74,7 +78,10 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     try {
       const fulfillmentModule = req.scope.resolve(Modules.FULFILLMENT) as {
         retrieveFulfillment: (id: string) => Promise<{ metadata?: Record<string, unknown> }>
-        updateFulfillment: (id: string, data: { metadata: Record<string, unknown> }) => Promise<unknown>
+        updateFulfillment: (
+          id: string,
+          data: { metadata: Record<string, unknown> }
+        ) => Promise<unknown>
       }
       const existing = await fulfillmentModule.retrieveFulfillment(fulfillmentId)
       const events = Array.isArray(existing.metadata?.tracking_events)
@@ -88,6 +95,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         events: update.events,
       })
       await fulfillmentModule.updateFulfillment(fulfillmentId, {
+        // workflow-exempt
         metadata: {
           ...(existing.metadata ?? {}),
           tracking_events: events,
@@ -108,19 +116,27 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     }
     try {
       if (update.status === "delivered") {
-        await eventBus.emit([{
-          name: "order.delivered",
-          data: { id: orderId, tracking_number: update.tracking_number, delivered_at: update.delivered_at },
-        }])
-      } else if (update.status === "exception") {
-        await eventBus.emit([{
-          name: "order.shipment_exception",
-          data: {
-            id: orderId,
-            tracking_number: update.tracking_number,
-            status_description: update.status_description,
+        await eventBus.emit([
+          {
+            name: "order.delivered",
+            data: {
+              id: orderId,
+              tracking_number: update.tracking_number,
+              delivered_at: update.delivered_at,
+            },
           },
-        }])
+        ])
+      } else if (update.status === "exception") {
+        await eventBus.emit([
+          {
+            name: "order.shipment_exception",
+            data: {
+              id: orderId,
+              tracking_number: update.tracking_number,
+              status_description: update.status_description,
+            },
+          },
+        ])
       }
     } catch (err) {
       logger.warn(`[shipengine-webhook] emit failed: ${(err as Error).message}`)

@@ -8,6 +8,7 @@ import {
 } from "@lib/data/fulfillment"
 import { getDeliveryOptions } from "@lib/util/shipping"
 import { convertToLocale } from "@lib/util/money"
+import { createLatestSerializer } from "@lib/util/serialize-latest"
 import { HttpTypes } from "@medusajs/types"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useRef, useState } from "react"
@@ -30,13 +31,19 @@ function arrivalEstimate(rate: CarrierRate): string {
   const end = new Date()
   end.setDate(end.getDate() + days + 1)
   const fmt = (d: Date) =>
-    d.toLocaleDateString("en-AU", { weekday: "short", month: "short", day: "numeric" })
+    d.toLocaleDateString("en-AU", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    })
   return `${fmt(start)} — ${fmt(end)}`
 }
 
 function rateDescription(rate: CarrierRate): string {
-  if (rate.delivery_behaviour === "leave_at_door") return "No signature required"
-  if (rate.delivery_behaviour === "signature") return "Signature required on delivery"
+  if (rate.delivery_behaviour === "leave_at_door")
+    return "No signature required"
+  if (rate.delivery_behaviour === "signature")
+    return "Signature required on delivery"
   if (rate.service_tier === "express") return "Priority handling & dispatch"
   if (rate.provider_id === "auspost") return "Reliable nationwide network"
   return "Standard courier handling"
@@ -46,24 +53,34 @@ const StepShipping: React.FC<Props> = ({ cart, shippingOptions }) => {
   const router = useRouter()
   const deliveryOptions = getDeliveryOptions(shippingOptions)
 
-  const optionByProvider: Record<string, string | undefined> = useMemo(
-    () => ({
-      shipengine: deliveryOptions.find(
-        (o: any) => o.provider_id?.includes("shipengine") || o.name?.includes("ShipEngine"),
-      )?.id,
-      auspost: deliveryOptions.find(
-        (o: any) => o.provider_id?.includes("auspost") || o.name?.toLowerCase().includes("australia post"),
-      )?.id,
-    }),
-    [deliveryOptions],
-  )
+  const optionByProvider: Record<string, string | undefined> = useMemo(() => {
+    const seOption = deliveryOptions.find(
+      (o: any) =>
+        o.provider_id?.includes("shipengine") || o.name?.includes("ShipEngine"),
+    )?.id
+    const apOption = deliveryOptions.find(
+      (o: any) =>
+        o.provider_id?.includes("auspost") ||
+        o.name?.toLowerCase().includes("australia post"),
+    )?.id
+    return {
+      shipengine: seOption,
+      // No `?? seOption` fallback: if AusPost rates appear without a matching
+      // AusPost shipping option, fail loud via persistRate's guard rather
+      // than mis-routing AusPost rate data through the ShipEngine option
+      // (the old AusPost-through-ShipEngine 500).
+      auspost: apOption,
+    }
+  }, [deliveryOptions])
 
   const [response, setResponse] = useState<CarrierRatesResponse | null>(null)
   const [isLoadingRates, setIsLoadingRates] = useState(true)
 
   // Per-row signature toggles, keyed by base row id. When true, the effective
   // selection swaps to that row's signature_sibling.rate_id.
-  const [signatureToggles, setSignatureToggles] = useState<Record<string, boolean>>({})
+  const [signatureToggles, setSignatureToggles] = useState<
+    Record<string, boolean>
+  >({})
 
   // selected = the BASE row id; effective rate is derived through the toggle map.
   const [selected, setSelected] = useState<string | null>(null)
@@ -73,15 +90,32 @@ const StepShipping: React.FC<Props> = ({ cart, shippingOptions }) => {
   useEffect(() => {
     let cancelled = false
     setIsLoadingRates(true)
-    getCarrierRates(cart.id).then((res) => {
-      if (cancelled) return
-      setResponse(res)
-      setIsLoadingRates(false)
-      const stillThere = res.groups.some((g) => g.rates.some((r) => r.id === selected))
-      if (!stillThere) {
-        setSelected(res.best_price_rate_id ?? res.groups[0]?.rates[0]?.id ?? null)
-      }
-    })
+    getCarrierRates(cart.id)
+      .then((res) => {
+        if (cancelled) return
+        setResponse(res)
+        setIsLoadingRates(false)
+        const stillThere = res.groups.some((g) =>
+          g.rates.some((r) => r.id === selected),
+        )
+        if (!stillThere) {
+          setSelected(
+            res.best_price_rate_id ?? res.groups[0]?.rates[0]?.id ?? null,
+          )
+        }
+        if ((res as any).errors?.length) {
+          setError(
+            "Some carriers could not be reached. Rates shown may be incomplete.",
+          )
+        }
+      })
+      .catch(() => {
+        if (cancelled) return
+        setError(
+          "Could not load shipping rates — please refresh and try again.",
+        )
+        setIsLoadingRates(false)
+      })
     return () => {
       cancelled = true
     }
@@ -104,25 +138,31 @@ const StepShipping: React.FC<Props> = ({ cart, shippingOptions }) => {
     return baseId
   }
 
-  const selectedRate = response?.rates.find((r) => r.id === effectiveRateId(selected)) ?? null
+  const selectedRate =
+    response?.rates.find((r) => r.id === effectiveRateId(selected)) ?? null
 
   // Persist current rate to cart so the sidebar reflects the live amount.
   // Called on radio click and SoD toggle. Last call wins.
-  const inflight = useRef<Promise<void> | null>(null)
+  // Serialize so click order == apply order on the cart, and skip superseded
+  // intermediate selections — fixes the concurrent-click race where the slower
+  // of two requests could otherwise win on the server.
+  const persist = useRef(createLatestSerializer()).current
   const persistRate = async (baseId: string, sigOn: boolean) => {
     const base = ratesById.get(baseId)
     if (!base) return
     const eff =
       sigOn && base.signature_sibling
-        ? ratesById.get(base.signature_sibling.rate_id) ?? base
+        ? (ratesById.get(base.signature_sibling.rate_id) ?? base)
         : base
     const optionId = optionByProvider[eff.provider_id]
     if (!optionId) {
-      setError(`No shipping option configured for provider "${eff.provider_id}"`)
+      setError(
+        `No shipping option configured for provider "${eff.provider_id}"`,
+      )
       return
     }
     setError(null)
-    const p = (async () => {
+    await persist(async (isLatest) => {
       try {
         await setShippingMethod({
           cartId: cart.id,
@@ -140,13 +180,11 @@ const StepShipping: React.FC<Props> = ({ cart, shippingOptions }) => {
             carrier_display_name: eff.carrier_display_name,
           },
         })
-        router.refresh()
+        if (isLatest()) router.refresh()
       } catch (e: any) {
-        setError(e.message || "Failed to set shipping method")
+        if (isLatest()) setError(e.message || "Failed to set shipping method")
       }
-    })()
-    inflight.current = p
-    await p
+    })
   }
 
   const handleSelect = (baseId: string) => {
@@ -162,13 +200,52 @@ const StepShipping: React.FC<Props> = ({ cart, shippingOptions }) => {
   }
 
   const handleContinue = async () => {
-    if (!selected || !selectedRate || isLoading) return
+    if (!selected || isLoading) return
+    if (!selectedRate) {
+      setError("Please select a shipping method to continue.")
+      return
+    }
+
+    const optionId = optionByProvider[selectedRate.provider_id]
+    if (!optionId) {
+      setError(
+        `No shipping option configured for provider "${selectedRate.provider_id}"`,
+      )
+      return
+    }
+
+    // If persistRate already wrote this rate to the cart (fires on radio select
+    // + router.refresh), skip the redundant second API call.
+    const alreadyPersisted = cart.shipping_methods?.some(
+      (m) =>
+        m.shipping_option_id === optionId &&
+        (m.data as any)?.rate_id === selectedRate.data.rate_id,
+    )
+    if (alreadyPersisted) {
+      window.location.href = "/checkout?step=payment"
+      return
+    }
+
     setIsLoading(true)
     setError(null)
     try {
-      // Defensive: ensure latest selection is committed before navigating.
-      await persistRate(selected, !!signatureToggles[selected])
-      router.push("/checkout?step=payment")
+      await setShippingMethod({
+        cartId: cart.id,
+        shippingMethodId: optionId,
+        data: {
+          rate_id: selectedRate.data.rate_id,
+          carrier_id: selectedRate.data.carrier_id,
+          carrier_code: selectedRate.data.carrier_code,
+          service_code: selectedRate.data.service_code,
+          amount: selectedRate.amount,
+          rate_quoted_at: selectedRate.data.rate_quoted_at,
+          provider_id: selectedRate.provider_id,
+          force_sod: selectedRate.delivery_behaviour === "signature",
+          service_display_name: selectedRate.name,
+          carrier_display_name: selectedRate.carrier_display_name,
+        },
+      })
+      window.location.href = "/checkout?step=payment"
     } catch (e: any) {
       setError(e.message || "Failed to set shipping method")
       setIsLoading(false)
@@ -227,10 +304,13 @@ const StepShipping: React.FC<Props> = ({ cart, shippingOptions }) => {
     <div>
       {/* Header */}
       <header className="mb-8">
-        <h1 className="text-h1 text-hg-text mb-4 tracking-tight">How shall we send your haul?</h1>
+        <h1 className="text-h1 text-hg-text mb-4 tracking-tight">
+          How shall we send your haul?
+        </h1>
         <p className="text-lg leading-relaxed text-hg-text-secondary max-w-[650px]">
-          Select a delivery speed that ensures your haul arrives in peak condition. All shipments
-          are handled by specialists trained in the transport of premium craft beverages.
+          Select a delivery speed that ensures your haul arrives in peak
+          condition. All shipments are handled by specialists trained in the
+          transport of premium craft beverages.
         </p>
       </header>
 
@@ -261,10 +341,13 @@ const StepShipping: React.FC<Props> = ({ cart, shippingOptions }) => {
       {!isLoadingRates && groups.length === 0 && (
         <div className="p-6 rounded-xl bg-hg-surface/40 backdrop-blur-md border border-white/10 text-center">
           <p className="text-sm text-hg-text-secondary mb-3">
-            Unable to get live shipping rates for your address. Please check your address details
-            or try again.
+            Unable to get live shipping rates for your address. Please check
+            your address details or try again.
           </p>
-          <button onClick={handleRetry} className="text-sm text-hg-gold hover:underline">
+          <button
+            onClick={handleRetry}
+            className="text-sm text-hg-gold hover:underline"
+          >
             Retry
           </button>
         </div>
@@ -289,7 +372,8 @@ const StepShipping: React.FC<Props> = ({ cart, shippingOptions }) => {
                   const isFastest = !isBest && rate.id === fastestBaseId
                   const sigOn = !!signatureToggles[rate.id]
                   const sib = rate.signature_sibling
-                  const displayedAmount = sigOn && sib ? sib.amount : rate.amount
+                  const displayedAmount =
+                    sigOn && sib ? sib.amount : rate.amount
 
                   return (
                     <label
@@ -323,7 +407,9 @@ const StepShipping: React.FC<Props> = ({ cart, shippingOptions }) => {
                         {/* Radio dot */}
                         <div
                           className={`mt-1 w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
-                            isSelected ? "border-hg-gold" : "border-hg-border group-hover:border-hg-gold/50"
+                            isSelected
+                              ? "border-hg-gold"
+                              : "border-hg-border group-hover:border-hg-gold/50"
                           }`}
                         >
                           {isSelected && (
@@ -333,7 +419,9 @@ const StepShipping: React.FC<Props> = ({ cart, shippingOptions }) => {
 
                         <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] flex-grow gap-4 md:gap-10 md:items-center w-full">
                           <div>
-                            <div className="text-base font-bold text-hg-text">{rate.name}</div>
+                            <div className="text-base font-bold text-hg-text">
+                              {rate.name}
+                            </div>
                             <div className="text-sm text-hg-text-secondary mt-1">
                               {rateDescription(rate)}
                             </div>
@@ -345,7 +433,8 @@ const StepShipping: React.FC<Props> = ({ cart, shippingOptions }) => {
                                   Add Signature on Delivery
                                   {sib.delta_cents > 0 && (
                                     <>
-                                      {" "}(+
+                                      {" "}
+                                      (+
                                       {convertToLocale({
                                         amount: sib.delta_cents / 100,
                                         currency_code: rate.currency_code,
@@ -412,23 +501,31 @@ const StepShipping: React.FC<Props> = ({ cart, shippingOptions }) => {
           {/* Insurance summary line (kept; full Protection section intentionally omitted) */}
           {selectedRate && (
             <p className="text-xs text-hg-text-secondary text-center pt-4">
-              {selectedRate.provider_id === "auspost" && selectedRate.data.cover_total_aud ? (
+              {selectedRate.provider_id === "auspost" &&
+              selectedRate.data.cover_total_aud ? (
                 <>
                   Parcel cover: $
                   {selectedRate.data.cover_total_aud.toLocaleString("en-AU", {
                     minimumFractionDigits: 0,
                   })}{" "}
-                  included with this option. Extra cover available at lodgement &mdash; email{" "}
-                  <a href="mailto:aus.beers@gmail.com" className="text-hg-gold hover:underline">
+                  included with this option. Extra cover available at lodgement
+                  &mdash; email{" "}
+                  <a
+                    href="mailto:aus.beers@gmail.com"
+                    className="text-hg-gold hover:underline"
+                  >
                     aus.beers@gmail.com
                   </a>{" "}
                   for pricing.
                 </>
               ) : selectedRate.provider_id === "auspost" ? (
                 <>
-                  No parcel cover included on this option. Extra cover available at lodgement
-                  &mdash; email{" "}
-                  <a href="mailto:aus.beers@gmail.com" className="text-hg-gold hover:underline">
+                  No parcel cover included on this option. Extra cover available
+                  at lodgement &mdash; email{" "}
+                  <a
+                    href="mailto:aus.beers@gmail.com"
+                    className="text-hg-gold hover:underline"
+                  >
                     aus.beers@gmail.com
                   </a>{" "}
                   for pricing.
@@ -436,7 +533,10 @@ const StepShipping: React.FC<Props> = ({ cart, shippingOptions }) => {
               ) : (
                 <>
                   Extra insurance cover available at lodgement &mdash; email{" "}
-                  <a href="mailto:aus.beers@gmail.com" className="text-hg-gold hover:underline">
+                  <a
+                    href="mailto:aus.beers@gmail.com"
+                    className="text-hg-gold hover:underline"
+                  >
                     aus.beers@gmail.com
                   </a>{" "}
                   for pricing.

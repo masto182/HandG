@@ -10,10 +10,16 @@ export const createVipScoreStep = createStep(
   async (input: CreateVipScoreInput, { container }) => {
     const vipScoreService = container.resolve(VIP_SCORE_MODULE) as any
 
+    const [existing] = await vipScoreService.listVipScores({
+      customer_id: input.customer_id,
+    })
+    if (existing) {
+      return new StepResponse(existing, existing.id)
+    }
+
     const vipScore = await vipScoreService.createVipScores({
       customer_id: input.customer_id,
       personal_spend_12mo: 0,
-      network_spend_12mo: 0,
       vip_score: 0,
       order_count_12mo: 0,
       current_tier: "approved",

@@ -1,4 +1,4 @@
-import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import type { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { SHIPPING_RATE_HISTORY_MODULE } from "../../../../modules/shipping-rate-history"
 import type ShippingRateHistoryModuleService from "../../../../modules/shipping-rate-history/service"
 
@@ -8,7 +8,7 @@ import type ShippingRateHistoryModuleService from "../../../../modules/shipping-
  * Returns the most recent rate-history rows persisted by the weekly
  * sample-shipping-rates cron. Used by the admin shipping page snapshot card.
  */
-export async function GET(req: MedusaRequest, res: MedusaResponse) {
+export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   let svc: ShippingRateHistoryModuleService | null = null
   try {
     svc = req.scope.resolve(SHIPPING_RATE_HISTORY_MODULE) as ShippingRateHistoryModuleService

@@ -22,8 +22,9 @@ export default async function referralRewardNotifier({ event, container }: Subsc
   const referral = referrals[0]
   const referrerId = referral.referrer_customer_id
 
-  const existingOrders = await orderModule.listOrders({ customer_id: order.customer_id })
-  if (existingOrders.length > 1) return
+  // H4: idempotency — reward exactly once, even if order.payment_captured is
+  // re-delivered. (Replaces the fragile "is this their first order?" count.)
+  if (referral.reward_sent_at) return
 
   try {
     await refreshEmailConfig(container)
@@ -45,11 +46,17 @@ export default async function referralRewardNotifier({ event, container }: Subsc
         container,
       })
     }
+
+    // Mark rewarded so a replayed event can't double-send.
+    await referralService.updateReferrals({
+      id: referral.id,
+      reward_sent_at: new Date(),
+    })
   } catch (err) {
     console.error(`[Referral] Failed to notify referrer:`, err)
   }
 }
 
 export const config: SubscriberConfig = {
-  event: "order.placed",
+  event: "order.payment_captured",
 }

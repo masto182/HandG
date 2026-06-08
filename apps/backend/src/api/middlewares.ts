@@ -1,17 +1,15 @@
-import {
-  defineMiddlewares,
-  authenticate,
-  validateAndTransformBody,
-} from "@medusajs/framework/http"
+import { defineMiddlewares, authenticate, validateAndTransformBody } from "@medusajs/framework/http"
 import { RegisterCustomerSchema } from "./store/customers/register/validators"
 import { resolveCustomerTier } from "./store/middlewares/resolve-customer-tier"
 import { publicProductRedactor } from "./store/middlewares/public-product-redactor"
 import { enforceAccessOnCartAdd } from "./store/middlewares/enforce-access-on-cart-add"
 import { rateLimit } from "./store/middlewares/rate-limit"
 import { normalizeAdminProductResponse } from "./admin/middlewares/normalize-product-response"
+import { productImageMiddlewares } from "./admin/product-images/validators"
 
 export default defineMiddlewares({
   routes: [
+    ...productImageMiddlewares,
     {
       // Defensive normaliser for admin product list/detail responses.
       // Coerces null `variants` (and similar) to [] so the admin UI's
@@ -33,7 +31,7 @@ export default defineMiddlewares({
         // The route handler enforces auth_identity_id presence and returns 401 if missing.
         authenticate("customer", ["bearer"], { allowUnregistered: true }),
         validateAndTransformBody(RegisterCustomerSchema),
-        rateLimit(20, 3600000),
+        rateLimit(process.env.NODE_ENV === "production" ? 20 : 200, 3600000),
       ],
     },
     {

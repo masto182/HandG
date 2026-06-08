@@ -28,7 +28,7 @@ export default function EmailSettingsToggleList({
   const onToggle = async (entry: PreferenceEntry) => {
     if (entry.transactional) {
       setNotice(
-        "This category is required for account & order notifications and cannot be disabled."
+        "This category is required for account & order notifications and cannot be disabled.",
       )
       return
     }
@@ -39,17 +39,17 @@ export default function EmailSettingsToggleList({
       const result = await sdk.client.fetch<PatchResult>(
         "/store/customers/me/notifications/preferences",
         {
-          method: "PATCH",
+          method: "POST",
           body: { category: entry.category, enabled: !entry.enabled } as any,
-        }
+        },
       )
       if (result.updated) {
         setPrefs((cur) =>
           cur.map((p) =>
             p.category === entry.category
               ? { ...p, enabled: result.entry.enabled }
-              : p
-          )
+              : p,
+          ),
         )
       } else {
         setNotice(result.noticeMessage)

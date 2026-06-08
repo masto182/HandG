@@ -32,7 +32,12 @@ const sortOptions: { label: string; value: SortOptions }[] = [
   { label: "Sort: Stock (High First)", value: "stock_desc" },
 ]
 
-const SortProducts = ({ sortBy, setQueryParams, "data-testid": dataTestId, canSeePricing }: SortProductsProps) => {
+const SortProducts = ({
+  sortBy,
+  setQueryParams,
+  "data-testid": dataTestId,
+  canSeePricing,
+}: SortProductsProps) => {
   if (!canSeePricing) return null
 
   return (
@@ -40,7 +45,7 @@ const SortProducts = ({ sortBy, setQueryParams, "data-testid": dataTestId, canSe
       value={sortBy}
       onChange={(e) => setQueryParams("sortBy", e.target.value as SortOptions)}
       data-testid={dataTestId}
-      className="bg-hg-surface border border-hg-border text-hg-text-muted font-semibold text-[11px] rounded-[6px] focus:ring-hg-gold/20 focus:border-hg-gold px-4 py-2.5 uppercase tracking-widest h-[42px] cursor-pointer"
+      className="bg-hg-surface border border-hg-border text-hg-text-muted font-semibold text-[11px] rounded-md focus:ring-hg-gold/20 focus:border-hg-gold px-4 py-2.5 uppercase tracking-widest h-[42px] cursor-pointer"
     >
       {sortOptions.map((opt) => (
         <option key={opt.value} value={opt.value}>

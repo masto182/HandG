@@ -4,6 +4,7 @@ import ProfilePhone from "@modules/account//components/profile-phone"
 import ProfileBillingAddress from "@modules/account/components/profile-billing-address"
 import ProfileEmail from "@modules/account/components/profile-email"
 import ProfileName from "@modules/account/components/profile-name"
+import ProfilePassword from "@modules/account/components/profile-password"
 import AvatarUpload from "@modules/account/components/avatar-upload"
 import { notFound } from "next/navigation"
 import { listRegions } from "@lib/data/regions"
@@ -33,7 +34,9 @@ export default async function Profile() {
       </div>
       <div className="mb-8">
         <AvatarUpload
-          currentUrl={(customer.metadata as Record<string, string> | null)?.avatar_url}
+          currentUrl={
+            (customer.metadata as Record<string, string> | null)?.avatar_url
+          }
           initial={customer.first_name?.charAt(0)?.toUpperCase() || "?"}
         />
       </div>
@@ -42,6 +45,7 @@ export default async function Profile() {
           <ProfileName customer={customer} />
           <ProfileEmail customer={customer} />
           <ProfilePhone customer={customer} />
+          <ProfilePassword customer={customer} />
           <ProfileBillingAddress customer={customer} regions={regions} />
         </div>
       </div>

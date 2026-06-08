@@ -1,9 +1,7 @@
 import React from "react"
 import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import EmailSettingsToggleList, {
-  type PreferenceEntry,
-} from "./index"
+import EmailSettingsToggleList, { type PreferenceEntry } from "./index"
 
 const mockFetch = jest.fn()
 jest.mock("@lib/config", () => ({
@@ -77,7 +75,9 @@ describe("EmailSettingsToggleList", () => {
       .getByTestId("email-pref-orders")
       .querySelector("button[role='switch']") as HTMLButtonElement
     expect(ordersBtn).toBeDisabled()
-    expect(screen.getAllByText(/Required — cannot be disabled/i).length).toBeGreaterThan(0)
+    expect(
+      screen.getAllByText(/Required — cannot be disabled/i).length,
+    ).toBeGreaterThan(0)
   })
 
   it("clicking a marketing toggle PATCHes the API and updates state", async () => {
@@ -94,7 +94,7 @@ describe("EmailSettingsToggleList", () => {
     await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1))
     const [path, opts] = mockFetch.mock.calls[0]
     expect(path).toBe("/store/customers/me/notifications/preferences")
-    expect(opts.method).toBe("PATCH")
+    expect(opts.method).toBe("POST")
     expect(opts.body).toEqual({ category: "restock_alerts", enabled: false })
   })
 
@@ -122,8 +122,8 @@ describe("EmailSettingsToggleList", () => {
     await userEvent.click(restockBtn)
     await waitFor(() =>
       expect(screen.getByRole("status")).toHaveTextContent(
-        /Category not currently active/i
-      )
+        /Category not currently active/i,
+      ),
     )
   })
 })

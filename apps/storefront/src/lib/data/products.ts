@@ -7,6 +7,7 @@ import { SortOptions } from "@modules/store/components/refinement-list/sort-prod
 import { getAuthHeaders, getCacheOptions } from "./cookies"
 import { getRegion, retrieveRegion } from "./regions"
 import { hydrateInventoryQuantity } from "./inventory"
+import { hydrateProductBreweries } from "./breweries-hydrate"
 
 export const listProducts = async ({
   pageParam = 1,
@@ -67,25 +68,38 @@ export const listProducts = async ({
           // 2.15.2 throws "Entity 'Product' does not have property ''" on the
           // /store/products list endpoint when that virtual field is requested.
           // We hydrate inventory_quantity below via /store/inventory/by-variant-ids.
-          fields:
-            "*variants.calculated_price,*variants.images,+metadata,+tags",
+          fields: "*variants.calculated_price,*variants.images,+metadata,+tags",
           ...queryParams,
         },
         headers,
         next,
-        cache: "no-store",
-      }
+      },
     )
     .then(async ({ products, count }) => {
+      // Hide future-dated drops from every storefront surface (list + PDP).
+      // A product whose metadata.release_at is in the future has not yet
+      // become part of the catalog — anonymous, member, and VIP all see
+      // nothing. Per-tier countdowns kick in only AFTER release_at.
+      const now = Date.now()
+      const visible = products.filter((p) => {
+        const r = (p as any).metadata?.release_at
+        if (!r) return true
+        const t = new Date(r).getTime()
+        return Number.isFinite(t) ? t <= now : true
+      })
+      const hiddenCount = products.length - visible.length
+      const visibleCount = Math.max(visible.length, count - hiddenCount)
+
       const hydrated = (await hydrateInventoryQuantity(
-        products as unknown as Parameters<typeof hydrateInventoryQuantity>[0]
+        visible as unknown as Parameters<typeof hydrateInventoryQuantity>[0],
       )) as unknown as HttpTypes.StoreProduct[]
-      const nextPage = count > offset + limit ? pageParam + 1 : null
+      await hydrateProductBreweries(hydrated as any)
+      const nextPage = visibleCount > offset + limit ? pageParam + 1 : null
 
       return {
         response: {
           products: hydrated,
-          count,
+          count: visibleCount,
         },
         nextPage: nextPage,
         queryParams,

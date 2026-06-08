@@ -2,12 +2,21 @@ import { HttpTypes } from "@medusajs/types"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import Thumbnail from "@modules/products/components/thumbnail"
 import AddToCartButton from "@modules/products/components/product-list-item/add-to-cart-button"
+import EarlyAccessOverlay from "@modules/products/components/early-access-overlay"
 import { getProductPrice } from "@lib/util/get-product-price"
+import {
+  canCustomerAccessProduct,
+  HOURS_BEFORE_PUBLIC_BY_TIER,
+  type Tier,
+} from "@retail-example/shared-types"
+import CarouselNav from "./carousel-nav"
 
 type NewArrivalsProps = {
   products: HttpTypes.StoreProduct[]
   region: HttpTypes.StoreRegion
   canSeePricing?: boolean
+  viewerTier?: Tier | null
+  earlyAccessOffsets?: typeof HOURS_BEFORE_PUBLIC_BY_TIER
 }
 
 function getBreweryName(product: HttpTypes.StoreProduct): string {
@@ -34,21 +43,32 @@ function getAbv(product: HttpTypes.StoreProduct): string {
 }
 
 function isCollab(product: HttpTypes.StoreProduct): boolean {
-  const meta = product.metadata as any
-  return meta?.is_collab === true || meta?.is_collab === "true"
+  const breweries = (product as any).breweries
+  return Array.isArray(breweries) && breweries.length > 1
 }
 
 function isAnniversary(product: HttpTypes.StoreProduct): boolean {
-  const tagValues = (product.tags || []).map((t) => (t.value || "").toLowerCase())
+  const tagValues = (product.tags || []).map((t) =>
+    (t.value || "").toLowerCase(),
+  )
   return tagValues.includes("anniversary")
 }
 
 function getStock(product: HttpTypes.StoreProduct): number {
   if (!product.variants) return 0
-  return product.variants.reduce((sum, v: any) => sum + (v.inventory_quantity ?? 0), 0)
+  return product.variants.reduce(
+    (sum, v: any) => sum + (v.inventory_quantity ?? 0),
+    0,
+  )
 }
 
-const NewArrivals = ({ products, region, canSeePricing = true }: NewArrivalsProps) => {
+const NewArrivals = ({
+  products,
+  region,
+  canSeePricing = true,
+  viewerTier = null,
+  earlyAccessOffsets,
+}: NewArrivalsProps) => {
   if (!products?.length) return null
 
   return (
@@ -58,20 +78,14 @@ const NewArrivals = ({ products, region, canSeePricing = true }: NewArrivalsProp
           <span className="text-hg-gold text-xs font-semibold uppercase tracking-[0.15em] mb-1 block">
             Current Selection
           </span>
-          <h2 className="text-h2 text-hg-text">
-            New Arrivals
-          </h2>
+          <h2 className="text-h2 text-hg-text">New Arrivals</h2>
         </div>
-        <div className="flex gap-2">
-          <button className="w-10 h-10 flex items-center justify-center border border-hg-border rounded-full text-hg-text hover:bg-hg-surface transition-colors">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>
-          </button>
-          <button className="w-10 h-10 flex items-center justify-center border border-hg-border rounded-full text-hg-text hover:bg-hg-surface transition-colors">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>
-          </button>
-        </div>
+        <CarouselNav containerId="new-arrivals-carousel" />
       </div>
-      <div className="flex gap-6 overflow-x-auto no-scrollbar px-6 pb-6 max-w-[1440px] mx-auto">
+      <div
+        id="new-arrivals-carousel"
+        className="flex gap-6 overflow-x-auto no-scrollbar px-6 pb-6 max-w-[1440px] mx-auto"
+      >
         {products.slice(0, 8).map((product) => {
           const brewery = getBreweryName(product)
           const beerName = getBeerName(product)
@@ -83,9 +97,35 @@ const NewArrivals = ({ products, region, canSeePricing = true }: NewArrivalsProp
           const soldOut = stock === 0
           const { cheapestPrice } = getProductPrice({ product })
           const variantId = product.variants?.[0]?.id
+          const meta = product.metadata as any
+          const releaseAt = (meta?.release_at as string | undefined) ?? null
+          const earlyAccessUntil =
+            (meta?.early_access_until as string | undefined) ?? null
+          const hasEarlyAccess = (() => {
+            if (!canSeePricing) return false
+            if (!releaseAt && !earlyAccessUntil) return true
+            const release = releaseAt
+              ? new Date(releaseAt)
+              : earlyAccessUntil
+                ? new Date(
+                    new Date(earlyAccessUntil).getTime() - 24 * 3600 * 1000,
+                  )
+                : null
+            if (!release || isNaN(release.getTime())) return true
+            const publicAccess = new Date(release.getTime() + 24 * 3600 * 1000)
+            if (!viewerTier) return false
+            return canCustomerAccessProduct(
+              viewerTier,
+              publicAccess,
+              new Date(),
+            )
+          })()
 
           return (
-            <div key={product.id} className="min-w-[280px] max-w-[300px] bg-[var(--color-surface)] border border-hg-border rounded-xl overflow-hidden group flex flex-col">
+            <div
+              key={product.id}
+              className="min-w-[280px] max-w-[300px] bg-[var(--color-surface)] border border-hg-border rounded-xl overflow-hidden group flex flex-col"
+            >
               <LocalizedClientLink href={`/products/${product.handle}`}>
                 <div className="aspect-square bg-[var(--color-surface-2)] flex items-center justify-center relative overflow-hidden">
                   <div className="h-full w-full group-hover:scale-110 transition-transform duration-500">
@@ -105,6 +145,20 @@ const NewArrivals = ({ products, region, canSeePricing = true }: NewArrivalsProp
                       Collab
                     </div>
                   )}
+                  {canSeePricing &&
+                    ((product.metadata as any)?.release_at ||
+                      (product.metadata as any)?.early_access_until) && (
+                      <EarlyAccessOverlay
+                        releaseAt={
+                          (product.metadata as any)?.release_at ?? null
+                        }
+                        earlyAccessUntil={
+                          (product.metadata as any)?.early_access_until ?? null
+                        }
+                        offsets={earlyAccessOffsets}
+                        viewerTier={viewerTier}
+                      />
+                    )}
                 </div>
               </LocalizedClientLink>
               <div className="p-4 flex flex-col flex-grow">
@@ -114,11 +168,15 @@ const NewArrivals = ({ products, region, canSeePricing = true }: NewArrivalsProp
                   </span>
                 )}
                 <LocalizedClientLink href={`/products/${product.handle}`}>
-                  <h3 className="text-base font-semibold text-hg-text leading-tight capitalize mb-1">{beerName}</h3>
+                  <h3 className="text-base font-semibold text-hg-text leading-tight capitalize mb-1">
+                    {beerName}
+                  </h3>
                 </LocalizedClientLink>
                 {(style || abv) && (
                   <span className="text-[11px] text-hg-text-secondary mb-3">
-                    {style}{style && abv ? " · " : ""}{abv}
+                    {style}
+                    {style && abv ? " · " : ""}
+                    {abv}
                   </span>
                 )}
                 <div className="mt-auto flex items-center justify-between pt-3 border-t border-hg-border/30">
@@ -135,16 +193,16 @@ const NewArrivals = ({ products, region, canSeePricing = true }: NewArrivalsProp
                     <span className="px-4 py-2 bg-hg-surface-dim text-hg-text-secondary text-[11px] font-bold rounded-lg uppercase tracking-wider">
                       Sold Out
                     </span>
-                  ) : variantId ? (
+                  ) : hasEarlyAccess && variantId ? (
                     <AddToCartButton variantId={variantId} />
-                  ) : (
+                  ) : hasEarlyAccess ? (
                     <LocalizedClientLink
                       href={`/products/${product.handle}`}
                       className="px-4 py-2 border border-hg-border text-hg-text text-[11px] font-bold uppercase tracking-wider rounded-lg text-center hover:bg-hg-gold hover:text-white hover:border-hg-gold transition-all"
                     >
                       View
                     </LocalizedClientLink>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </div>

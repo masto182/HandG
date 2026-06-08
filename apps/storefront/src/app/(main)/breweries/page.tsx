@@ -28,7 +28,8 @@ function getBadgeClasses(badge: string) {
   const lower = badge.toLowerCase()
   if (lower.includes("fresh")) return "bg-hl-accent text-hg-on-primary"
   if (lower.includes("vault")) return "bg-hl-primary text-white"
-  if (lower.includes("ultra") || lower.includes("rare")) return "bg-amber-600 text-white"
+  if (lower.includes("ultra") || lower.includes("rare"))
+    return "bg-amber-600 text-white"
   return "bg-hl-primary text-white"
 }
 
@@ -59,40 +60,45 @@ export default async function BreweriesPage() {
             return (
               <div
                 key={brewery.id}
-                className="rounded-xl overflow-hidden flex flex-col group transition-transform duration-300 hover:-translate-y-1 border border-hg-border/50"
+                className="relative rounded-xl overflow-hidden flex flex-col group transition-transform duration-300 hover:-translate-y-1 border border-hg-border/50"
                 style={{
-                  background: "color-mix(in srgb, var(--color-surface) 60%, transparent)",
+                  background:
+                    "color-mix(in srgb, var(--color-surface) 60%, transparent)",
                   backdropFilter: "blur(12px)",
                 }}
               >
-                <Link href={`/breweries/${brewery.slug}`} className="block">
-                  <div className="h-48 w-full overflow-hidden relative">
-                    {brewery.hero_image_url || brewery.logo_url ? (
-                      <img
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                        src={brewery.hero_image_url || brewery.logo_url}
-                        alt={brewery.name}
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-hg-surface-dim flex items-center justify-center">
-                        <span className="text-hg-text-muted text-4xl font-bold opacity-20">
-                          {brewery.name?.charAt(0)}
-                        </span>
-                      </div>
-                    )}
-                    {badge && (
-                      <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${getBadgeClasses(badge)}`}>
-                        {badge}
-                      </div>
-                    )}
-                  </div>
-                </Link>
-                <div className="p-6 flex-grow flex flex-col">
-                  <Link href={`/breweries/${brewery.slug}`} className="block">
+                {/* Full-card clickable overlay — sits behind interactive children */}
+                <Link
+                  href={`/breweries/${brewery.slug}`}
+                  className="absolute inset-0 z-0"
+                  aria-label={brewery.name}
+                />
+                <div className="h-48 w-full overflow-hidden relative z-10 pointer-events-none">
+                  {brewery.hero_image_url || brewery.logo_url ? (
+                    <img
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      src={brewery.hero_image_url || brewery.logo_url}
+                      alt={brewery.name}
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-hg-surface-dim flex items-center justify-center">
+                      <span className="text-hg-text-muted text-4xl font-bold opacity-20">
+                        {brewery.name?.charAt(0)}
+                      </span>
+                    </div>
+                  )}
+                  {badge && (
+                    <div
+                      className={`absolute top-4 right-4 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${getBadgeClasses(badge)}`}
+                    >
+                      {badge}
+                    </div>
+                  )}
+                </div>
+                <div className="p-6 flex-grow flex flex-col relative z-10">
+                  <div className="block">
                     <div className="flex justify-between items-start mb-2">
-                      <h3 className="text-h3 text-hg-text">
-                        {brewery.name}
-                      </h3>
+                      <h3 className="text-h3 text-hg-text">{brewery.name}</h3>
                       {brewery.location && (
                         <span className="text-hl-primary text-xs font-semibold uppercase tracking-widest whitespace-nowrap ml-2">
                           {brewery.location}
@@ -104,21 +110,58 @@ export default async function BreweriesPage() {
                         {brewery.description}
                       </p>
                     )}
-                  </Link>
+                  </div>
                   <div className="mt-auto flex items-center justify-between pt-6 border-t border-hg-border/30">
                     <div className="flex gap-4">
                       {brewery.website_url && (
-                        <a href={brewery.website_url} target="_blank" rel="noopener noreferrer" className="text-hg-text-muted hover:text-hl-primary transition-colors">
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" /></svg>
+                        <a
+                          href={brewery.website_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="relative z-20 text-hg-text-muted hover:text-hl-primary transition-colors"
+                          aria-label={`${brewery.name} website`}
+                        >
+                          <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="2" y1="12" x2="22" y2="12" />
+                            <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
+                          </svg>
                         </a>
                       )}
                       {brewery.instagram_url && (
-                        <a href={brewery.instagram_url} target="_blank" rel="noopener noreferrer" className="text-hg-text-muted hover:text-hl-primary transition-colors">
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="20" rx="5" /><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z" /><line x1="17.5" y1="6.5" x2="17.51" y2="6.5" /></svg>
+                        <a
+                          href={brewery.instagram_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="relative z-20 text-hg-text-muted hover:text-hl-primary transition-colors"
+                          aria-label={`${brewery.name} Instagram`}
+                        >
+                          <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <rect x="2" y="2" width="20" height="20" rx="5" />
+                            <path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z" />
+                            <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+                          </svg>
                         </a>
                       )}
                     </div>
-                    <Link href={`/breweries/${brewery.slug}`} className="text-hl-primary text-xs font-bold uppercase tracking-tight">
+                    <Link
+                      href={`/breweries/${brewery.slug}`}
+                      className="relative z-20 text-hl-primary text-xs font-bold uppercase tracking-tight"
+                    >
                       View Releases →
                     </Link>
                   </div>
@@ -134,7 +177,16 @@ export default async function BreweriesPage() {
       <div className="mt-20 flex justify-center">
         <button className="border border-hg-border text-hg-text hover:border-hl-primary hover:text-hl-primary transition-all duration-300 px-12 py-4 rounded-full text-xs font-semibold uppercase tracking-widest flex items-center gap-3">
           View All Partners
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
         </button>
       </div>
     </div>

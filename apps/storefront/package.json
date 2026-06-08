@@ -18,6 +18,7 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:debug": "playwright test --debug",
     "test:component": "jest",
+    "test:component:coverage": "jest --coverage --coverageReporters=text-summary",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build -o storybook-static",
     "test:storybook": "test-storybook"

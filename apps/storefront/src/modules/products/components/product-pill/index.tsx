@@ -1,7 +1,13 @@
 import React from "react"
 import type { ActiveSpecial } from "@lib/data/specials"
 
-type PillType = "EARLY ACCESS" | "ANNIVERSARY" | "COLLAB" | "NEW" | "SPECIAL" | "VIP DEAL"
+type PillType =
+  | "EARLY ACCESS"
+  | "ANNIVERSARY"
+  | "COLLAB"
+  | "NEW"
+  | "SPECIAL"
+  | "VIP DEAL"
 
 type PillConfig = {
   label: string
@@ -9,11 +15,14 @@ type PillConfig = {
 }
 
 const PILL_STYLES: Record<PillType, PillConfig> = {
-  "EARLY ACCESS": { label: "Early Access", className: "bg-violet-600 text-white" },
-  "ANNIVERSARY": { label: "Anniversary", className: "bg-pink-600 text-white" },
-  "COLLAB": { label: "Collab", className: "bg-hg-gold text-hg-on-primary" },
-  "NEW": { label: "New", className: "bg-emerald-600 text-white" },
-  "SPECIAL": { label: "Special", className: "bg-red-600 text-white" },
+  "EARLY ACCESS": {
+    label: "Early Access",
+    className: "bg-violet-600 text-white",
+  },
+  ANNIVERSARY: { label: "Anniversary", className: "bg-pink-600 text-white" },
+  COLLAB: { label: "Collab", className: "bg-hg-gold text-hg-on-primary" },
+  NEW: { label: "New", className: "bg-emerald-600 text-white" },
+  SPECIAL: { label: "Special", className: "bg-red-600 text-white" },
   "VIP DEAL": { label: "VIP Deal", className: "bg-purple-600 text-white" },
 }
 
@@ -32,12 +41,20 @@ function parseReleasedDate(raw: string | undefined | null): Date | null {
 }
 
 export function determinePillType(
-  product: { id?: string; metadata?: any; created_at?: string | null; tags?: Array<{ id?: string; value?: string }> | null },
+  product: {
+    id?: string
+    metadata?: any
+    created_at?: string | null
+    tags?: Array<{ id?: string; value?: string }> | null
+    breweries?: Array<{ slug?: string }> | null
+  },
   customerVipTier?: string | null,
-  activeSpecial?: ActiveSpecial | null
+  activeSpecial?: ActiveSpecial | null,
 ): PillType | null {
   const meta = product.metadata as any
-  const tagValues = (product.tags || []).map((t) => t.value?.toLowerCase()).filter(Boolean)
+  const tagValues = (product.tags || [])
+    .map((t) => t.value?.toLowerCase())
+    .filter(Boolean)
 
   if (customerVipTier && meta?.released_date) {
     const releaseDate = parseReleasedDate(meta.released_date)
@@ -63,7 +80,7 @@ export function determinePillType(
 
   if (tagValues.includes("anniversary")) return "ANNIVERSARY"
 
-  if (meta?.is_collab === true || meta?.is_collab === "true") {
+  if (Array.isArray(product.breweries) && product.breweries.length > 1) {
     return "COLLAB"
   }
 
@@ -80,7 +97,13 @@ export default function ProductPill({
   customerVipTier,
   activeSpecial,
 }: {
-  product: { id?: string; metadata?: any; created_at?: string | null; tags?: Array<{ id?: string; value?: string }> | null }
+  product: {
+    id?: string
+    metadata?: any
+    created_at?: string | null
+    tags?: Array<{ id?: string; value?: string }> | null
+    breweries?: Array<{ slug?: string }> | null
+  }
   customerVipTier?: string | null
   activeSpecial?: ActiveSpecial | null
 }) {

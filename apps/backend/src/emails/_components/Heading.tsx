@@ -7,20 +7,22 @@ export type HeadingProps = {
 }
 
 const h1 = {
-  color: "#D4A843",
-  fontSize: "26px",
+  color: "#1E2421",
+  fontSize: "22px",
   fontWeight: 700,
-  lineHeight: "32px",
+  lineHeight: "30px",
   margin: "0 0 16px",
-  letterSpacing: "-0.5px",
+  letterSpacing: "-0.3px",
 }
 
 const h2 = {
-  color: "#1a1a1a",
-  fontSize: "18px",
+  color: "#3F7C62",
+  fontSize: "13px",
   fontWeight: 600,
-  lineHeight: "24px",
+  lineHeight: "20px",
   margin: "24px 0 8px",
+  letterSpacing: "0.06em",
+  textTransform: "uppercase" as const,
 }
 
 export function Heading({ level = 1, children }: HeadingProps) {

@@ -1,13 +1,6 @@
-import {
-  ContainerRegistrationKeys,
-  Modules,
-  ProductStatus,
-} from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, Modules, ProductStatus } from "@medusajs/framework/utils"
 import type { ExecArgs } from "@medusajs/framework/types"
-import {
-  createProductsWorkflow,
-  createInventoryLevelsWorkflow,
-} from "@medusajs/medusa/core-flows"
+import { createProductsWorkflow, createInventoryLevelsWorkflow } from "@medusajs/medusa/core-flows"
 import * as fs from "fs"
 import * as path from "path"
 
@@ -116,25 +109,21 @@ export default async function importProducts({ container }: ExecArgs) {
     const comment = row["Comment"] || ""
     const stock = parseInt(row["Left"] || "0")
     const releasedDate = row["Released Date"] || ""
-    const hasCollabMention = comment.toLowerCase().includes("colab") || comment.toLowerCase().includes("collab")
 
     const sku = `us-${slugify(brewery)}-${slugify(title)}`.slice(0, 100)
 
     return {
       title,
       handle: slugify(`${brewery}-${title}`),
-      description: [
-        style,
-        abv ? `${abv}% ABV` : "",
-        comment ? comment : "",
-      ].filter(Boolean).join(" · "),
+      description: [style, abv ? `${abv}% ABV` : "", comment ? comment : ""]
+        .filter(Boolean)
+        .join(" · "),
       status: ProductStatus.PUBLISHED,
       metadata: {
         abv,
         untappd_score: untappd,
         brewery,
         style,
-        is_collab: hasCollabMention,
         released_date: releasedDate,
         comment: comment || null,
         origin: "US",
@@ -185,7 +174,9 @@ export default async function importProducts({ container }: ExecArgs) {
       }
 
       createdCount += products.length
-      logger.info(`Batch ${Math.floor(i / BATCH_SIZE) + 1}: Created ${products.length} products (${createdCount}/${productsInput.length})`)
+      logger.info(
+        `Batch ${Math.floor(i / BATCH_SIZE) + 1}: Created ${products.length} products (${createdCount}/${productsInput.length})`
+      )
     } catch (e: any) {
       logger.error(`Batch ${Math.floor(i / BATCH_SIZE) + 1} failed: ${e.message}`)
     }

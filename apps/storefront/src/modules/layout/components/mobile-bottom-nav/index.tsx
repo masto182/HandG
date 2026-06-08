@@ -18,16 +18,35 @@ type MobileBottomNavProps = {
 
 function StoreIcon({ active }: { active: boolean }) {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8">
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill={active ? "currentColor" : "none"}
+      stroke="currentColor"
+      strokeWidth="1.8"
+    >
       <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-      <polyline points="9 22 9 12 15 12 15 22" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <polyline
+        points="9 22 9 12 15 12 15 22"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
     </svg>
   )
 }
 
 function BreweriesIcon({ active }: { active: boolean }) {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8">
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill={active ? "currentColor" : "none"}
+      stroke="currentColor"
+      strokeWidth="1.8"
+    >
       <path d="M8 2h8l2 4H6l2-4z" />
       <path d="M6 6v6a6 6 0 006 6 6 6 0 006-6V6" />
       <line x1="12" y1="18" x2="12" y2="22" />
@@ -36,51 +55,118 @@ function BreweriesIcon({ active }: { active: boolean }) {
   )
 }
 
+function HopsIcon({ active }: { active: boolean }) {
+  return (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill={active ? "currentColor" : "none"}
+      stroke="currentColor"
+      strokeWidth="1.8"
+    >
+      <ellipse cx="12" cy="12" rx="5" ry="8" />
+      <path
+        d="M12 4C8 4 5 7 5 12s3 8 7 8"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+    </svg>
+  )
+}
+
 function CartIcon({ active }: { active: boolean }) {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8">
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill={active ? "currentColor" : "none"}
+      stroke="currentColor"
+      strokeWidth="1.8"
+    >
       <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
-      <line x1="3" y1="6" x2="21" y2="6" fill="none" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M16 10a4 4 0 01-8 0" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <line
+        x1="3"
+        y1="6"
+        x2="21"
+        y2="6"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M16 10a4 4 0 01-8 0"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
     </svg>
   )
 }
 
 function AccountIcon({ active }: { active: boolean }) {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8">
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill={active ? "currentColor" : "none"}
+      stroke="currentColor"
+      strokeWidth="1.8"
+    >
       <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
       <circle cx="12" cy="7" r="4" />
     </svg>
   )
 }
 
-export default function MobileBottomNav({ isApproved, isLoggedIn }: MobileBottomNavProps) {
+export default function MobileBottomNav({
+  isApproved,
+  isLoggedIn,
+}: MobileBottomNavProps) {
   const pathname = usePathname()
 
   const tabs: { label: string; href: string; iconKey: string }[] = [
     { label: "Collection", href: "/store", iconKey: "store" },
-    { label: breweryLabel(isApproved), href: "/breweries", iconKey: "breweries" },
-    { label: "Cart", href: "/cart", iconKey: "cart" },
-    { label: "Account", href: "/account", iconKey: "account" },
+    {
+      label: breweryLabel(isApproved),
+      href: "/breweries",
+      iconKey: "breweries",
+    },
+    { label: "Hops", href: "/hops", iconKey: "hops" },
+    ...(isApproved ? [{ label: "Cart", href: "/cart", iconKey: "cart" }] : []),
+    ...(isLoggedIn
+      ? [{ label: "Account", href: "/account", iconKey: "account" }]
+      : [{ label: "Join", href: "/apply", iconKey: "account" }]),
   ]
 
   const iconMap: Record<string, (active: boolean) => React.ReactNode> = {
     store: (active) => <StoreIcon active={active} />,
     breweries: (active) => <BreweriesIcon active={active} />,
+    hops: (active) => <HopsIcon active={active} />,
     cart: (active) => <CartIcon active={active} />,
     account: (active) => <AccountIcon active={active} />,
   }
 
   return (
-    <nav className="small:hidden fixed bottom-0 left-0 w-full z-50 border-t border-hg-border shadow-[0_-4px_20px_rgba(0,0,0,0.2)] flex justify-around items-center px-4 pb-[env(safe-area-inset-bottom)] pt-3 rounded-t-2xl backdrop-blur-xl" style={{ backgroundColor: "color-mix(in srgb, var(--color-bg) 92%, transparent)" }}>
+    <nav
+      aria-label="Mobile navigation"
+      className="small:hidden fixed bottom-0 left-0 w-full z-50 border-t border-hg-border shadow-[0_-4px_20px_rgba(0,0,0,0.2)] flex justify-around items-center px-4 pb-[env(safe-area-inset-bottom)] pt-3 rounded-t-2xl backdrop-blur-xl"
+      style={{
+        backgroundColor: "color-mix(in srgb, var(--color-bg) 92%, transparent)",
+      }}
+    >
       {tabs.map((tab) => {
-        const isActive = pathname === tab.href || (tab.href !== "/" && pathname.startsWith(tab.href))
+        const isActive =
+          pathname === tab.href ||
+          (tab.href !== "/" && pathname.startsWith(tab.href))
         return (
           <Link
             key={tab.href}
             href={tab.href}
-            className={`flex flex-col items-center justify-center gap-0.5 transition-all ${
+            className={`flex flex-col items-center justify-center gap-0.5 transition-all min-h-[44px] min-w-[44px] ${
               isActive
                 ? "text-hg-gold scale-105"
                 : "text-hg-text-secondary/60 active:bg-hg-surface"

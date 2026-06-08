@@ -1,15 +1,13 @@
-import {
-  AuthenticatedMedusaRequest,
-  MedusaResponse,
-} from "@medusajs/framework/http"
+import { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { Modules } from "@medusajs/framework/utils"
-import { PICKUP_LOCATION_MODULE } from "../../../../modules/pickup-location"
+import {
+  updatePickupLocationWorkflow,
+  deletePickupLocationWorkflow,
+} from "../../../../workflows/manage-pickup-location"
 import type PickupLocationModuleService from "../../../../modules/pickup-location/service"
+import { PICKUP_LOCATION_MODULE } from "../../../../modules/pickup-location"
 
-export async function GET(
-  req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
-) {
+export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   const svc = req.scope.resolve(PICKUP_LOCATION_MODULE) as PickupLocationModuleService
   const stockLocationModule = req.scope.resolve(Modules.STOCK_LOCATION)
   const { id } = req.params
@@ -30,11 +28,7 @@ export async function GET(
   }
 }
 
-export async function POST(
-  req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
-) {
-  const svc = req.scope.resolve(PICKUP_LOCATION_MODULE) as PickupLocationModuleService
+export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   const { id } = req.params
   const body = req.body as Record<string, unknown>
 
@@ -44,17 +38,16 @@ export async function POST(
     if (key in body) filtered[key] = body[key]
   }
 
-  await (svc as any).updatePickupLocations({ selector: { id }, data: filtered })
-  const location = await (svc as any).retrievePickupLocation(id)
+  const { result: location } = await updatePickupLocationWorkflow(req.scope).run({
+    input: { id, data: filtered },
+  })
   res.json({ location })
 }
 
-export async function DELETE(
-  req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
-) {
-  const svc = req.scope.resolve(PICKUP_LOCATION_MODULE) as PickupLocationModuleService
+export async function DELETE(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   const { id } = req.params
-  await (svc as any).deletePickupLocations([id])
-  res.json({ id, deleted: true })
+  const { result } = await deletePickupLocationWorkflow(req.scope).run({
+    input: { id },
+  })
+  res.json(result)
 }

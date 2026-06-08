@@ -1,13 +1,8 @@
-import {
-  AuthenticatedMedusaRequest,
-  MedusaResponse,
-} from "@medusajs/framework/http"
+// workflow-exempt
+import { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { CAMPAIGN_MODULE } from "../../../../../modules/campaign"
 
-export async function POST(
-  req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
-) {
+export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   const { id } = req.params
   const body = req.body as { reason?: string }
   const svc = req.scope.resolve(CAMPAIGN_MODULE) as any

@@ -1,0 +1,95 @@
+name: E2E Nightly
+
+on:
+  schedule:
+    - cron: "0 2 * * *" # 02:00 UTC daily
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "20.20.2"
+  PNPM_VERSION: "10.33.2"
+
+jobs:
+  e2e-full:
+    name: Full Playwright E2E suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    services:
+      postgres:
+        image: postgres:16.4-alpine
+        env:
+          POSTGRES_USER: medusa
+          POSTGRES_PASSWORD: medusa
+          POSTGRES_DB: medusa_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U medusa"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7.4-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgres://medusa:medusa@localhost:5432/medusa_db
+      REDIS_URL: redis://localhost:6379
+      JWT_SECRET: ci-jwt-secret
+      COOKIE_SECRET: ci-cookie-secret
+      BRAND_NAME: "Hops & Glory"
+      DEFAULT_CURRENCY: aud
+      DEFAULT_COUNTRY: au
+      MEDUSA_ADMIN_PATH: /app
+      E2E_ADMIN_EMAIL: admin@example.test
+      E2E_ADMIN_PASSWORD: ChangeMe123!
+      PLAYWRIGHT_BACKEND_URL: http://localhost:9000
+      PLAYWRIGHT_STOREFRONT_URL: http://localhost:8000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build backend
+        run: pnpm --filter ./apps/backend build
+      - name: Migrate + seed
+        env:
+          SEED_TEST_ACCOUNTS: "true"
+        run: |
+          pnpm --filter ./apps/backend exec medusa db:migrate
+          pnpm --filter ./apps/backend exec medusa exec ./src/scripts/seed.ts
+          pnpm --filter ./apps/backend exec medusa user --email "${E2E_ADMIN_EMAIL}" --password "${E2E_ADMIN_PASSWORD}" || true
+      - name: Start backend
+        run: pnpm --filter ./apps/backend start &
+      - name: Start storefront
+        run: pnpm --filter ./apps/storefront dev &
+      - name: Install Playwright browsers
+        run: pnpm --filter ./apps/storefront exec playwright install --with-deps chromium
+      - name: Wait for servers
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:9000/health && curl -sf http://localhost:8000/ > /dev/null; then
+              echo "ready"; break
+            fi
+            sleep 2
+          done
+      - name: Run full Playwright suite
+        run: pnpm --filter ./apps/storefront exec playwright test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-nightly-report
+          path: apps/storefront/playwright-report

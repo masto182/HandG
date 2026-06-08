@@ -9,6 +9,7 @@ import { BREWERY_MODULE } from "../modules/brewery"
 type CreateBreweryInput = {
   name: string
   slug: string
+  is_active?: boolean
   description?: string
   location?: string
   logo_url?: string
@@ -49,17 +50,7 @@ const updateBreweryStep = createStep(
     const prev = await breweryService.retrieveBrewery(input.id)
 
     const { id, ...updates } = input
-    let brewery
-    try {
-      brewery = await breweryService.updateBreweries(id, updates)
-    } catch {
-      try {
-        brewery = await breweryService.updateBreweries({ id, ...updates })
-      } catch {
-        const [result] = await breweryService.updateBreweries([{ id, ...updates }])
-        brewery = result
-      }
-    }
+    const brewery = await breweryService.updateBreweries({ id, ...updates })
 
     return new StepResponse(brewery, { id, prev: { ...prev } })
   },
@@ -68,15 +59,7 @@ const updateBreweryStep = createStep(
     const breweryService = container.resolve(BREWERY_MODULE) as any
     const { id, prev } = compensation
     const { created_at, updated_at, deleted_at, ...restoreData } = prev
-    try {
-      await breweryService.updateBreweries(id, restoreData)
-    } catch {
-      try {
-        await breweryService.updateBreweries({ id, ...restoreData })
-      } catch {
-        await breweryService.updateBreweries([{ id, ...restoreData }])
-      }
-    }
+    await breweryService.updateBreweries({ id, ...restoreData })
   }
 )
 

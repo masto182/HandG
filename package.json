@@ -5,6 +5,11 @@
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",
+    "dev:start": "./dev.sh start",
+    "dev:stop": "./dev.sh stop",
+    "dev:restart": "./dev.sh restart",
+    "dev:status": "./dev.sh status",
+    "dev:logs": "./dev.sh logs",
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
     "test": "turbo test",

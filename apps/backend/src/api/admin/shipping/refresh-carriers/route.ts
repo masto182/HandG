@@ -1,4 +1,5 @@
-import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+// workflow-exempt
+import type { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { getShipEngineClient } from "../../../../modules/shipengine/factory"
 
@@ -8,7 +9,7 @@ import { getShipEngineClient } from "../../../../modules/shipengine/factory"
  * Calls ShipEngine GET /v1/carriers and returns the connected carriers list
  * suitable for an admin dropdown. In stub mode returns 2 placeholder carriers.
  */
-export async function POST(_req: MedusaRequest, res: MedusaResponse) {
+export async function POST(_req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   const logger = _req.scope.resolve(ContainerRegistrationKeys.LOGGER)
   const client = getShipEngineClient()
   try {

@@ -1,7 +1,19 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react"
-import { getWishlistFull, addToWishlist, removeFromWishlist, updateWishlistItem } from "@lib/data/wishlist"
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+} from "react"
+import {
+  getWishlistFull,
+  addToWishlist,
+  removeFromWishlist,
+  updateWishlistItem,
+} from "@lib/data/wishlist"
 
 export type WishlistItemData = {
   id: string
@@ -13,12 +25,26 @@ export type WishlistItemData = {
 
 type WishlistContextType = {
   items: Map<string, WishlistItemData>
-  toggle: (productId: string, mode?: string, targetPrice?: number) => Promise<void>
+  toggle: (
+    productId: string,
+    mode?: string,
+    targetPrice?: number,
+  ) => Promise<void>
   isWishlisted: (productId: string) => boolean
   getItem: (productId: string) => WishlistItemData | null
-  addItem: (productId: string, opts?: { mode?: string; target_price?: number; stock_threshold?: number }) => Promise<boolean>
+  addItem: (
+    productId: string,
+    opts?: { mode?: string; target_price?: number; stock_threshold?: number },
+  ) => Promise<boolean>
   removeItem: (productId: string) => Promise<boolean>
-  updateItem: (productId: string, updates: { mode?: string; target_price?: number | null; stock_threshold?: number }) => Promise<boolean>
+  updateItem: (
+    productId: string,
+    updates: {
+      mode?: string
+      target_price?: number | null
+      stock_threshold?: number
+    },
+  ) => Promise<boolean>
   loading: string | null
 }
 
@@ -59,72 +85,92 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
     })
   }, [])
 
-  const toggle = useCallback(async (productId: string, mode?: string, targetPrice?: number) => {
-    setLoading(productId)
-    const existing = items.get(productId)
+  const toggle = useCallback(
+    async (productId: string, mode?: string, targetPrice?: number) => {
+      setLoading(productId)
+      const existing = items.get(productId)
 
-    try {
-      if (existing && !mode) {
-        const success = await removeFromWishlist(productId)
-        if (success) {
-          setItems((prev) => {
-            const next = new Map(prev)
-            next.delete(productId)
-            return next
-          })
+      try {
+        if (existing && !mode) {
+          const success = await removeFromWishlist(productId)
+          if (success) {
+            setItems((prev) => {
+              const next = new Map(prev)
+              next.delete(productId)
+              return next
+            })
+          }
+        } else {
+          const result = await addToWishlist(productId, mode, targetPrice)
+          if (result !== false) {
+            setItems((prev) => {
+              const next = new Map(prev)
+              next.set(productId, {
+                id: result || existing?.id || "",
+                product_id: productId,
+                mode: mode || "buy_later",
+                target_price: targetPrice ?? null,
+                stock_threshold: existing?.stock_threshold ?? 0,
+              })
+              return next
+            })
+          }
         }
-      } else {
-        const success = await addToWishlist(productId, mode, targetPrice)
-        if (success) {
+      } catch (e) {
+        console.error("[Wishlist] toggle error:", e)
+      }
+
+      setLoading(null)
+    },
+    [items],
+  )
+
+  const isWishlisted = useCallback(
+    (productId: string) => items.has(productId),
+    [items],
+  )
+
+  const getItem = useCallback(
+    (productId: string) => items.get(productId) || null,
+    [items],
+  )
+
+  const addItem = useCallback(
+    async (
+      productId: string,
+      opts?: { mode?: string; target_price?: number; stock_threshold?: number },
+    ) => {
+      setLoading(productId)
+      try {
+        const result = await addToWishlist(
+          productId,
+          opts?.mode,
+          opts?.target_price,
+          opts?.stock_threshold,
+        )
+        if (result !== false) {
           setItems((prev) => {
             const next = new Map(prev)
             next.set(productId, {
-              id: existing?.id || "",
+              id: result,
               product_id: productId,
-              mode: mode || "buy_later",
-              target_price: targetPrice ?? null,
-              stock_threshold: existing?.stock_threshold ?? 2,
+              mode: opts?.mode || "buy_later",
+              target_price: opts?.target_price ?? null,
+              stock_threshold: opts?.stock_threshold ?? 0,
             })
             return next
           })
         }
+        setLoading(null)
+        return result !== false
+      } catch (e) {
+        console.error("[Wishlist] addItem error:", e)
+        setLoading(null)
+        return false
       }
-    } catch (e) {
-      console.error("[Wishlist] toggle error:", e)
-    }
-
-    setLoading(null)
-  }, [items])
-
-  const isWishlisted = useCallback((productId: string) => items.has(productId), [items])
-
-  const getItem = useCallback((productId: string) => items.get(productId) || null, [items])
-
-  const addItem = useCallback(async (productId: string, opts?: { mode?: string; target_price?: number; stock_threshold?: number }) => {
-    setLoading(productId)
-    try {
-      const success = await addToWishlist(productId, opts?.mode, opts?.target_price, opts?.stock_threshold)
-      if (success) {
-        setItems((prev) => {
-          const next = new Map(prev)
-          next.set(productId, {
-            id: "",
-            product_id: productId,
-            mode: opts?.mode || "buy_later",
-            target_price: opts?.target_price ?? null,
-            stock_threshold: opts?.stock_threshold ?? 2,
-          })
-          return next
-        })
-      }
-      setLoading(null)
-      return success
-    } catch (e) {
-      console.error("[Wishlist] addItem error:", e)
-      setLoading(null)
-      return false
-    }
-  }, [])
+    },
+    [],
+  )
 
   const removeItem = useCallback(async (productId: string) => {
     setLoading(productId)
@@ -146,35 +192,59 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  const updateItem = useCallback(async (productId: string, updates: { mode?: string; target_price?: number | null; stock_threshold?: number }) => {
-    const existing = items.get(productId)
-    if (!existing) return false
+  const updateItem = useCallback(
+    async (
+      productId: string,
+      updates: {
+        mode?: string
+        target_price?: number | null
+        stock_threshold?: number
+      },
+    ) => {
+      const existing = items.get(productId)
+      if (!existing) return false
 
-    setLoading(productId)
-    try {
-      const success = await updateWishlistItem(existing.id, updates)
-      if (success) {
-        setItems((prev) => {
-          const next = new Map(prev)
-          next.set(productId, {
-            ...existing,
-            ...updates,
-            target_price: updates.target_price !== undefined ? updates.target_price : existing.target_price,
+      setLoading(productId)
+      try {
+        const success = await updateWishlistItem(existing.id, updates)
+        if (success) {
+          setItems((prev) => {
+            const next = new Map(prev)
+            next.set(productId, {
+              ...existing,
+              ...updates,
+              target_price:
+                updates.target_price !== undefined
+                  ? updates.target_price
+                  : existing.target_price,
+            })
+            return next
           })
-          return next
-        })
+        }
+        setLoading(null)
+        return success
+      } catch (e) {
+        console.error("[Wishlist] updateItem error:", e)
+        setLoading(null)
+        return false
       }
-      setLoading(null)
-      return success
-    } catch (e) {
-      console.error("[Wishlist] updateItem error:", e)
-      setLoading(null)
-      return false
-    }
-  }, [items])
+    },
+    [items],
+  )
 
   return (
-    <WishlistContext.Provider value={{ items, toggle, isWishlisted, getItem, addItem, removeItem, updateItem, loading }}>
+    <WishlistContext.Provider
+      value={{
+        items,
+        toggle,
+        isWishlisted,
+        getItem,
+        addItem,
+        removeItem,
+        updateItem,
+        loading,
+      }}
+    >
       {children}
     </WishlistContext.Provider>
   )

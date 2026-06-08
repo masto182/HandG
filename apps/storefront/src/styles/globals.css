@@ -88,6 +88,8 @@
     --color-warning: #A06A2C;
     --color-error: #B04C5D;
     --color-price: #244C3D;
+    --color-overlay-bg: rgba(255, 255, 255, 0.88);
+    --color-overlay-text: rgba(0, 0, 0, 0.82);
   }
 
   [data-theme="dark"] {
@@ -113,6 +115,8 @@
     --color-warning: #D69A4F;
     --color-error: #E07A8B;
     --color-price: #8FD0B0;
+    --color-overlay-bg: rgba(0, 0, 0, 0.85);
+    --color-overlay-text: rgba(255, 255, 255, 0.9);
   }
 
   body {
@@ -261,5 +265,12 @@
   [data-theme="light"] .glass-card {
     background: rgba(252, 253, 252, 0.7);
     border: 1px solid rgba(0, 0, 0, 0.06);
+  }
+
+  /* Global focus-visible styles — WCAG 2.4.7 */
+  :focus-visible {
+    outline: 2px solid var(--color-gold, #63a987);
+    outline-offset: 2px;
+    border-radius: 2px;
   }
 }

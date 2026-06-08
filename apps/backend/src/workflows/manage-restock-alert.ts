@@ -4,14 +4,15 @@ import {
   StepResponse,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+import { MedusaError } from "@medusajs/framework/utils"
 import { RESTOCK_ALERT_MODULE } from "../modules/restock-alert"
+import { VIP_SCORE_MODULE } from "../modules/vip-score"
 
 type CreateRestockAlertInput = {
   customer_id: string
-  product_id: string
-  variant_id: string
-  threshold: number
-  vip_tier?: string
+  product_id?: string | null
+  beer_name: string
+  brewery_name: string
 }
 
 type DeleteRestockAlertInput = {
@@ -24,27 +25,54 @@ const createRestockAlertStep = createStep(
   async (input: CreateRestockAlertInput, { container }) => {
     const restockAlertService = container.resolve(RESTOCK_ALERT_MODULE) as any
 
-    const existing = await restockAlertService.listRestockAlerts({
+    // Dedupe against pending (not-yet-notified) alerts. Prefer product_id when
+    // present; otherwise fall back to (beer_name, brewery_name) for ad-hoc
+    // subscriptions to products not in our catalog.
+    const dedupeFilter: Record<string, unknown> = {
       customer_id: input.customer_id,
-      variant_id: input.variant_id,
-    })
-
-    if (existing.length) {
-      return new StepResponse(existing[0], { action: "existing" })
+      notified_at: null,
+    }
+    if (input.product_id) {
+      dedupeFilter.product_id = input.product_id
+    } else {
+      dedupeFilter.beer_name = input.beer_name
+      dedupeFilter.brewery_name = input.brewery_name
     }
 
-    const alert = await restockAlertService.createRestockAlerts({
-      customer_id: input.customer_id,
-      product_id: input.product_id,
-      variant_id: input.variant_id,
-      threshold: input.threshold,
-      vip_tier: input.vip_tier || "approved",
-    })
+    const existing = await restockAlertService.listRestockAlerts(dedupeFilter)
+    if (existing.length) {
+      // Nothing created -> no compensation payload.
+      return new StepResponse({ alert: existing[0], created: false }, null)
+    }
 
-    return new StepResponse(alert, { action: "created", id: alert.id })
+    // Capture the customer's current VIP tier so the dispatcher can honour the
+    // tiered early-access ladder (vip5 first ... approved last).
+    let tier = "approved"
+    try {
+      const vipScoreService = container.resolve(VIP_SCORE_MODULE) as any
+      const scores = await vipScoreService.listVipScores({
+        customer_id: input.customer_id,
+      })
+      if (scores.length && scores[0].current_tier) {
+        tier = scores[0].current_tier
+      }
+    } catch {
+      // VIP score is optional; default to "approved".
+    }
+
+    const created = await restockAlertService.createRestockAlerts({
+      customer_id: input.customer_id,
+      product_id: input.product_id ?? null,
+      beer_name: input.beer_name,
+      brewery_name: input.brewery_name,
+      tier_at_notification: tier,
+    })
+    const alert = Array.isArray(created) ? created[0] : created
+
+    return new StepResponse({ alert, created: true }, { id: alert.id })
   },
-  async (compensation: any, { container }) => {
-    if (!compensation || compensation.action !== "created") return
+  async (compensation: { id: string } | null, { container }) => {
+    if (!compensation?.id) return
     const restockAlertService = container.resolve(RESTOCK_ALERT_MODULE) as any
     await restockAlertService.deleteRestockAlerts(compensation.id)
   }
@@ -54,25 +82,31 @@ const deleteRestockAlertStep = createStep(
   "delete-restock-alert",
   async (input: DeleteRestockAlertInput, { container }) => {
     const restockAlertService = container.resolve(RESTOCK_ALERT_MODULE) as any
+
+    // Ownership + existence check lives in the step (not the route).
     const [alert] = await restockAlertService.listRestockAlerts({
       id: input.id,
       customer_id: input.customer_id,
     })
-
-    if (!alert) throw new Error("Restock alert not found")
+    if (!alert) {
+      throw new MedusaError(MedusaError.Types.NOT_FOUND, "Restock alert not found")
+    }
 
     await restockAlertService.deleteRestockAlerts(input.id)
-    return new StepResponse({ deleted: true }, { ...alert })
+    return new StepResponse({ deleted: true, id: input.id }, alert)
   },
-  async (compensation: any, { container }) => {
-    if (!compensation) return
+  async (alert: any, { container }) => {
+    if (!alert) return
     const restockAlertService = container.resolve(RESTOCK_ALERT_MODULE) as any
+    // Restore with the real model fields (incl. NOT-NULL beer_name/brewery_name).
     await restockAlertService.createRestockAlerts({
-      customer_id: compensation.customer_id,
-      product_id: compensation.product_id,
-      variant_id: compensation.variant_id,
-      threshold: compensation.threshold,
-      vip_tier: compensation.vip_tier,
+      customer_id: alert.customer_id,
+      product_id: alert.product_id ?? null,
+      beer_name: alert.beer_name,
+      brewery_name: alert.brewery_name,
+      tier_at_notification: alert.tier_at_notification ?? null,
+      notified_at: alert.notified_at ?? null,
+      restock_detected_at: alert.restock_detected_at ?? null,
     })
   }
 )

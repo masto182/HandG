@@ -7,6 +7,9 @@ type MedusaError = {
   request?: unknown
   message?: string
   config?: { url: string; baseURL: string }
+  // Medusa JS SDK v2 FetchError shape (fetch-based, no Axios response/request)
+  status?: number
+  statusText?: string
 }
 
 const STALE_CART_PATTERNS = [
@@ -29,16 +32,27 @@ export function isStaleCartError(error: unknown): boolean {
     typeof err?.response?.data === "object" && err.response?.data !== null
       ? (err.response.data as { message?: string }).message
       : typeof err?.response?.data === "string"
-      ? err.response.data
-      : undefined
+        ? err.response.data
+        : undefined
   const candidates = [err?.message, responseMessage].filter(
-    (s): s is string => typeof s === "string" && s.length > 0
+    (s): s is string => typeof s === "string" && s.length > 0,
   )
-  return candidates.some((msg) => STALE_CART_PATTERNS.some((rx) => rx.test(msg)))
+  return candidates.some((msg) =>
+    STALE_CART_PATTERNS.some((rx) => rx.test(msg)),
+  )
 }
 
 export default function medusaError(error: unknown): never {
   const err = error as MedusaError
+
+  // Medusa JS SDK v2 throws FetchError: { message, status, statusText }
+  // No `response` or `request` — detect by presence of a numeric HTTP status.
+  if (typeof err.status === "number") {
+    const msg = err.message || err.statusText || "An unknown error occurred."
+    throw new Error(msg.charAt(0).toUpperCase() + msg.slice(1))
+  }
+
+  // Axios-style error handling (legacy / non-SDK paths)
   if (err.response) {
     const u = new URL(err.config?.url ?? "", err.config?.baseURL ?? "")
     console.error("Resource:", u.toString())

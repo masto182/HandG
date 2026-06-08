@@ -9,6 +9,21 @@ const MAX_QUERY_LEN = 200
 const MAX_LIMIT = 100
 const MAX_OFFSET = 10000
 
+// Only these attributes are configured sortable on the index (see
+// lib/meilisearch.ts updateSortableAttributes). Validate the client-supplied
+// sort against an allowlist so a malformed/unsortable value can't error the
+// query or sort by an unintended attribute.
+const DEFAULT_SORT = "created_at_ts:desc"
+const SORTABLE_ATTRS = new Set(["created_at_ts", "abv", "title", "untappd_score"])
+export function safeSort(raw: unknown): string {
+  const s = String(raw ?? "")
+  const [attr, dir] = s.split(":")
+  if (SORTABLE_ATTRS.has(attr) && (dir === "asc" || dir === "desc")) {
+    return `${attr}:${dir}`
+  }
+  return DEFAULT_SORT
+}
+
 function safeInt(raw: unknown, fallback: number, min: number, max: number): number {
   const n = parseInt(String(raw ?? ""), 10)
   if (!Number.isFinite(n)) return fallback
@@ -22,6 +37,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     style,
     hops,
     hopsMode = "or",
+    hop_country,
     freshness,
     collab,
     sort = "created_at_ts:desc",
@@ -40,7 +56,9 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   }
 
   if (style) {
-    const list = (style as string).split(",").map((s) => `style = "${sanitizeFilterValue(s)}"`)
+    const list = (style as string)
+      .split(",")
+      .map((s) => `style_family = "${sanitizeFilterValue(s)}"`)
     filters.push(`(${list.join(" OR ")})`)
   }
 
@@ -49,6 +67,15 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     const joiner = hopsMode === "and" ? " AND " : " OR "
     const hopFilters = hopList.map((h) => `hops = "${sanitizeFilterValue(h)}"`)
     filters.push(`(${hopFilters.join(joiner)})`)
+  }
+
+  if (hop_country) {
+    const countries = (hop_country as string)
+      .split(",")
+      .map((c) => c.trim())
+      .filter(Boolean)
+    const cf = countries.map((c) => `hop_countries = "${sanitizeFilterValue(c)}"`)
+    filters.push(`(${cf.join(" OR ")})`)
   }
 
   if (freshness) {
@@ -83,10 +110,10 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   try {
     const results = await index.search(safeQ, {
       filter: filters.length ? filters.join(" AND ") : undefined,
-      sort: sort ? [sort as string] : ["created_at_ts:desc"],
+      sort: [safeSort(sort)],
       limit: parsedLimit,
       offset: parsedOffset,
-      facets: ["brewery", "style", "hops"],
+      facets: ["brewery", "style", "style_family", "hops", "hop_countries"],
     })
 
     res.json({

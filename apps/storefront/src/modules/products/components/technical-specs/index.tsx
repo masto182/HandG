@@ -1,15 +1,23 @@
 import { HttpTypes } from "@medusajs/types"
 import Link from "next/link"
+import type { BeerStyle } from "@lib/data/beer-styles"
 
 type TechnicalSpecsProps = {
   product: HttpTypes.StoreProduct
   canSeePricing?: boolean
+  beerStyle?: BeerStyle | null
+  hopProvenance?: string | null
 }
 
-const TechnicalSpecs = ({ product, canSeePricing = true }: TechnicalSpecsProps) => {
+const TechnicalSpecs = ({
+  product,
+  canSeePricing = true,
+  beerStyle = null,
+  hopProvenance = null,
+}: TechnicalSpecsProps) => {
   const metadata = product.metadata as Record<string, any> | null
   const abv = metadata?.abv
-  const style = metadata?.style
+  const style = beerStyle?.name || metadata?.style
   const origin = metadata?.origin
   const volumeMl = metadata?.volume_ml as number | null | undefined
   const containerType = metadata?.container_type as string | null | undefined
@@ -18,13 +26,19 @@ const TechnicalSpecs = ({ product, canSeePricing = true }: TechnicalSpecsProps) 
   const specs: { label: string; value: string }[] = []
   if (style && canSeePricing) specs.push({ label: "Style", value: style })
   if (abv && canSeePricing) specs.push({ label: "ABV", value: `${abv}%` })
-  if (volumeMl && canSeePricing) specs.push({ label: "Volume", value: `${volumeMl}ml` })
-  if (containerType && canSeePricing) specs.push({ label: "Format", value: containerType.charAt(0).toUpperCase() + containerType.slice(1) })
+  if (volumeMl && canSeePricing)
+    specs.push({ label: "Volume", value: `${volumeMl}ml` })
+  if (containerType && canSeePricing)
+    specs.push({
+      label: "Format",
+      value: containerType.charAt(0).toUpperCase() + containerType.slice(1),
+    })
   if (origin) specs.push({ label: "Origin", value: origin })
 
   if (specs.length === 0 && (!hops || hops.length === 0)) return null
 
-  const padded = specs.length % 2 !== 0 ? [...specs, { label: "", value: "" }] : specs
+  const padded =
+    specs.length % 2 !== 0 ? [...specs, { label: "", value: "" }] : specs
 
   return (
     <div>
@@ -56,11 +70,15 @@ const TechnicalSpecs = ({ product, canSeePricing = true }: TechnicalSpecsProps) 
           </span>
           <div className="flex flex-wrap gap-2">
             {hops.map((hop) => {
-              const slug = hop.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")
+              const slug = hop
+                .toLowerCase()
+                .replace(/\s+/g, "-")
+                .replace(/[^a-z0-9-]/g, "")
               return (
                 <Link
                   key={hop}
                   href={`/hops/${slug}`}
+                  title={`View ${hop} hop profile`}
                   className="px-3 py-1.5 rounded-full bg-hg-surface-raised border border-hg-border text-sm text-hg-text hover:border-hg-accent hover:text-hg-accent transition-colors"
                 >
                   {hop}
@@ -68,6 +86,11 @@ const TechnicalSpecs = ({ product, canSeePricing = true }: TechnicalSpecsProps) 
               )
             })}
           </div>
+          {hopProvenance && (
+            <p className="text-xs text-hg-text-muted mt-2 leading-relaxed font-mono">
+              {hopProvenance}
+            </p>
+          )}
         </div>
       )}
     </div>

@@ -24,6 +24,19 @@ const config: Config = {
     "\\.(css|scss|sass)$": "<rootDir>/src/lib/__mocks__/style-mock.ts",
   },
   clearMocks: true,
+  // Coverage ratchet (enforced only when CI runs with --coverage): thresholds
+  // sit just below the measured baseline (stmts 87.6 / branch 80.9 /
+  // funcs 88.9 / lines 90.5) so component-test coverage cannot silently erode.
+  // Default collection (files exercised by tests) is intentional — scoping to
+  // all of src/** would pull in untested RSC pages and make the floor trivial.
+  coverageThreshold: {
+    global: {
+      statements: 83,
+      branches: 75,
+      functions: 83,
+      lines: 85,
+    },
+  },
 }
 
 export default config

@@ -20,7 +20,14 @@ export const metadata: Metadata = {
   title: "Checkout",
 }
 
-const VALID_STEPS = ["fulfilment", "address", "shipping", "payment", "review", "confirm"]
+const VALID_STEPS = [
+  "fulfilment",
+  "address",
+  "shipping",
+  "payment",
+  "review",
+  "confirm",
+]
 
 export default async function Checkout({
   searchParams,
@@ -37,14 +44,24 @@ export default async function Checkout({
     redirect("/cart")
   }
 
-  const customer = await retrieveCustomer()
-  const shippingMethods = await listCartShippingMethods(cart.id)
+  // customer + shipping methods are both always needed and independent — fetch
+  // in parallel rather than waterfalling.
+  const [customer, shippingMethods] = await Promise.all([
+    retrieveCustomer(),
+    listCartShippingMethods(cart.id),
+  ])
   const pickupOptionsList = getPickupOptions(shippingMethods)
-  const currentShippingOptionId = cart.shipping_methods?.at(-1)?.shipping_option_id
-  const cartHasPickup = pickupOptionsList.some((o) => o.id === currentShippingOptionId)
+  const currentShippingOptionId =
+    cart.shipping_methods?.at(-1)?.shipping_option_id
+  const cartHasPickup = pickupOptionsList.some(
+    (o) => o.id === currentShippingOptionId,
+  )
 
   const step = params.step
-  const isPickup = step === "fulfilment" ? false : (step !== "address" && step !== "shipping" && cartHasPickup)
+  const isPickup =
+    step === "fulfilment"
+      ? false
+      : step !== "address" && step !== "shipping" && cartHasPickup
 
   const renderStep = async () => {
     switch (step) {
@@ -55,24 +72,40 @@ export default async function Checkout({
         return <StepAddress cart={cart} customer={customer} />
       case "shipping":
         if (isPickup) redirect("/checkout?step=payment")
-        if (!cart.shipping_address?.address_1) redirect("/checkout?step=address")
+        if (!cart.shipping_address?.address_1)
+          redirect("/checkout?step=address")
         return <StepShipping cart={cart} shippingOptions={shippingMethods} />
       case "payment":
-        if (!isPickup && (!cart.shipping_methods || cart.shipping_methods.length === 0)) {
+        if (
+          !isPickup &&
+          (!cart.shipping_methods || cart.shipping_methods.length === 0)
+        ) {
           redirect("/checkout?step=fulfilment")
         }
-        const paymentMethods = await listCartPaymentMethods(cart.region?.id ?? "")
+        const paymentMethods = await listCartPaymentMethods(
+          cart.region?.id ?? "",
+        )
         return (
           <PaymentWrapper cart={cart}>
-            <StepPayment cart={cart} paymentMethods={paymentMethods} isPickup={isPickup} />
+            <StepPayment
+              cart={cart}
+              paymentMethods={paymentMethods}
+              isPickup={isPickup}
+            />
           </PaymentWrapper>
         )
       case "review":
-        if (!cart.payment_collection?.payment_sessions?.some((s) => s.status === "pending")) {
+        if (
+          !cart.payment_collection?.payment_sessions?.some(
+            (s) => s.status === "pending",
+          )
+        ) {
           redirect("/checkout?step=payment")
         }
         const heatHold = await getHeatHold()
-        return <StepReview cart={cart} isPickup={isPickup} heatHold={heatHold} />
+        return (
+          <StepReview cart={cart} isPickup={isPickup} heatHold={heatHold} />
+        )
       case "confirm":
         return <StepConfirm cart={cart} />
       default:
@@ -86,12 +119,21 @@ export default async function Checkout({
     <main className="min-h-screen flex max-w-[1440px] mx-auto px-8">
       <section className={`flex-1 ${isConfirm ? "" : "lg:pr-[420px]"} py-12`}>
         <div className="max-w-[720px] mx-auto">
-          {!isConfirm && <CheckoutProgress currentStep={step} isPickup={isPickup} />}
+          {!isConfirm && (
+            <CheckoutProgress currentStep={step} isPickup={isPickup} />
+          )}
           {await renderStep()}
         </div>
       </section>
       {!isConfirm && (
-        <aside className="hidden lg:flex fixed right-0 top-16 bottom-0 flex-col p-6 z-40 border-l border-hg-border/50 w-[400px] overflow-y-auto" style={{ backgroundColor: "color-mix(in srgb, var(--color-surface) 60%, transparent)", backdropFilter: "blur(20px)" }}>
+        <aside
+          className="hidden lg:flex fixed right-0 top-16 bottom-0 flex-col p-6 z-40 border-l border-hg-border/50 w-[400px] overflow-y-auto"
+          style={{
+            backgroundColor:
+              "color-mix(in srgb, var(--color-surface) 60%, transparent)",
+            backdropFilter: "blur(20px)",
+          }}
+        >
           <CheckoutSummary cart={cart} step={step} />
         </aside>
       )}

@@ -13,8 +13,7 @@ const resend = new Resend(process.env.RESEND_API_KEY || "re_test_placeholder")
  *   2. process.env.EMAIL_FROM / STORE_URL
  *   3. registry default
  */
-let _fromEmail =
-  process.env.EMAIL_FROM || "Example Store <noreply@example.com>"
+let _fromEmail = process.env.EMAIL_FROM || "Example Store <noreply@example.com>"
 let _storeUrl = process.env.STORE_URL || "https://example.com"
 
 export function getEmailFrom(): string {
@@ -88,6 +87,9 @@ export type NotificationCategory =
   | "vip_progression"
   | "referrals"
   | "wishlist_offers"
+  | "brewery_releases"
+  | "new_drops"
+  | "hop_alerts"
 
 const TRANSACTIONAL_CATEGORIES: ReadonlySet<NotificationCategory> = new Set([
   "applications",
@@ -97,11 +99,7 @@ const TRANSACTIONAL_CATEGORIES: ReadonlySet<NotificationCategory> = new Set([
 
 export type SendTemplateResult = {
   sent: boolean
-  reason?:
-    | "opted_out"
-    | "customer_missing"
-    | "no_resend_key"
-    | "error"
+  reason?: "opted_out" | "customer_missing" | "no_resend_key" | "error"
 }
 
 export type SendTemplateArgs<P> = {
@@ -118,10 +116,7 @@ export type SendTemplateArgs<P> = {
   container?: any
 }
 
-async function customerExists(
-  container: any,
-  customerId: string
-): Promise<boolean> {
+async function customerExists(container: any, customerId: string): Promise<boolean> {
   try {
     const customerModule = container.resolve("customer") as {
       retrieveCustomer?: (id: string) => Promise<unknown>
@@ -152,10 +147,7 @@ async function isOptedIn(
 ): Promise<boolean> {
   try {
     const svc = container.resolve("notificationPreference") as {
-      isOptedIn: (
-        customerId: string,
-        category: NotificationCategory
-      ) => Promise<boolean>
+      isOptedIn: (customerId: string, category: NotificationCategory) => Promise<boolean>
     }
     return await svc.isOptedIn(customerId, category)
   } catch {
@@ -182,18 +174,14 @@ export async function sendTemplate<P>({
 }: SendTemplateArgs<P>): Promise<SendTemplateResult> {
   if (!process.env.RESEND_API_KEY) {
     const { subject } = template
-    console.log(
-      `[Email] Would send (no RESEND_API_KEY) to ${to}: ${subject(props)}`
-    )
+    console.log(`[Email] Would send (no RESEND_API_KEY) to ${to}: ${subject(props)}`)
     return { sent: false, reason: "no_resend_key" }
   }
 
   if (customerId && container) {
     const exists = await customerExists(container, customerId)
     if (!exists) {
-      console.log(
-        `[Email] Skipped (customer ${customerId} missing): ${category} → ${to}`
-      )
+      console.log(`[Email] Skipped (customer ${customerId} missing): ${category} → ${to}`)
       return { sent: false, reason: "customer_missing" }
     }
   }
@@ -201,9 +189,7 @@ export async function sendTemplate<P>({
   if (!TRANSACTIONAL_CATEGORIES.has(category) && customerId && container) {
     const optedIn = await isOptedIn(container, customerId, category)
     if (!optedIn) {
-      console.log(
-        `[Email] Skipped (opted-out of ${category}): ${customerId} → ${to}`
-      )
+      console.log(`[Email] Skipped (opted-out of ${category}): ${customerId} → ${to}`)
       return { sent: false, reason: "opted_out" }
     }
   }
@@ -271,7 +257,12 @@ export function applicationRejectedEmail(name: string) {
   }
 }
 
-export function restockAvailableEmail(name: string, beerName: string, breweryName: string, handle: string) {
+export function restockAvailableEmail(
+  name: string,
+  beerName: string,
+  breweryName: string,
+  handle: string
+) {
   return {
     subject: `${beerName} is back in stock`,
     html: `

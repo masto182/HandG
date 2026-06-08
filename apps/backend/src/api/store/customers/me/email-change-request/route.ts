@@ -1,7 +1,5 @@
-import {
-  AuthenticatedMedusaRequest,
-  MedusaResponse,
-} from "@medusajs/framework/http"
+// workflow-exempt
+import { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { EMAIL_CHANGE_REQUEST_MODULE } from "../../../../../modules/email-change-request"
 import type EmailChangeRequestModuleService from "../../../../../modules/email-change-request/service"
 import { sendTemplate, getStoreUrl, refreshEmailConfig } from "../../../../../lib/email"
@@ -36,9 +34,7 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
 
   await refreshEmailConfig(req.scope)
 
-  const svc = req.scope.resolve(
-    EMAIL_CHANGE_REQUEST_MODULE
-  ) as EmailChangeRequestModuleService
+  const svc = req.scope.resolve(EMAIL_CHANGE_REQUEST_MODULE) as EmailChangeRequestModuleService
 
   const { token, expires_at } = await svc.createRequest(customerId, newEmail)
 

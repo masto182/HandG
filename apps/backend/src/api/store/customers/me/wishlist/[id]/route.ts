@@ -1,10 +1,18 @@
 import { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { updateWishlistWorkflow, removeWishlistWorkflow } from "../../../../../../workflows/manage-wishlist"
+import {
+  updateWishlistWorkflow,
+  removeWishlistWorkflow,
+} from "../../../../../../workflows/manage-wishlist"
+import { checkPriceAlertImmediate } from "../check-price-alert"
 
-export async function PATCH(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
+export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   const customerId = req.auth_context.actor_id
   const wishlistItemId = req.params.id
-  const { mode, target_price, stock_threshold } = req.body as { mode?: string; target_price?: number | null; stock_threshold?: number }
+  const { mode, target_price, stock_threshold } = req.body as {
+    mode?: string
+    target_price?: number | null
+    stock_threshold?: number
+  }
   const wishlistService = req.scope.resolve("wishlist") as any
 
   const [item] = await wishlistService.listWishlists({ id: wishlistItemId })
@@ -20,6 +28,10 @@ export async function PATCH(req: AuthenticatedMedusaRequest, res: MedusaResponse
 
   const { result } = await updateWishlistWorkflow(req.scope).run({
     input: updates,
+  })
+
+  checkPriceAlertImmediate(req.scope, result).catch((err) => {
+    console.error("[Wishlist] Immediate price check failed:", err)
   })
 
   res.json({ wishlist_item: result })

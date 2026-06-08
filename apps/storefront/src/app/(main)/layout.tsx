@@ -31,6 +31,13 @@ export default async function MainLayout({
 
   return (
     <div className="pb-14 small:pb-0">
+      {/* Skip navigation — WCAG 2.4.1 Level A */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[9999] focus:bg-hg-gold focus:text-hg-bg focus:px-4 focus:py-2 focus:rounded-lg focus:text-sm focus:font-semibold focus:shadow-lg"
+      >
+        Skip to main content
+      </a>
       <Nav membershipStatus={membershipStatus} customer={customer} />
       {membershipStatus === "pending" && <PendingBanner />}
       {isApproved && customer && cart && (
@@ -43,7 +50,7 @@ export default async function MainLayout({
           shippingOptions={shippingOptions}
         />
       )}
-      {children}
+      <main id="main-content">{children}</main>
       <Footer isApproved={isApproved} />
       <MobileBottomNav isApproved={isApproved} isLoggedIn={isLoggedIn} />
     </div>

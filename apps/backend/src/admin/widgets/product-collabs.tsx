@@ -21,44 +21,53 @@ const ProductCollabsWidget = ({ data }: { data: any }) => {
   const [dirty, setDirty] = useState(false)
 
   useEffect(() => {
-    const meta = product.metadata as any
-    setSelected(meta?.collab_partners || [])
-    sdk.client
-      .fetch<{ breweries: Brewery[] }>("/admin/breweries", { method: "GET" })
-      .then((d) => setAllBreweries(d.breweries || []))
-      .catch(() => {})
-      .finally(() => setLoading(false))
+    let cancelled = false
+    const loadAll = async () => {
+      try {
+        const [allRes, currentRes] = await Promise.all([
+          sdk.client.fetch<{ breweries: Brewery[] }>("/admin/breweries", { method: "GET" }),
+          sdk.client.fetch<{ collab_brewery_slugs: string[] }>(
+            `/admin/products/${product.id}/collab-breweries`,
+            { method: "GET" }
+          ),
+        ])
+        if (cancelled) return
+        setAllBreweries(allRes.breweries || [])
+        setSelected(currentRes.collab_brewery_slugs || [])
+      } catch {}
+      if (!cancelled) setLoading(false)
+    }
+    loadAll()
+    return () => {
+      cancelled = true
+    }
   }, [product.id])
 
   const toggle = (slug: string) => {
-    setSelected((prev) =>
-      prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug]
-    )
+    setSelected((prev) => (prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug]))
     setDirty(true)
   }
 
   const save = async () => {
     setSaving(true)
     try {
-      const isCollab = selected.length > 0
-      await sdk.client.fetch(`/admin/products/${product.id}`, {
+      await sdk.client.fetch(`/admin/products/${product.id}/collab-breweries`, {
         method: "POST",
-        body: {
-          metadata: {
-            ...(product.metadata || {}),
-            is_collab: isCollab,
-            collab_partners: selected,
-          },
-        },
+        body: { brewery_slugs: selected },
       })
       setDirty(false)
     } catch {}
     setSaving(false)
   }
 
-  const discard = () => {
-    const meta = product.metadata as any
-    setSelected(meta?.collab_partners || [])
+  const discard = async () => {
+    try {
+      const currentRes = await sdk.client.fetch<{ collab_brewery_slugs: string[] }>(
+        `/admin/products/${product.id}/collab-breweries`,
+        { method: "GET" }
+      )
+      setSelected(currentRes.collab_brewery_slugs || [])
+    } catch {}
     setDirty(false)
   }
 
@@ -149,18 +158,30 @@ const ProductCollabsWidget = ({ data }: { data: any }) => {
                     key={b.slug}
                     onClick={() => toggle(b.slug)}
                     className={`w-full text-left px-3 py-2 rounded-md flex items-center gap-3 text-sm transition-colors ${
-                      isSelected ? "bg-ui-bg-interactive text-ui-fg-on-color" : "hover:bg-ui-bg-base-hover"
+                      isSelected
+                        ? "bg-ui-bg-interactive text-ui-fg-on-color"
+                        : "hover:bg-ui-bg-base-hover"
                     }`}
                   >
-                    <span className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
-                      isSelected ? "bg-ui-fg-interactive border-ui-fg-interactive" : "border-ui-border-base"
-                    }`}>
+                    <span
+                      className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
+                        isSelected
+                          ? "bg-ui-fg-interactive border-ui-fg-interactive"
+                          : "border-ui-border-base"
+                      }`}
+                    >
                       {isSelected && <span className="text-white text-[10px] font-bold">✓</span>}
                     </span>
                     <div className="flex-1">
-                      <span className={isSelected ? "font-medium" : "text-ui-fg-base font-medium"}>{b.name}</span>
+                      <span className={isSelected ? "font-medium" : "text-ui-fg-base font-medium"}>
+                        {b.name}
+                      </span>
                       {b.location && (
-                        <span className={`ml-2 text-xs ${isSelected ? "opacity-80" : "text-ui-fg-subtle"}`}>{b.location}</span>
+                        <span
+                          className={`ml-2 text-xs ${isSelected ? "opacity-80" : "text-ui-fg-subtle"}`}
+                        >
+                          {b.location}
+                        </span>
                       )}
                     </div>
                   </button>

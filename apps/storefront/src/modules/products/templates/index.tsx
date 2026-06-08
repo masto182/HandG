@@ -1,4 +1,5 @@
 import React, { Suspense } from "react"
+import Link from "next/link"
 
 import ImageGallery from "@modules/products/components/image-gallery"
 import ProductActions from "@modules/products/components/product-actions"
@@ -12,10 +13,17 @@ import LikeButton from "@modules/likes/components/like-button"
 import ShareButton from "@modules/products/components/share-button"
 import BuyAtPriceBanner from "@modules/products/components/buy-at-price-banner"
 import ProductPill from "@modules/products/components/product-pill"
+import EarlyAccessCountdown from "@modules/store/components/early-access-countdown"
 import { notFound } from "next/navigation"
 import { HttpTypes } from "@medusajs/types"
+import {
+  canCustomerAccessProduct,
+  HOURS_BEFORE_PUBLIC_BY_TIER,
+  type Tier,
+} from "@retail-example/shared-types"
 
 import ProductActionsWrapper from "./product-actions-wrapper"
+import type { BeerStyle } from "@lib/data/beer-styles"
 
 type ProductTemplateProps = {
   product: HttpTypes.StoreProduct
@@ -31,6 +39,10 @@ type ProductTemplateProps = {
     currencyCode: string
     expiresAt: string | null
   } | null
+  earlyAccessOffsets?: typeof HOURS_BEFORE_PUBLIC_BY_TIER
+  viewerTier?: Tier | null
+  beerStyle?: BeerStyle | null
+  hopProvenance?: string | null
 }
 
 const ProductTemplate: React.FC<ProductTemplateProps> = ({
@@ -43,14 +55,42 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
   membershipStatus = "public",
   existingRestockAlertId = null,
   buyAtPriceOffer = null,
+  earlyAccessOffsets,
+  viewerTier = null,
+  beerStyle = null,
+  hopProvenance = null,
 }) => {
   if (!product || !product.id) {
     return notFound()
   }
 
   const metadata = product.metadata as Record<string, any> | null
-  const isOutOfStock = product.variants?.every((v: any) => (v.inventory_quantity ?? 0) === 0)
-  const collabPartners: string[] = metadata?.collab_partners || []
+  const isOutOfStock = product.variants?.every(
+    (v: any) => (v.inventory_quantity ?? 0) === 0,
+  )
+  const linkedBreweries: Array<{ slug: string; name?: string }> =
+    (product as any).breweries || []
+  const primarySlug = metadata?.brewery_slug
+  const collabPartners: string[] = linkedBreweries
+    .filter((b) => b.slug && b.slug !== primarySlug)
+    .map((b) => b.slug)
+  const releaseAt = (metadata?.release_at as string | undefined) ?? null
+  const earlyAccessUntil =
+    (metadata?.early_access_until as string | undefined) ?? null
+
+  const hasEarlyAccess = (() => {
+    if (!canSeePricing) return false
+    if (!releaseAt && !earlyAccessUntil) return true
+    const release = releaseAt
+      ? new Date(releaseAt)
+      : earlyAccessUntil
+        ? new Date(new Date(earlyAccessUntil).getTime() - 24 * 3600 * 1000)
+        : null
+    if (!release || isNaN(release.getTime())) return true
+    const publicAccess = new Date(release.getTime() + 24 * 3600 * 1000)
+    if (!viewerTier) return false
+    return canCustomerAccessProduct(viewerTier, publicAccess, new Date())
+  })()
 
   return (
     <>
@@ -64,7 +104,21 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
           </div>
 
           <div className="lg:col-span-5 flex flex-col gap-8">
-            <ProductInfo product={product} canSeePricing={canSeePricing} />
+            <ProductInfo
+              product={product}
+              canSeePricing={canSeePricing}
+              beerStyle={beerStyle}
+            />
+
+            {(releaseAt || earlyAccessUntil) && (
+              <EarlyAccessCountdown
+                releaseAt={releaseAt}
+                earlyAccessUntil={earlyAccessUntil}
+                offsets={earlyAccessOffsets}
+                viewerTier={viewerTier}
+                className="text-body-sm text-hg-text-secondary leading-relaxed -mt-4 p-4 bg-hg-surface border border-hg-border/30 rounded-xl"
+              />
+            )}
 
             {collabPartners.length > 0 && (
               <p className="text-sm text-hg-text-muted -mt-4">
@@ -72,8 +126,13 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
                 {collabPartners.map((slug, i) => (
                   <span key={slug}>
                     {i > 0 && ", "}
-                    <a href={`/breweries/${slug}`} className="text-hl-primary hover:underline">
-                      {slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                    <a
+                      href={`/breweries/${slug}`}
+                      className="text-hl-primary hover:underline"
+                    >
+                      {slug
+                        .replace(/-/g, " ")
+                        .replace(/\b\w/g, (c) => c.toUpperCase())}
                     </a>
                   </span>
                 ))}
@@ -88,7 +147,7 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
               />
             )}
 
-            {canSeePricing ? (
+            {canSeePricing && hasEarlyAccess ? (
               <>
                 <ProductOnboardingCta />
                 <Suspense
@@ -101,7 +160,11 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
                     />
                   }
                 >
-                  <ProductActionsWrapper id={product.id} region={region} existingRestockAlertId={existingRestockAlertId} />
+                  <ProductActionsWrapper
+                    id={product.id}
+                    region={region}
+                    existingRestockAlertId={existingRestockAlertId}
+                  />
                 </Suspense>
 
                 {!isOutOfStock && (
@@ -113,12 +176,29 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
                   <ShareButton />
                 </div>
               </>
+            ) : canSeePricing && !hasEarlyAccess ? (
+              <div className="flex flex-col gap-y-4 p-6 bg-hg-surface border border-hg-border/30 rounded-xl">
+                <p className="text-[14px] text-hg-text-secondary">
+                  This release hasn't unlocked for your tier yet. Check back
+                  soon or upgrade your VIP status to unlock early access.
+                </p>
+                <Link
+                  href="/account/vip"
+                  className="text-hl-primary text-sm font-semibold hover:underline"
+                >
+                  View your VIP progress →
+                </Link>
+                <span className="bg-hg-surface-dim text-hg-text-secondary py-3 px-6 rounded-xl text-center font-semibold text-[14px] uppercase tracking-wider">
+                  Not Yet Available
+                </span>
+              </div>
             ) : (
               <div className="flex flex-col gap-y-4 p-6 bg-hg-surface border border-hg-border/30 rounded-xl">
                 {membershipStatus === "pending" ? (
                   <>
                     <p className="text-[14px] text-hg-text-secondary">
-                      Your membership application is being reviewed. Pricing will be available once approved.
+                      Your membership application is being reviewed. Pricing
+                      will be available once approved.
                     </p>
                     <span className="bg-hg-surface-dim text-hg-text-secondary py-3 px-6 rounded-xl text-center font-semibold text-[14px] uppercase tracking-wider">
                       Application Pending
@@ -129,7 +209,10 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
                     <p className="text-[14px] text-hg-text-secondary">
                       Trades are available to approved members only.
                     </p>
-                    <a href="/apply" className="bg-hl-primary text-white py-3 px-6 rounded-xl text-center font-semibold text-[14px] uppercase tracking-wider hover:opacity-90 transition-all">
+                    <a
+                      href="/apply"
+                      className="bg-hl-primary text-white py-3 px-6 rounded-xl text-center font-semibold text-[14px] uppercase tracking-wider hover:opacity-90 transition-all"
+                    >
                       Apply for Membership
                     </a>
                   </>
@@ -137,14 +220,23 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
               </div>
             )}
 
-            <TechnicalSpecs product={product} canSeePricing={canSeePricing} />
+            <TechnicalSpecs
+              product={product}
+              canSeePricing={canSeePricing}
+              beerStyle={beerStyle}
+              hopProvenance={hopProvenance}
+            />
           </div>
         </div>
       </main>
 
       <div className="max-w-[1440px] mx-auto px-6 mt-24">
         <Suspense fallback={<SkeletonRelatedProducts />}>
-          <RelatedProducts product={product} countryCode={countryCode} canSeePricing={canSeePricing} />
+          <RelatedProducts
+            product={product}
+            countryCode={countryCode}
+            canSeePricing={canSeePricing}
+          />
         </Suspense>
       </div>
     </>

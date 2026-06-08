@@ -1,8 +1,10 @@
 import { medusaIntegrationTestRunner } from "@medusajs/test-utils"
+import { createAdminAuth } from "../helpers/admin-auth"
 
 jest.setTimeout(120_000)
 
 medusaIntegrationTestRunner({
+  disableAutoTeardown: true,
   testSuite: ({ api, getContainer }) => {
     describe("site-config admin + store APIs", () => {
       let adminAuth: { headers: Record<string, string> }
@@ -11,32 +13,8 @@ medusaIntegrationTestRunner({
       beforeAll(async () => {
         const container = getContainer()
 
-        // Create an admin user + token for /admin routes
-        const userModule = container.resolve("user") as any
-        const authModule = container.resolve("auth") as any
-
-        // Reuse or create admin user
-        const email = `admin-siteconfig-${Date.now()}@test.dev`
-        const password = "Admin123!"
-        try {
-          const reg = await api.post("/auth/user/emailpass/register", {
-            email,
-            password,
-          })
-          const token = (reg.data as any).token as string
-          // Need to invite via admin to actually create a user; instead create directly:
-          const user = await userModule.createUsers({ email, first_name: "T", last_name: "Admin" })
-          await authModule.updateAuthIdentities({
-            selector: { app_metadata: { user_id: user.id } } as any,
-            data: {},
-          }).catch(() => {})
-          // Sign in to get a session token
-          const auth = await api.post("/auth/user/emailpass", { email, password })
-          adminAuth = { headers: { authorization: `Bearer ${(auth.data as any).token}` } }
-        } catch (e) {
-          // Fallback: many test runners ship with a default admin
-          adminAuth = { headers: {} }
-        }
+        // Create an admin user + session token (token carries actor_id).
+        adminAuth = await createAdminAuth(api, container)
 
         // Publishable key for /store/* routes
         const apiKeyModule = container.resolve("api_key") as any
@@ -98,10 +76,7 @@ medusaIntegrationTestRunner({
       })
 
       it("GET /admin/site-config/:key/history shows the prior set", async () => {
-        const res = await api.get(
-          "/admin/site-config/payid_alias/history",
-          adminAuth
-        )
+        const res = await api.get("/admin/site-config/payid_alias/history", adminAuth)
         expect(res.status).toBe(200)
         const history = (res.data as any).history as any[]
         expect(history.length).toBeGreaterThan(0)
@@ -111,10 +86,7 @@ medusaIntegrationTestRunner({
       })
 
       it("DELETE reverts to env or default and source is no longer 'override'", async () => {
-        const res = await api.delete(
-          "/admin/site-config/payid_alias",
-          adminAuth
-        )
+        const res = await api.delete("/admin/site-config/payid_alias", adminAuth)
         expect(res.status).toBe(200)
         const entry = (res.data as any).entry
         expect(["env", "default"]).toContain(entry.source)
@@ -137,10 +109,7 @@ medusaIntegrationTestRunner({
 
       it("GET /admin/site-config/:key for unknown key → 404", async () => {
         try {
-          const res = await api.get(
-            "/admin/site-config/this_key_does_not_exist",
-            adminAuth
-          )
+          const res = await api.get("/admin/site-config/this_key_does_not_exist", adminAuth)
           expect(res.status).toBe(404)
         } catch (err: any) {
           expect(err.response?.status).toBe(404)

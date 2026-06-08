@@ -37,7 +37,6 @@ export const retrieveCustomer =
         },
         headers,
         next,
-        cache: "no-store",
       })
       .then(({ customer }) => customer)
       .catch(async (err) => {
@@ -143,7 +142,7 @@ export const listCustomerAddresses = async (): Promise<
 
 export const addCustomerAddress = async (
   currentState: Record<string, unknown>,
-  formData: FormData
+  formData: FormData,
 ): Promise<{ success: boolean; error: string | null }> => {
   const isDefaultBilling = (currentState.isDefaultBilling as boolean) || false
   const isDefaultShipping = (currentState.isDefaultShipping as boolean) || false
@@ -180,7 +179,7 @@ export const addCustomerAddress = async (
 }
 
 export const deleteCustomerAddress = async (
-  addressId: string
+  addressId: string,
 ): Promise<void> => {
   const headers = {
     ...(await getAuthHeaders()),
@@ -200,7 +199,7 @@ export const deleteCustomerAddress = async (
 
 export const updateCustomerAddress = async (
   currentState: Record<string, unknown>,
-  formData: FormData
+  formData: FormData,
 ): Promise<{ success: boolean; error: string | null }> => {
   const addressId =
     (currentState.addressId as string) || (formData.get("addressId") as string)

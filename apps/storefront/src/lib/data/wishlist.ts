@@ -38,7 +38,7 @@ export async function getWishlistItems(): Promise<string[]> {
   try {
     const data = await sdk.client.fetch<{ wishlist: any[] }>(
       "/store/customers/me/wishlist",
-      { method: "GET", headers }
+      { method: "GET", headers },
     )
     return (data.wishlist || []).map((w: any) => w.product_id)
   } catch (e) {
@@ -54,7 +54,7 @@ export async function getWishlistFull(): Promise<WishlistEntry[]> {
   try {
     const data = await sdk.client.fetch<{ wishlist: WishlistEntry[] }>(
       "/store/customers/me/wishlist",
-      { method: "GET", headers }
+      { method: "GET", headers },
     )
     return data.wishlist || []
   } catch {
@@ -66,8 +66,8 @@ export async function addToWishlist(
   productId: string,
   mode?: string,
   targetPrice?: number,
-  stockThreshold?: number
-): Promise<boolean> {
+  stockThreshold?: number,
+): Promise<string | false> {
   const headers = await getAuthHeaders()
   if (!headers.authorization) {
     console.warn("[Wishlist] addToWishlist: no auth token available")
@@ -75,17 +75,20 @@ export async function addToWishlist(
   }
 
   try {
-    await sdk.client.fetch("/store/customers/me/wishlist", {
-      method: "POST",
-      headers: { ...headers, "content-type": "application/json" },
-      body: {
-        product_id: productId,
-        mode: mode || "buy_later",
-        target_price: targetPrice ?? null,
-        stock_threshold: stockThreshold ?? 2,
+    const res = await sdk.client.fetch<{ wishlist_item?: { id: string } }>(
+      "/store/customers/me/wishlist",
+      {
+        method: "POST",
+        headers: { ...headers, "content-type": "application/json" },
+        body: {
+          product_id: productId,
+          mode: mode || "buy_later",
+          target_price: targetPrice ?? null,
+          stock_threshold: stockThreshold ?? 0,
+        },
       },
-    })
-    return true
+    )
+    return res?.wishlist_item?.id || ""
   } catch (e) {
     console.error("[Wishlist] addToWishlist error:", e)
     return false
@@ -94,7 +97,11 @@ export async function addToWishlist(
 
 export async function updateWishlistItem(
   itemId: string,
-  updates: { mode?: string; target_price?: number | null; stock_threshold?: number }
+  updates: {
+    mode?: string
+    target_price?: number | null
+    stock_threshold?: number
+  },
 ): Promise<boolean> {
   const headers = await getAuthHeaders()
   if (!headers.authorization) {
@@ -104,7 +111,7 @@ export async function updateWishlistItem(
 
   try {
     await sdk.client.fetch(`/store/customers/me/wishlist/${itemId}`, {
-      method: "PATCH",
+      method: "POST",
       headers: { ...headers, "content-type": "application/json" },
       body: updates,
     })
@@ -122,7 +129,7 @@ export async function getWishlistWithProducts(): Promise<WishlistEntry[]> {
   try {
     const data = await sdk.client.fetch<{ wishlist: any[] }>(
       "/store/customers/me/wishlist",
-      { method: "GET", headers }
+      { method: "GET", headers },
     )
     const entries = data.wishlist || []
     return entries.map((e: any) => ({

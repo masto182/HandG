@@ -21,7 +21,7 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  OWNER: sfc-gh-cmasterson
+  OWNER: masto182
   PLATFORMS: linux/arm64
 
 jobs:
@@ -93,4 +93,3 @@ jobs:
         with:
           sarif_file: trivy-${{ matrix.app }}.sarif
           category: trivy-image-${{ matrix.app }}
-

@@ -1,10 +1,6 @@
 import { MedusaService } from "@medusajs/framework/utils"
 import NotificationPreference from "./models/notification-preference"
-import {
-  NOTIFICATION_CATEGORIES,
-  isTransactional,
-  isKnownCategory,
-} from "./categories"
+import { NOTIFICATION_CATEGORIES, isTransactional, isKnownCategory } from "./categories"
 import type { NotificationCategory } from "../../lib/email"
 
 export type PreferenceEntry = {
@@ -26,10 +22,7 @@ class NotificationPreferenceModuleService extends MedusaService({
    * Returns true if the customer is opted-in for the category. Defaults to
    * `true` when no row exists. Transactional categories always return true.
    */
-  async isOptedIn(
-    customerId: string,
-    category: NotificationCategory
-  ): Promise<boolean> {
+  async isOptedIn(customerId: string, category: NotificationCategory): Promise<boolean> {
     if (isTransactional(category)) return true
     try {
       const rows = (await (this as any).listNotificationPreferences({
@@ -59,7 +52,7 @@ class NotificationPreferenceModuleService extends MedusaService({
       transactional: c.transactional,
       enabled: byCategory.has(c.category)
         ? byCategory.get(c.category) !== false
-        : true,
+        : (c.default_enabled ?? true),
     }))
   }
 

@@ -39,7 +39,8 @@ const approveHopInferenceStep = createStep(
     })
 
     const previousStatus = detail.enrichment_status
-    await beerDetailService.updateBeerDetails(input.beer_detail_id, {
+    await beerDetailService.updateBeerDetails({
+      id: input.beer_detail_id,
       enrichment_status: "approved",
     })
 
@@ -61,7 +62,8 @@ const approveHopInferenceStep = createStep(
     await productModule.updateProducts(compensation.product_id, {
       metadata: compensation.previousMetadata,
     })
-    await beerDetailService.updateBeerDetails(compensation.beer_detail_id, {
+    await beerDetailService.updateBeerDetails({
+      id: compensation.beer_detail_id,
       enrichment_status: compensation.previousStatus,
     })
   }
@@ -74,7 +76,8 @@ const dismissHopInferenceStep = createStep(
     const detail = await beerDetailService.retrieveBeerDetail(input.beer_detail_id)
     const previousStatus = detail?.enrichment_status
 
-    await beerDetailService.updateBeerDetails(input.beer_detail_id, {
+    await beerDetailService.updateBeerDetails({
+      id: input.beer_detail_id,
       enrichment_status: "dismissed",
     })
 
@@ -86,7 +89,8 @@ const dismissHopInferenceStep = createStep(
   async (compensation: any, { container }) => {
     if (!compensation) return
     const beerDetailService = container.resolve(BEER_DETAIL_MODULE) as any
-    await beerDetailService.updateBeerDetails(compensation.beer_detail_id, {
+    await beerDetailService.updateBeerDetails({
+      id: compensation.beer_detail_id,
       enrichment_status: compensation.previousStatus,
     })
   }

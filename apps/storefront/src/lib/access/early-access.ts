@@ -5,5 +5,6 @@ export {
   computeTierVisibleFrom,
   canCustomerAccessProduct,
   nextTierForEarlierAccess,
+  currentLowestTierWithAccess,
   type Tier,
 } from "@retail-example/shared-types"

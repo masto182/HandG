@@ -1,4 +1,4 @@
-import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import type { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys, MedusaError, Modules } from "@medusajs/framework/utils"
 import { createOrderFulfillmentWorkflow } from "@medusajs/medusa/core-flows"
 import { SHIPENGINE_HEAT_HOLD_BLOCKED_CODE } from "../../../../../modules/shipengine/service"
@@ -14,7 +14,7 @@ import { SHIPENGINE_HEAT_HOLD_BLOCKED_CODE } from "../../../../../modules/shipen
  *
  * Surfaces 409 with code HEAT_HOLD_BLOCKED when blocked.
  */
-export async function POST(req: MedusaRequest, res: MedusaResponse) {
+export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   const orderId = req.params.id
   const body = (req.body ?? {}) as { override?: boolean }
   const logger = req.scope.resolve(ContainerRegistrationKeys.LOGGER)
@@ -40,10 +40,12 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     logger.info(`[shipengine] heat_hold_override set on ${orderId} by admin request`)
   }
 
-  const items = (order.items ?? []).map((it) => ({
-    id: it.id,
-    quantity: typeof it.quantity === "number" ? it.quantity : Number(it.quantity ?? 1),
-  })).filter((it) => it.quantity > 0)
+  const items = (order.items ?? [])
+    .map((it) => ({
+      id: it.id,
+      quantity: typeof it.quantity === "number" ? it.quantity : Number(it.quantity ?? 1),
+    }))
+    .filter((it) => it.quantity > 0)
 
   if (!items.length) {
     res.status(400).json({ message: "order has no items to fulfill" })
@@ -61,7 +63,26 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
   } catch (err) {
     const message = (err as Error).message ?? "fulfillment failed"
     const code = (err as MedusaError).code
-    if (code === SHIPENGINE_HEAT_HOLD_BLOCKED_CODE || message.includes(SHIPENGINE_HEAT_HOLD_BLOCKED_CODE)) {
+
+    // If we set the override flag and the workflow still failed (for a reason
+    // other than heat-hold), clear the flag so it doesn't stay set permanently.
+    if (body.override && code !== SHIPENGINE_HEAT_HOLD_BLOCKED_CODE) {
+      try {
+        const freshOrder = await orderModule.retrieveOrder(orderId)
+        const meta = { ...(freshOrder.metadata ?? {}) } as Record<string, unknown>
+        delete meta.heat_hold_override
+        await orderModule.updateOrders(orderId, { metadata: meta })
+      } catch (clearErr) {
+        logger.warn(
+          `[shipengine] could not clear heat_hold_override on ${orderId}: ${(clearErr as Error).message}`
+        )
+      }
+    }
+
+    if (
+      code === SHIPENGINE_HEAT_HOLD_BLOCKED_CODE ||
+      message.includes(SHIPENGINE_HEAT_HOLD_BLOCKED_CODE)
+    ) {
       res.status(409).json({
         code: SHIPENGINE_HEAT_HOLD_BLOCKED_CODE,
         message: "Heat hold is active. Pass `{override: true}` or toggle heat_hold_enabled off.",

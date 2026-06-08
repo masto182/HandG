@@ -23,8 +23,13 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
   for (const a of body.approvals) {
     if (!a.wishlist_id || !a.customer_id || !a.product_id || a.offer_price == null) {
       res.status(400).json({
-        error:
-          "each approval must have wishlist_id, customer_id, product_id, offer_price",
+        error: "each approval must have wishlist_id, customer_id, product_id, offer_price",
+      })
+      return
+    }
+    if (a.offer_price <= 0) {
+      res.status(400).json({
+        error: "offer_price must be greater than 0",
       })
       return
     }

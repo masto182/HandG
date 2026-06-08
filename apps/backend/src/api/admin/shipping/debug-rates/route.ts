@@ -1,4 +1,4 @@
-import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import type { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
 /**
  * GET /admin/shipping/debug-rates?cart_id=:id&require_signature=true
@@ -8,7 +8,7 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
  * invalid_rates from ShipEngine. Used by the AusPost admin page to investigate
  * "why is carrier X missing?" without exposing debug info to customers.
  */
-export async function GET(req: MedusaRequest, res: MedusaResponse) {
+export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   const cartId = req.query.cart_id as string | undefined
   if (!cartId) {
     res.status(400).json({ message: "cart_id query param is required" })

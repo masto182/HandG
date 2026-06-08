@@ -17,14 +17,37 @@ type VipEarlyAccessOffsets = {
   vip5: number
 }
 
-const DEFAULT_OFFSETS: VipEarlyAccessOffsets = {
-  vip1: 0, vip2: 6, vip3: 12, vip4: 24, vip5: 48,
+// Visibility offsets used by storefront countdown / listing logic. Same
+// site-config key as VipEarlyAccessOffsets above (extra `approved` key); the
+// storefront uses these to compute per-tier purchase windows. Defaults match
+// HOURS_BEFORE_PUBLIC_BY_TIER in @retail-example/shared-types.
+type EarlyAccessVisibilityOffsets = {
+  approved: number
+  vip1: number
+  vip2: number
+  vip3: number
+  vip4: number
+  vip5: number
 }
 
-export async function GET(
-  req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
-) {
+const DEFAULT_VISIBILITY_OFFSETS: EarlyAccessVisibilityOffsets = {
+  approved: 1,
+  vip1: 3,
+  vip2: 6,
+  vip3: 12,
+  vip4: 24,
+  vip5: 24,
+}
+
+const DEFAULT_OFFSETS: VipEarlyAccessOffsets = {
+  vip1: 0,
+  vip2: 6,
+  vip3: 12,
+  vip4: 24,
+  vip5: 48,
+}
+
+export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   const customerId = req.auth_context.actor_id
   const vipScoreService = req.scope.resolve(VIP_SCORE_MODULE) as any
   const referralService = req.scope.resolve(REFERRAL_MODULE) as any
@@ -33,14 +56,18 @@ export async function GET(
   // Resolve dynamic config once per request (DB > env > default).
   let graceDays = VIP_DEMOTION_GRACE_DAYS
   let offsets: VipEarlyAccessOffsets = DEFAULT_OFFSETS
+  let visibilityOffsets: EarlyAccessVisibilityOffsets = DEFAULT_VISIBILITY_OFFSETS
   try {
     const siteConfig = req.scope.resolve(SITE_CONFIG_MODULE) as SiteConfigModuleService
     const [g, o] = await Promise.all([
       siteConfig.get<number>("vip_demotion_grace_days"),
-      siteConfig.get<VipEarlyAccessOffsets>("vip_early_access_offsets_hours"),
+      siteConfig.get<Partial<EarlyAccessVisibilityOffsets>>("vip_early_access_offsets_hours"),
     ])
     if (typeof g === "number") graceDays = g
-    if (o && typeof o === "object") offsets = { ...DEFAULT_OFFSETS, ...o }
+    if (o && typeof o === "object") {
+      offsets = { ...DEFAULT_OFFSETS, ...(o as Partial<VipEarlyAccessOffsets>) }
+      visibilityOffsets = { ...DEFAULT_VISIBILITY_OFFSETS, ...o }
+    }
   } catch {}
 
   const [scoreRecord] = await vipScoreService.listVipScores({
@@ -64,6 +91,7 @@ export async function GET(
       pending_demotion: false,
       tier_achieved_at: null,
       demotion_warning_at: null,
+      early_access_offsets: visibilityOffsets,
     })
   }
 
@@ -93,6 +121,7 @@ export async function GET(
     pending_demotion: scoreRecord.pending_demotion,
     tier_achieved_at: scoreRecord.tier_achieved_at,
     demotion_warning_at: scoreRecord.demotion_warning_at,
+    early_access_offsets: visibilityOffsets,
   })
 }
 

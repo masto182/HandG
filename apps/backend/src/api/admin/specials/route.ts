@@ -1,14 +1,9 @@
-import {
-  AuthenticatedMedusaRequest,
-  MedusaResponse,
-} from "@medusajs/framework/http"
+// workflow-exempt
+import { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { CAMPAIGN_MODULE } from "../../../modules/campaign"
 import type CampaignModuleService from "../../../modules/campaign/service"
 
-export async function GET(
-  req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
-) {
+export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   const svc = req.scope.resolve(CAMPAIGN_MODULE) as CampaignModuleService
   const { status, type } = req.query as { status?: string; type?: string }
 
@@ -16,17 +11,13 @@ export async function GET(
   if (status) filters.status = status
   if (type) filters.type = type
 
-  const [campaigns, count] = await (svc as any).listAndCountSpecialCampaigns(
-    filters,
-    { order: { created_at: "DESC" } }
-  )
+  const [campaigns, count] = await (svc as any).listAndCountSpecialCampaigns(filters, {
+    order: { created_at: "DESC" },
+  })
   res.json({ campaigns, count })
 }
 
-export async function POST(
-  req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
-) {
+export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   const svc = req.scope.resolve(CAMPAIGN_MODULE) as CampaignModuleService
   const body = req.body as Record<string, unknown>
 

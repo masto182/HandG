@@ -1,6 +1,19 @@
 import { NextRequest, NextResponse } from "next/server"
+import { isJwtUsable } from "@lib/util/jwt"
 
 const PROTECTED_ROUTES = ["/cart", "/checkout"]
+
+// Account sub-routes that require auth (not /account itself — that shows the login form)
+const PROTECTED_ACCOUNT_SUBROUTES = [
+  "/account/wishlist",
+  "/account/referrals",
+  "/account/vip",
+  "/account/orders",
+  "/account/addresses",
+  "/account/profile",
+  "/account/alerts",
+  "/account/email-settings",
+]
 
 // Storage-generic image hosts list, parsed once at module load.
 // Read by both next.config.js and the CSP img-src directive so the
@@ -22,13 +35,17 @@ export async function middleware(request: NextRequest) {
   }
 
   const isProtected = PROTECTED_ROUTES.some((route) =>
-    request.nextUrl.pathname.startsWith(route)
+    request.nextUrl.pathname.startsWith(route),
+  )
+  const isProtectedAccountRoute = PROTECTED_ACCOUNT_SUBROUTES.some((route) =>
+    request.nextUrl.pathname.startsWith(route),
   )
 
-  if (isProtected) {
+  if (isProtected || isProtectedAccountRoute) {
     const authCookie = request.cookies.get("_medusa_jwt")
-    if (!authCookie?.value) {
-      const loginUrl = new URL("/", request.url)
+    if (!isJwtUsable(authCookie?.value)) {
+      const loginUrl = new URL("/account", request.url)
+      loginUrl.searchParams.set("redirect_to", request.nextUrl.pathname)
       return NextResponse.redirect(loginUrl)
     }
   }
@@ -50,7 +67,9 @@ export async function middleware(request: NextRequest) {
       process.env.NEXT_PUBLIC_PLAUSIBLE_SRC
         ? new URL(process.env.NEXT_PUBLIC_PLAUSIBLE_SRC).origin
         : "https://plausible.io"
-    } https://*.ingest.sentry.io https://*.sentry.io http://localhost:7700 ws://localhost:8000 https://maps.googleapis.com https://maps.gstatic.com`,
+    } https://*.ingest.sentry.io https://*.sentry.io https://maps.googleapis.com https://maps.gstatic.com${
+      isDev ? " http://localhost:7700 ws://localhost:8000" : ""
+    }`,
     `frame-ancestors 'none'`,
     `form-action 'self'`,
     `object-src 'none'`,
@@ -83,7 +102,7 @@ export async function middleware(request: NextRequest) {
   response.headers.set("X-DNS-Prefetch-Control", "on")
   response.headers.set(
     "Permissions-Policy",
-    "camera=(), microphone=(), geolocation=()"
+    "camera=(), microphone=(), geolocation=()",
   )
   // Cross-origin isolation. same-origin defaults are safe for a storefront
   // that does not embed third-party iframes; relax to `unsafe-none` if you

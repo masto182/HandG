@@ -4,6 +4,7 @@ import { Modules } from "@medusajs/framework/utils"
 jest.setTimeout(120_000)
 
 medusaIntegrationTestRunner({
+  disableAutoTeardown: true,
   testSuite: ({ api, getContainer }) => {
     describe("POST /store/customers/register", () => {
       let publishableKey = ""
@@ -86,9 +87,7 @@ medusaIntegrationTestRunner({
         const token = (regRes.data as any).token as string
         expect(typeof token).toBe("string")
 
-        const payload = JSON.parse(
-          Buffer.from(token.split(".")[1], "base64").toString("utf8")
-        )
+        const payload = JSON.parse(Buffer.from(token.split(".")[1], "base64").toString("utf8"))
         const authIdentityId = payload.auth_identity_id
         expect(typeof authIdentityId).toBe("string")
 

@@ -1,7 +1,12 @@
 import { test, expect } from "@playwright/test"
 
+const isProduction = process.env.NODE_ENV === "production"
+
 test.describe("CSP Nonce Verification", () => {
-  test("Response includes Content-Security-Policy header with nonce and no unsafe-inline in script-src", async ({ page }) => {
+  test.skip(!isProduction, "CSP nonces only apply in production mode")
+  test("Response includes Content-Security-Policy header with nonce and no unsafe-inline in script-src", async ({
+    page,
+  }) => {
     const response = await page.goto("/")
     expect(response).not.toBeNull()
 
@@ -21,10 +26,15 @@ test.describe("CSP Nonce Verification", () => {
     expect(headerNonce.length).toBeGreaterThan(10)
   })
 
-  test("Page loads without CSP violations — scripts execute under strict-dynamic", async ({ page }) => {
+  test("Page loads without CSP violations — scripts execute under strict-dynamic", async ({
+    page,
+  }) => {
     const cspViolations: string[] = []
     page.on("console", (msg) => {
-      if (msg.text().includes("Content Security Policy") || msg.text().includes("CSP")) {
+      if (
+        msg.text().includes("Content Security Policy") ||
+        msg.text().includes("CSP")
+      ) {
         cspViolations.push(msg.text())
       }
     })
@@ -41,7 +51,9 @@ test.describe("CSP Nonce Verification", () => {
     expect(cspViolations).toHaveLength(0)
   })
 
-  test("HTML source contains nonce attributes on script tags", async ({ request }) => {
+  test("HTML source contains nonce attributes on script tags", async ({
+    request,
+  }) => {
     const response = await request.get("http://localhost:8000/")
     const html = await response.text()
     const cspHeader = response.headers()["content-security-policy"] || ""
@@ -54,11 +66,16 @@ test.describe("CSP Nonce Verification", () => {
     const inlineScripts = scriptTags.filter((tag) => !tag.includes("src="))
 
     for (const tag of inlineScripts) {
-      if (tag.includes("dangerouslySetInnerHTML") || tag === "<script>") continue
-      expect.soft(tag, `Script tag missing nonce: ${tag.slice(0, 80)}`).toContain(`nonce=`)
+      if (tag.includes("dangerouslySetInnerHTML") || tag === "<script>")
+        continue
+      expect
+        .soft(tag, `Script tag missing nonce: ${tag.slice(0, 80)}`)
+        .toContain(`nonce=`)
     }
 
-    const scriptsWithNonce = scriptTags.filter((tag) => tag.includes(`nonce="${nonce}"`))
+    const scriptsWithNonce = scriptTags.filter((tag) =>
+      tag.includes(`nonce="${nonce}"`),
+    )
     expect(scriptsWithNonce.length).toBeGreaterThan(0)
   })
 

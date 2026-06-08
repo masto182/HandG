@@ -2,11 +2,7 @@ import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import evaluateVipProgressionWorkflow from "../workflows/evaluate-vip-progression"
 import { REFERRAL_MODULE } from "../modules/referral"
-import {
-  sendTemplate,
-  refreshEmailConfig,
-  getStoreUrl,
-} from "../lib/email"
+import { sendTemplate, refreshEmailConfig, getStoreUrl } from "../lib/email"
 import * as VipTierUpTpl from "../emails/vip-tier-up"
 
 type Logger = {
@@ -36,20 +32,37 @@ export default async function orderPaymentCapturedHandler({
   const referralService = container.resolve(REFERRAL_MODULE) as any
 
   try {
+    // event.data.id is the payment ID (from PaymentEvents.CAPTURED).
+    // Step 1: get the payment_collection_id from the payment.
+    const { data: payments } = await query.graph({
+      entity: "payment",
+      fields: ["id", "payment_collection_id"],
+      filters: { id: event.data.id },
+    })
+    const paymentCollectionId = (payments[0] as any)?.payment_collection_id
+    if (!paymentCollectionId) return
+
+    // Step 2: find the order linked to this payment_collection.
+    const { data: links } = await query.graph({
+      entity: "order_payment_collection",
+      fields: ["order_id"],
+      filters: { payment_collection_id: paymentCollectionId },
+    })
+    const orderId = (links[0] as any)?.order_id
+    if (!orderId) return
+
+    // Step 3: get customer_id from the order.
     const { data: orders } = await query.graph({
       entity: "order",
       fields: ["id", "customer_id"],
-      filters: { id: event.data.id },
+      filters: { id: orderId },
     })
-
     const order = orders[0]
     if (!order?.customer_id) return
 
     const buyerId = order.customer_id as string
     const parentId = await findReferrer(referralService, buyerId)
-    const grandparentId = parentId
-      ? await findReferrer(referralService, parentId)
-      : null
+    const grandparentId = parentId ? await findReferrer(referralService, parentId) : null
 
     const targets = [
       { label: "buyer", id: buyerId },
@@ -63,7 +76,7 @@ export default async function orderPaymentCapturedHandler({
           input: { customer_id: target.id },
         })
         logger.info(
-          `[VIP] Progression evaluated for ${target.label} ${target.id} after capture on order ${order.id}: ${JSON.stringify(result)}`
+          `[VIP] Progression evaluated for ${target.label} ${target.id} after capture on order ${orderId}: ${JSON.stringify(result)}`
         )
 
         // Send VIP tier-up email inline when the workflow promoted this customer.
@@ -87,9 +100,7 @@ export default async function orderPaymentCapturedHandler({
                 },
                 container,
               })
-              logger.info(
-                `[VIP] tier-up email → ${customer.email}: ${JSON.stringify(sendResult)}`
-              )
+              logger.info(`[VIP] tier-up email → ${customer.email}: ${JSON.stringify(sendResult)}`)
             }
           } catch (emailErr) {
             logger.error(
@@ -99,7 +110,7 @@ export default async function orderPaymentCapturedHandler({
         }
       } catch (err) {
         logger.error(
-          `[VIP] Progression failed for ${target.label} ${target.id} on order ${order.id}: ${err instanceof Error ? err.message : String(err)}`
+          `[VIP] Progression failed for ${target.label} ${target.id} on order ${orderId}: ${err instanceof Error ? err.message : String(err)}`
         )
       }
     }
@@ -111,5 +122,7 @@ export default async function orderPaymentCapturedHandler({
 }
 
 export const config: SubscriberConfig = {
-  event: "order.payment_captured",
+  // capturePaymentWorkflow emits PaymentEvents.CAPTURED = "payment.captured"
+  // with { id: payment_id } — NOT "order.payment_captured" with order_id.
+  event: "payment.captured",
 }

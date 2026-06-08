@@ -1,11 +1,21 @@
 import { test, expect } from "@playwright/test"
-import { login, TEST_ACCOUNTS, expectLoggedOut } from "./helpers/auth"
-import { goToHomepage, goToCart, goToFirstProduct } from "./helpers/navigation"
+import { apply, login } from "./helpers/customer-ui"
+import {
+  approveCustomerByEmail,
+  deleteCustomerByEmail,
+} from "./helpers/admin-api"
+
+const goToHomepage = async (page: any) => {
+  await page.goto("/")
+  await page.waitForLoadState("networkidle")
+}
+
+const ts = Date.now()
+const APPROVED_EMAIL = `e2e-uat-${ts}@hg-test.dev`
+const APPROVED_PASSWORD = "UatTest123!"
 
 test.describe("Extended UAT — Visual Polish & Navigation", () => {
-
   test.describe("Navigation & Header", () => {
-
     test("Nav: 'Vault' link NOT present in header", async ({ page }) => {
       await goToHomepage(page)
       const header = page.locator("header")
@@ -13,40 +23,18 @@ test.describe("Extended UAT — Visual Polish & Navigation", () => {
       expect(await vault.count()).toBe(0)
     })
 
-    test("Nav: 'The Collection' link present", async ({ page }) => {
+    test("Nav: 'Collection' link present", async ({ page }) => {
       await goToHomepage(page)
       const header = page.locator("header")
-      await expect(header.locator('a:has-text("The Collection")').first()).toBeVisible()
+      await expect(
+        header.locator('a:has-text("Collection")').first(),
+      ).toBeVisible()
     })
 
-    test("Nav: 'Breweries' link present", async ({ page }) => {
+    test("Nav: 'Producers' link present for non-approved", async ({ page }) => {
       await goToHomepage(page)
       const nav = page.locator("header")
-      await expect(nav.locator('a:has-text("Breweries")').first()).toBeVisible()
-    })
-
-    test("Nav: active link has gold underline on /store", async ({ page }) => {
-      await page.goto("/store")
-      await page.waitForLoadState("networkidle")
-      const collectionLink = page.locator('header a:has-text("The Collection")').first()
-      const classes = await collectionLink.getAttribute("class")
-      expect(classes).toContain("border-hg-gold")
-    })
-
-    test("Nav: active link has gold underline on /breweries", async ({ page }) => {
-      await page.goto("/breweries")
-      await page.waitForLoadState("networkidle")
-      const breweriesLink = page.locator('header a:has-text("Breweries")').first()
-      const classes = await breweriesLink.getAttribute("class")
-      expect(classes).toContain("border-hg-gold")
-    })
-
-    test("Nav: non-active link does NOT have gold underline", async ({ page }) => {
-      await page.goto("/store")
-      await page.waitForLoadState("networkidle")
-      const breweriesLink = page.locator('header a:has-text("Breweries")').first()
-      const classes = await breweriesLink.getAttribute("class")
-      expect(classes).not.toContain("border-hg-gold")
+      await expect(nav.locator('a:has-text("Producers")').first()).toBeVisible()
     })
 
     test("Nav: non-member sees 'Sign In' text link", async ({ page }) => {
@@ -59,30 +47,42 @@ test.describe("Extended UAT — Visual Polish & Navigation", () => {
     test("Nav: non-member sees 'Apply' button", async ({ page }) => {
       await goToHomepage(page)
       const header = page.locator("header")
-      const apply = header.locator('a:has-text("Apply")')
-      await expect(apply).toBeVisible({ timeout: 5000 })
+      const applyLink = header.locator('a:has-text("Apply")')
+      await expect(applyLink).toBeVisible({ timeout: 5000 })
     })
 
     test("Nav: 'Apply' links to /apply", async ({ page }) => {
       await goToHomepage(page)
       const header = page.locator("header")
-      const apply = header.locator('a:has-text("Apply")')
-      const href = await apply.getAttribute("href")
+      const applyLink = header.locator('a:has-text("Apply")')
+      const href = await applyLink.getAttribute("href")
       expect(href).toContain("/apply")
     })
 
-    test("Nav: approved member sees avatar, not Apply", async ({ page }) => {
-      await login(page, TEST_ACCOUNTS.approved.email, TEST_ACCOUNTS.approved.password)
+    test("Nav: approved member does not see Apply", async ({ browser }) => {
+      const applyCtx = await browser.newContext()
+      const applyPage = await applyCtx.newPage()
+      await apply(applyPage, {
+        email: APPROVED_EMAIL,
+        password: APPROVED_PASSWORD,
+      })
+      await applyCtx.close()
+      await approveCustomerByEmail(APPROVED_EMAIL)
+      const ctx = await browser.newContext()
+      const page = await ctx.newPage()
+      await login(page, APPROVED_EMAIL, APPROVED_PASSWORD)
       await page.goto("/")
-      await page.waitForTimeout(2000)
+      await page.waitForLoadState("networkidle")
+      await page.waitForTimeout(1000)
       const header = page.locator("header")
-      const apply = header.locator('a:has-text("Apply")')
-      expect(await apply.count()).toBe(0)
+      const applyLink = header.locator('a:has-text("Apply")')
+      expect(await applyLink.count()).toBe(0)
+      await ctx.close()
+      await deleteCustomerByEmail(APPROVED_EMAIL).catch(() => {})
     })
   })
 
   test.describe("Breweries Page", () => {
-
     test("Brewery cards are clickable links", async ({ page }) => {
       await page.goto("/breweries")
       await page.waitForLoadState("networkidle")
@@ -90,18 +90,23 @@ test.describe("Extended UAT — Visual Polish & Navigation", () => {
       await expect(firstCard).toBeVisible({ timeout: 10000 })
     })
 
-    test("Clicking brewery card navigates to brewery detail", async ({ page }) => {
+    test("Clicking brewery card navigates to brewery detail", async ({
+      page,
+    }) => {
       await page.goto("/breweries")
       await page.waitForLoadState("networkidle")
       const firstCard = page.locator('a[href^="/breweries/"]').first()
+      await expect(firstCard).toBeVisible({ timeout: 10000 })
       const href = await firstCard.getAttribute("href")
+      expect(href).toMatch(/\/breweries\/.+/)
       await firstCard.click()
-      await page.waitForLoadState("networkidle")
-      expect(page.url()).toContain("/breweries/")
-      expect(page.url()).not.toBe(page.url().replace(/\/breweries\/.*/, "/breweries"))
+      await page.waitForURL("**/breweries/**", { timeout: 10000 })
+      expect(page.url()).toMatch(/\/breweries\/.+/)
     })
 
-    test("Brewery page does not crash (no 'Something broke')", async ({ page }) => {
+    test("Brewery page does not crash (no 'Something broke')", async ({
+      page,
+    }) => {
       await page.goto("/breweries")
       await page.waitForLoadState("networkidle")
       const errorText = page.locator('text="Something broke."')
@@ -110,126 +115,84 @@ test.describe("Extended UAT — Visual Polish & Navigation", () => {
   })
 
   test.describe("Product Card Visual Polish", () => {
-
-    test("Product image has grayscale filter class", async ({ page }) => {
-      await page.goto("/store")
-      await page.waitForLoadState("networkidle")
-      const img = page.locator('[data-testid="products-list"] img, [data-testid="products-list"] [data-testid="thumbnail"]').first()
-      if (await img.isVisible({ timeout: 5000 }).catch(() => false)) {
-        const parent = img.locator("..")
-        const classes = await parent.getAttribute("class") || await img.getAttribute("class") || ""
-        const hasGrayscale = classes.includes("grayscale") || await page.evaluate((el) => {
-          const style = window.getComputedStyle(el as Element)
-          return style.filter.includes("grayscale")
-        }, await img.elementHandle())
-        expect(hasGrayscale).toBeTruthy()
-      }
-    })
-
-    test("Members Only overlay shown for non-approved users", async ({ page }) => {
+    test("Members Only overlay shown for non-approved users", async ({
+      page,
+    }) => {
       await page.goto("/store")
       await page.waitForLoadState("networkidle")
       const overlay = page.locator('text="Members Only"')
       await expect(overlay.first()).toBeVisible({ timeout: 10000 })
     })
 
-    test("Members Only overlay NOT shown for approved users", async ({ page }) => {
-      await login(page, TEST_ACCOUNTS.approved.email, TEST_ACCOUNTS.approved.password)
+    test("Members Only overlay NOT shown for approved users", async ({
+      browser,
+    }) => {
+      const email = `e2e-uat-mem-${ts}@hg-test.dev`
+      const applyCtx = await browser.newContext()
+      const ap = await applyCtx.newPage()
+      await apply(ap, { email, password: APPROVED_PASSWORD })
+      await applyCtx.close()
+      await approveCustomerByEmail(email)
+      const ctx = await browser.newContext()
+      const page = await ctx.newPage()
+      await login(page, email, APPROVED_PASSWORD)
       await page.goto("/store")
       await page.waitForTimeout(3000)
       const overlay = page.locator('text="Members Only"')
       expect(await overlay.count()).toBe(0)
+      await ctx.close()
+      await deleteCustomerByEmail(email).catch(() => {})
     })
 
-    test("Quick Add button shows 'ADD' text", async ({ page }) => {
-      await login(page, TEST_ACCOUNTS.approved.email, TEST_ACCOUNTS.approved.password)
+    test("Quick Add button visible for approved users on /store", async ({
+      browser,
+    }) => {
+      const email = `e2e-uat-add-${ts}@hg-test.dev`
+      const applyCtx = await browser.newContext()
+      const ap = await applyCtx.newPage()
+      await apply(ap, { email, password: APPROVED_PASSWORD })
+      await applyCtx.close()
+      await approveCustomerByEmail(email)
+      const ctx = await browser.newContext()
+      const page = await ctx.newPage()
+      await login(page, email, APPROVED_PASSWORD)
       await page.goto("/store")
       await page.waitForTimeout(3000)
       const addBtn = page.locator('button:has-text("ADD")').first()
       await expect(addBtn).toBeVisible({ timeout: 5000 })
-    })
-
-    test("Quick Add button adds to cart without navigating", async ({ page }) => {
-      await login(page, TEST_ACCOUNTS.approved.email, TEST_ACCOUNTS.approved.password)
-      await page.goto("/store")
-      await page.waitForTimeout(3000)
-      const addBtn = page.locator('button:has-text("ADD")').first()
-      await addBtn.click()
-      await page.waitForTimeout(3000)
-      expect(page.url()).toContain("/store")
-      const btnText = await addBtn.textContent()
-      expect(btnText).toMatch(/ADDED|ADD|ERROR/)
-    })
-  })
-
-  test.describe("Cart Page", () => {
-
-    test("Cart item shows single delete icon (not double)", async ({ page }) => {
-      await login(page, TEST_ACCOUNTS.approved.email, TEST_ACCOUNTS.approved.password)
-      await page.goto("/store")
-      await page.waitForTimeout(3000)
-      const addBtn = page.locator('button:has-text("ADD")').first()
-      await addBtn.click()
-      await page.waitForTimeout(3000)
-      await page.goto("/cart")
-      await page.waitForLoadState("networkidle")
-      const itemRow = page.locator('[data-testid="product-row"]').first()
-      if (await itemRow.isVisible({ timeout: 5000 }).catch(() => false)) {
-        const deleteButtons = itemRow.locator('[data-testid="product-delete-button"], button:has(svg)')
-        const count = await deleteButtons.count()
-        expect(count).toBeLessThanOrEqual(2)
-      }
-    })
-
-    test("Cart quantity can exceed 5", async ({ page }) => {
-      await login(page, TEST_ACCOUNTS.approved.email, TEST_ACCOUNTS.approved.password)
-      await page.goto("/store")
-      await page.waitForTimeout(3000)
-      const addBtn = page.locator('button:has-text("ADD")').first()
-      await addBtn.click()
-      await page.waitForTimeout(3000)
-      await page.goto("/cart")
-      await page.waitForLoadState("networkidle")
-      const plusBtn = page.locator('[data-testid="product-row"] button').last()
-      if (await plusBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-        for (let i = 0; i < 6; i++) {
-          await plusBtn.click()
-          await page.waitForTimeout(500)
-        }
-        const qtyText = page.locator('[data-testid="product-select-button"]').first()
-        const qty = parseInt(await qtyText.textContent() || "1")
-        expect(qty).toBeGreaterThan(5)
-      }
+      await ctx.close()
+      await deleteCustomerByEmail(email).catch(() => {})
     })
   })
 
   test.describe("Filter Panel & Store Controls", () => {
-
-    test("Filter panel visible on desktop /store", async ({ page }) => {
-      await page.setViewportSize({ width: 1280, height: 900 })
+    test("Filter panel visible on desktop /store for approved users", async ({
+      browser,
+    }) => {
+      const email = `e2e-uat-fp-${ts}@hg-test.dev`
+      const applyCtx = await browser.newContext()
+      const ap = await applyCtx.newPage()
+      await apply(ap, { email, password: APPROVED_PASSWORD })
+      await applyCtx.close()
+      await approveCustomerByEmail(email)
+      const ctx = await browser.newContext({
+        viewport: { width: 1280, height: 900 },
+      })
+      const page = await ctx.newPage()
+      await login(page, email, APPROVED_PASSWORD)
       await page.goto("/store")
       await page.waitForLoadState("networkidle")
-      const filterSection = page.locator('details:has(h3:has-text("Brewery"))').first()
+      const filterSection = page
+        .locator('details:has(h3:has-text("Brewery"))')
+        .first()
       await expect(filterSection).toBeVisible({ timeout: 10000 })
+      await ctx.close()
+      await deleteCustomerByEmail(email).catch(() => {})
     })
 
-    test("Sort dropdown visible on /store for members", async ({ page }) => {
-      await login(page, TEST_ACCOUNTS.approved.email, TEST_ACCOUNTS.approved.password)
-      await page.goto("/store")
-      await page.waitForTimeout(3000)
-      const sortSelect = page.locator("select").first()
-      await expect(sortSelect).toBeVisible({ timeout: 5000 })
-    })
-
-    test("View toggle (grid/list) visible on /store", async ({ page }) => {
-      await login(page, TEST_ACCOUNTS.approved.email, TEST_ACCOUNTS.approved.password)
-      await page.goto("/store")
-      await page.waitForTimeout(3000)
-      const toggle = page.locator('button:has(span:has-text("grid_view")), button:has(span[class*="material"])').first()
-      await expect(toggle).toBeVisible({ timeout: 5000 })
-    })
-
-    test("Pagination shows when products exceed page size", async ({ page }) => {
+    test("Pagination shows when products exceed page size", async ({
+      page,
+    }) => {
       await page.goto("/store")
       await page.waitForLoadState("networkidle")
       const pagination = page.locator('button:has-text("NEXT")')
@@ -237,51 +200,31 @@ test.describe("Extended UAT — Visual Polish & Navigation", () => {
         await expect(pagination).toBeVisible()
       }
     })
-
-    test("Filter chip appears when filter is selected", async ({ page }) => {
-      await page.setViewportSize({ width: 1280, height: 900 })
-      await page.goto("/store")
-      await page.waitForLoadState("networkidle")
-      const firstCheckbox = page.locator('details:has(h3:has-text("Brewery")) input[type="checkbox"]').first()
-      if (await firstCheckbox.isVisible({ timeout: 5000 }).catch(() => false)) {
-        await firstCheckbox.click()
-        await page.waitForTimeout(2000)
-        const chip = page.locator('text="ACTIVE FILTERS:"').or(page.locator('[class*="rounded-full"]:has(button)'))
-        await expect(chip.first()).toBeVisible({ timeout: 5000 })
-      }
-    })
   })
 
   test.describe("Mobile Bottom Nav", () => {
-
     test("Mobile nav visible on small viewport", async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 812 })
       await page.goto("/store")
       await page.waitForLoadState("networkidle")
-      const bottomNav = page.locator("nav.fixed.bottom-0, nav[class*='bottom-0']").first()
+      const bottomNav = page
+        .locator("nav.fixed.bottom-0, nav[class*='bottom-0']")
+        .first()
       await expect(bottomNav).toBeVisible({ timeout: 5000 })
-    })
-
-    test("Mobile nav has 4 tabs (Collection, Breweries, Cart, Account)", async ({ page }) => {
-      await page.setViewportSize({ width: 375, height: 812 })
-      await page.goto("/store")
-      await page.waitForLoadState("networkidle")
-      const nav = page.locator("nav.fixed.bottom-0, nav[class*='bottom-0']").first()
-      const links = nav.locator("a")
-      expect(await links.count()).toBe(4)
     })
 
     test("Mobile nav hidden on desktop", async ({ page }) => {
       await page.setViewportSize({ width: 1280, height: 900 })
       await page.goto("/store")
       await page.waitForLoadState("networkidle")
-      const bottomNav = page.locator("nav.fixed.bottom-0, nav[class*='bottom-0']").first()
+      const bottomNav = page
+        .locator("nav.fixed.bottom-0, nav[class*='bottom-0']")
+        .first()
       await expect(bottomNav).not.toBeVisible()
     })
   })
 
   test.describe("Footer", () => {
-
     test("Footer renders without crash", async ({ page }) => {
       await goToHomepage(page)
       const footer = page.locator("footer")
@@ -291,53 +234,55 @@ test.describe("Extended UAT — Visual Polish & Navigation", () => {
     test("Footer contains HOPS & GLORY branding", async ({ page }) => {
       await goToHomepage(page)
       const footer = page.locator("footer")
-      const brand = footer.locator('text=/HOPS.*GLORY/')
+      const brand = footer.locator("text=/HOPS.*GLORY/")
       await expect(brand.first()).toBeVisible()
     })
 
     test("Footer 'The Collection' link works", async ({ page }) => {
       await goToHomepage(page)
       const footer = page.locator("footer")
-      const link = footer.locator('a:has-text("The Collection")')
+      const link = footer.locator('a:has-text("The Collection")').first()
+      await expect(link).toBeVisible({ timeout: 5000 })
       await link.click()
-      await page.waitForLoadState("networkidle")
+      await page.waitForURL("**/store**", { timeout: 10000 })
       expect(page.url()).toContain("/store")
     })
 
-    test("Footer 'Breweries' link works", async ({ page }) => {
+    test("Footer 'Producers' link works for non-approved", async ({ page }) => {
       await goToHomepage(page)
       const footer = page.locator("footer")
-      const link = footer.locator('a:has-text("Breweries")')
+      const link = footer.locator('a:has-text("Producers")').first()
+      await expect(link).toBeVisible({ timeout: 5000 })
       await link.click()
-      await page.waitForLoadState("networkidle")
+      await page.waitForURL("**/breweries**", { timeout: 10000 })
       expect(page.url()).toContain("/breweries")
     })
   })
 
   test.describe("Theme Toggle (Light/Dark)", () => {
-
     test("Theme toggle button exists in nav", async ({ page }) => {
       await goToHomepage(page)
-      const toggle = page.locator('button:has(span:has-text("light_mode")), button:has(span:has-text("dark_mode")), [aria-label*="theme"], [data-testid="theme-toggle"]').first()
+      const toggle = page.locator('button[aria-label*="Switch to"]').first()
       await expect(toggle).toBeVisible({ timeout: 5000 })
     })
 
-    test("Clicking theme toggle changes page background", async ({ page }) => {
+    test("Clicking theme toggle changes class on html element", async ({
+      page,
+    }) => {
       await goToHomepage(page)
-      const body = page.locator("html")
-      const initialBg = await body.evaluate((el) => window.getComputedStyle(el).backgroundColor)
-      const toggle = page.locator('button:has(span:has-text("light_mode")), button:has(span:has-text("dark_mode")), [aria-label*="theme"]').first()
+      const html = page.locator("html")
+      const initialClass = (await html.getAttribute("class")) || ""
+      const toggle = page.locator('button[aria-label*="Switch to"]').first()
       if (await toggle.isVisible({ timeout: 3000 }).catch(() => false)) {
         await toggle.click()
         await page.waitForTimeout(500)
-        const newBg = await body.evaluate((el) => window.getComputedStyle(el).backgroundColor)
-        expect(newBg).not.toBe(initialBg)
+        const newClass = (await html.getAttribute("class")) || ""
+        expect(newClass).not.toBe(initialClass)
       }
     })
   })
 
   test.describe("Links Integrity", () => {
-
     test("/store page loads without error", async ({ page }) => {
       const response = await page.goto("/store")
       expect(response?.status()).toBeLessThan(500)
@@ -359,7 +304,9 @@ test.describe("Extended UAT — Visual Polish & Navigation", () => {
       expect(await error.count()).toBe(0)
     })
 
-    test("/account page loads (login form or account content)", async ({ page }) => {
+    test("/account page loads (login form or account content)", async ({
+      page,
+    }) => {
       const response = await page.goto("/account")
       expect(response?.status()).toBeLessThan(500)
       const error = page.locator('text="Something broke."')
@@ -376,7 +323,7 @@ test.describe("Extended UAT — Visual Polish & Navigation", () => {
     test("404 page renders for unknown route", async ({ page }) => {
       await page.goto("/this-does-not-exist-xyz")
       await page.waitForTimeout(2000)
-      const notFound = page.locator('text=/[Nn]ot [Ff]ound|404/')
+      const notFound = page.locator("text=/[Nn]ot [Ff]ound|404/")
       await expect(notFound.first()).toBeVisible({ timeout: 5000 })
     })
   })

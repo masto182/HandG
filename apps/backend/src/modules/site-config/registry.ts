@@ -25,7 +25,7 @@ export type SiteConfigDefinition = {
   isPublic: boolean
   envVar?: string
   default: unknown
-  group: "payments" | "vip" | "email" | "branding" | "shipping"
+  group: "payments" | "vip" | "email" | "branding" | "shipping" | "alerts"
   label: string
   description: string
   validate?: (value: unknown) => string | null
@@ -37,12 +37,14 @@ const requireString = (value: unknown): string | null => {
   return null
 }
 
-const requireNumber = (min?: number, max?: number) => (value: unknown): string | null => {
-  if (typeof value !== "number" || !Number.isFinite(value)) return "must be a finite number"
-  if (min !== undefined && value < min) return `must be >= ${min}`
-  if (max !== undefined && value > max) return `must be <= ${max}`
-  return null
-}
+const requireNumber =
+  (min?: number, max?: number) =>
+  (value: unknown): string | null => {
+    if (typeof value !== "number" || !Number.isFinite(value)) return "must be a finite number"
+    if (min !== undefined && value < min) return `must be >= ${min}`
+    if (max !== undefined && value > max) return `must be <= ${max}`
+    return null
+  }
 
 const requireBoolean = (value: unknown): string | null => {
   return typeof value === "boolean" ? null : "must be a boolean"
@@ -230,6 +232,78 @@ export const SITE_CONFIG_REGISTRY: Record<string, SiteConfigDefinition> = {
     validate: requireEmail,
   },
 
+  // ---------- alerts ----------
+  alerts_new_drops_enabled: {
+    key: "alerts_new_drops_enabled",
+    type: "boolean",
+    isPublic: false,
+    default: true,
+    group: "alerts",
+    label: "Enable new-drop alerts",
+    description: "Master switch for new-release alert delivery.",
+    validate: requireBoolean,
+  },
+  alerts_max_per_day: {
+    key: "alerts_max_per_day",
+    type: "number",
+    isPublic: false,
+    default: 3,
+    group: "alerts",
+    label: "Max alerts per member per day",
+    description: "Throttle: maximum new-drop emails a member receives per day.",
+    validate: requireNumber(0, 50),
+  },
+  alerts_batch_minutes: {
+    key: "alerts_batch_minutes",
+    type: "number",
+    isPublic: false,
+    default: 30,
+    group: "alerts",
+    label: "Batch window (minutes)",
+    description: "Group multiple drops within this window into one notification.",
+    validate: requireNumber(0, 1440),
+  },
+  alerts_quiet_enabled: {
+    key: "alerts_quiet_enabled",
+    type: "boolean",
+    isPublic: false,
+    default: true,
+    group: "alerts",
+    label: "Pause alerts overnight",
+    description: "Suppress alert emails during quiet hours.",
+    validate: requireBoolean,
+  },
+  alerts_quiet_from: {
+    key: "alerts_quiet_from",
+    type: "number",
+    isPublic: false,
+    default: 22,
+    group: "alerts",
+    label: "Quiet hours from",
+    description: "Hour (0-23) quiet hours begin.",
+    validate: requireNumber(0, 23),
+  },
+  alerts_quiet_to: {
+    key: "alerts_quiet_to",
+    type: "number",
+    isPublic: false,
+    default: 8,
+    group: "alerts",
+    label: "Quiet hours to",
+    description: "Hour (0-23) quiet hours end.",
+    validate: requireNumber(0, 23),
+  },
+  alerts_quiet_tz: {
+    key: "alerts_quiet_tz",
+    type: "string",
+    isPublic: false,
+    default: "Australia/Sydney",
+    group: "alerts",
+    label: "Quiet hours timezone",
+    description: "IANA timezone used to evaluate quiet hours.",
+    validate: requireString,
+  },
+
   // ---------- branding ----------
   site_name: {
     key: "site_name",
@@ -291,7 +365,8 @@ export const SITE_CONFIG_REGISTRY: Record<string, SiteConfigDefinition> = {
     default: false,
     group: "shipping",
     label: "Heat-hold enabled",
-    description: "When true, shipments are blocked from dispatch until toggled off or per-order override is set. Public so checkout banner reads without auth.",
+    description:
+      "When true, shipments are blocked from dispatch until toggled off or per-order override is set. Public so checkout banner reads without auth.",
     validate: requireBoolean,
   },
   shipping_heat_hold_message: {
@@ -366,7 +441,9 @@ export const SITE_CONFIG_REGISTRY: Record<string, SiteConfigDefinition> = {
       const stringErr = requireString(value)
       if (stringErr) return stringErr
       const allowed = ["NSW", "VIC", "QLD", "SA", "WA", "TAS", "ACT", "NT"]
-      return allowed.includes((value as string).toUpperCase()) ? null : `must be one of ${allowed.join(", ")}`
+      return allowed.includes((value as string).toUpperCase())
+        ? null
+        : `must be one of ${allowed.join(", ")}`
     },
   },
   shipping_from_postcode: {
@@ -397,14 +474,16 @@ export const SITE_CONFIG_REGISTRY: Record<string, SiteConfigDefinition> = {
     key: "shipengine_carrier_ids",
     type: "json",
     isPublic: false,
-    default: [],
+    default: ["se-5530570", "se-5530571"],
     group: "shipping",
     label: "ShipEngine carrier IDs",
-    description: "Array of carrier_id (se-XXXX) values to query for rates. Use the admin Refresh Carriers button to populate.",
+    description:
+      "Array of carrier_id (se-XXXX) values to query for rates. Use the admin Refresh Carriers button to populate.",
     validate: (value) => {
       if (!Array.isArray(value)) return "must be a JSON array"
       for (const v of value) {
-        if (typeof v !== "string" || v.trim().length === 0) return "every carrier_id must be a non-empty string"
+        if (typeof v !== "string" || v.trim().length === 0)
+          return "every carrier_id must be a non-empty string"
       }
       return null
     },
@@ -423,10 +502,11 @@ export const SITE_CONFIG_REGISTRY: Record<string, SiteConfigDefinition> = {
     key: "shipping_validate_address_mode",
     type: "string",
     isPublic: false,
-    default: "validate_and_clean",
+    default: "no_validation",
     group: "shipping",
     label: "Inline address validation mode",
-    description: "ShipEngine validate_address mode for /v1/rates and /v1/labels (no_validation | validate_only | validate_and_clean).",
+    description:
+      "ShipEngine validate_address mode for /v1/rates and /v1/labels (no_validation | validate_only | validate_and_clean).",
     validate: (value) => {
       const stringErr = requireString(value)
       if (stringErr) return stringErr
@@ -441,7 +521,8 @@ export const SITE_CONFIG_REGISTRY: Record<string, SiteConfigDefinition> = {
     default: true,
     group: "shipping",
     label: "Auto-pick cheapest carrier at fulfillment",
-    description: "When true, ready-to-ship re-runs /v1/rates and uses the cheapest live option, ignoring the customer's checkout choice. Customer's choice is recorded in fulfillment metadata for transparency.",
+    description:
+      "When true, ready-to-ship re-runs /v1/rates and uses the cheapest live option, ignoring the customer's checkout choice. Customer's choice is recorded in fulfillment metadata for transparency.",
     validate: requireBoolean,
   },
   // ---------- shipping (AusPost PAC) ----------
@@ -452,7 +533,8 @@ export const SITE_CONFIG_REGISTRY: Record<string, SiteConfigDefinition> = {
     default: false,
     group: "shipping",
     label: "AusPost PAC enabled",
-    description: "Master switch for the AusPost fulfillment provider. When false, AusPost rates are silently omitted from /store/shipping/rates.",
+    description:
+      "Master switch for the AusPost fulfillment provider. When false, AusPost rates are silently omitted from /store/shipping/rates.",
     validate: requireBoolean,
   },
   auspost_mode: {
@@ -462,7 +544,8 @@ export const SITE_CONFIG_REGISTRY: Record<string, SiteConfigDefinition> = {
     default: "production",
     group: "shipping",
     label: "AusPost API mode",
-    description: "PAC test endpoint was retired - 'production' hits digitalapi.auspost.com.au. Kept here for future re-introduction of a test path.",
+    description:
+      "PAC test endpoint was retired - 'production' hits digitalapi.auspost.com.au. Kept here for future re-introduction of a test path.",
     validate: (value) => {
       const stringErr = requireString(value)
       if (stringErr) return stringErr
@@ -478,7 +561,8 @@ export const SITE_CONFIG_REGISTRY: Record<string, SiteConfigDefinition> = {
     default: "",
     group: "shipping",
     label: "AusPost PAC API key",
-    description: "AUTH-KEY from https://developers.auspost.com.au/apis/pacpcs-registration. Empty value disables live mode and uses the deterministic stub.",
+    description:
+      "AUTH-KEY from https://developers.auspost.com.au/apis/pacpcs-registration. Empty value disables live mode and uses the deterministic stub.",
     validate: (value) => {
       if (typeof value !== "string") return "must be a string"
       return null // empty is OK - falls back to stub
@@ -491,7 +575,8 @@ export const SITE_CONFIG_REGISTRY: Record<string, SiteConfigDefinition> = {
     default: ["AUS_PARCEL_REGULAR", "AUS_PARCEL_EXPRESS"],
     group: "shipping",
     label: "AusPost services enabled",
-    description: "PAC service codes to surface at checkout. Currently only AUS_PARCEL_REGULAR and AUS_PARCEL_EXPRESS supported.",
+    description:
+      "PAC service codes to surface at checkout. Currently only AUS_PARCEL_REGULAR and AUS_PARCEL_EXPRESS supported.",
     validate: (value) => {
       if (!Array.isArray(value)) return "must be a JSON array"
       const allowed = ["AUS_PARCEL_REGULAR", "AUS_PARCEL_EXPRESS"]
@@ -510,7 +595,8 @@ export const SITE_CONFIG_REGISTRY: Record<string, SiteConfigDefinition> = {
     default: 0,
     group: "shipping",
     label: "AusPost Standard discount (%)",
-    description: "Percentage off PAC retail price for Parcel Post shown to customer. Applied to base rate only - SOD and Extra Cover surcharges pass through at cost. 0 = pass-through RRP.",
+    description:
+      "Percentage off PAC retail price for Parcel Post shown to customer. Applied to base rate only - SOD and Extra Cover surcharges pass through at cost. 0 = pass-through RRP.",
     validate: requireNumber(0, 95),
   },
   auspost_discount_pct_express: {
@@ -520,7 +606,8 @@ export const SITE_CONFIG_REGISTRY: Record<string, SiteConfigDefinition> = {
     default: 0,
     group: "shipping",
     label: "AusPost Express discount (%)",
-    description: "Percentage off PAC retail price for Express Post shown to customer. Applied to base rate only.",
+    description:
+      "Percentage off PAC retail price for Express Post shown to customer. Applied to base rate only.",
     validate: requireNumber(0, 95),
   },
   auspost_extra_cover_threshold_aud: {
@@ -540,7 +627,8 @@ export const SITE_CONFIG_REGISTRY: Record<string, SiteConfigDefinition> = {
     default: 300,
     group: "shipping",
     label: "AusPost SOD trigger (AUD)",
-    description: "Auto-add Signature on Delivery when cart subtotal exceeds this value, lifting the Extra Cover cap from $500 to $5,000.",
+    description:
+      "Auto-add Signature on Delivery when cart subtotal exceeds this value, lifting the Extra Cover cap from $500 to $5,000.",
     validate: requireNumber(0, 5000),
   },
 
@@ -552,7 +640,8 @@ export const SITE_CONFIG_REGISTRY: Record<string, SiteConfigDefinition> = {
     default: true,
     group: "shipping",
     label: "Dedup within carrier",
-    description: "When true, /store/shipping/rates returns at most one rate per (carrier, service_tier, delivery_behaviour) - the cheapest. Keeps the carrier-grouped checkout UI clean.",
+    description:
+      "When true, /store/shipping/rates returns at most one rate per (carrier, service_tier, delivery_behaviour) - the cheapest. Keeps the carrier-grouped checkout UI clean.",
     validate: requireBoolean,
   },
   shipping_carrier_order: {
@@ -562,7 +651,8 @@ export const SITE_CONFIG_REGISTRY: Record<string, SiteConfigDefinition> = {
     default: ["australia_post", "aramex", "couriers_please"],
     group: "shipping",
     label: "Carrier display order",
-    description: "Order carrier groups appear in checkout (left-to-right or top-to-bottom). Items not listed appear after, alphabetically.",
+    description:
+      "Order carrier groups appear in checkout (left-to-right or top-to-bottom). Items not listed appear after, alphabetically.",
     validate: (value) => {
       if (!Array.isArray(value)) return "must be a JSON array"
       const allowed = ["australia_post", "aramex", "couriers_please", "other"]
@@ -581,7 +671,8 @@ export const SITE_CONFIG_REGISTRY: Record<string, SiteConfigDefinition> = {
     default: 300,
     group: "shipping",
     label: "Signature recommended threshold (AUD)",
-    description: "Above this subtotal, the storefront auto-ticks the Require signature checkbox and shows a (recommended) suffix. Public so storefront can read without auth.",
+    description:
+      "Above this subtotal, the storefront auto-ticks the Require signature checkbox and shows a (recommended) suffix. Public so storefront can read without auth.",
     validate: requireNumber(0, 5000),
   },
 
@@ -603,7 +694,12 @@ export const SITE_CONFIG_REGISTRY: Record<string, SiteConfigDefinition> = {
       for (const item of value) {
         if (!item || typeof item !== "object") return "every item must be an object"
         const obj = item as Record<string, unknown>
-        if (typeof obj.label !== "string" || typeof obj.postcode !== "string" || typeof obj.state !== "string" || typeof obj.weight_g !== "number") {
+        if (
+          typeof obj.label !== "string" ||
+          typeof obj.postcode !== "string" ||
+          typeof obj.state !== "string" ||
+          typeof obj.weight_g !== "number"
+        ) {
           return "every item must have label (string), postcode (string), state (string), weight_g (number)"
         }
       }
@@ -614,7 +710,9 @@ export const SITE_CONFIG_REGISTRY: Record<string, SiteConfigDefinition> = {
 
 export type SiteConfigKey = keyof typeof SITE_CONFIG_REGISTRY
 export type PublicSiteConfigKey = {
-  [K in keyof typeof SITE_CONFIG_REGISTRY]: typeof SITE_CONFIG_REGISTRY[K]["isPublic"] extends true ? K : never
+  [K in keyof typeof SITE_CONFIG_REGISTRY]: (typeof SITE_CONFIG_REGISTRY)[K]["isPublic"] extends true
+    ? K
+    : never
 }[keyof typeof SITE_CONFIG_REGISTRY]
 
 export const PUBLIC_SITE_CONFIG_KEYS: SiteConfigKey[] = Object.values(SITE_CONFIG_REGISTRY)

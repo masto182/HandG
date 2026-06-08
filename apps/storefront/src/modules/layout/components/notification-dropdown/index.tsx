@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
+import { toast } from "sonner"
 import { sdk } from "@lib/config"
 import Icon from "@modules/common/components/icon"
 
@@ -13,24 +14,49 @@ type NotificationItem = {
   created_at: string
 }
 
+import { filterNewAlertNotifications } from "@lib/util/notification-toast"
+
+const SEEN_KEY = "hg_shown_notifs"
+
 export default function NotificationDropdown() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const [open, setOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const ref = useRef<HTMLDivElement>(null)
+  const shownRef = useRef<Set<string>>(new Set())
 
   const fetchNotifications = async () => {
     try {
-      const data = await sdk.client.fetch<{ notifications: NotificationItem[] }>(
-        "/store/customers/me/notifications",
-        { method: "GET" }
-      )
-      setNotifications(data.notifications || [])
-      setUnreadCount((data.notifications || []).filter((n) => !n.read).length)
+      const data = await sdk.client.fetch<{
+        notifications: NotificationItem[]
+      }>("/store/customers/me/notifications", { method: "GET" })
+      const items = data.notifications || []
+      setNotifications(items)
+      setUnreadCount(items.filter((n) => !n.read).length)
+
+      const fresh = filterNewAlertNotifications(items, shownRef.current)
+      for (const n of fresh) {
+        toast(n.title, { description: n.body })
+        shownRef.current.add(n.id)
+      }
+      if (fresh.length) {
+        try {
+          sessionStorage.setItem(
+            SEEN_KEY,
+            JSON.stringify(Array.from(shownRef.current)),
+          )
+        } catch {}
+      }
     } catch {}
   }
 
   useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem(SEEN_KEY)
+      if (stored) {
+        JSON.parse(stored).forEach((id: string) => shownRef.current.add(id))
+      }
+    } catch {}
     fetchNotifications()
     const interval = setInterval(fetchNotifications, 60000)
     return () => clearInterval(interval)
@@ -85,16 +111,26 @@ export default function NotificationDropdown() {
       {open && (
         <div className="absolute right-0 top-10 w-[340px] bg-surface-container-high rounded-xl border border-outline-variant shadow-2xl z-50 overflow-hidden">
           <div className="px-4 py-3 border-b border-outline-variant flex items-center justify-between">
-            <h3 className="text-body-md font-semibold text-on-surface">Notifications</h3>
+            <h3 className="text-body-md font-semibold text-on-surface">
+              Notifications
+            </h3>
             {notifications.length > 0 && (
-              <span className="text-label-caps text-on-surface-variant">{notifications.length}</span>
+              <span className="text-label-caps text-on-surface-variant">
+                {notifications.length}
+              </span>
             )}
           </div>
           <div className="max-h-[360px] overflow-y-auto">
             {notifications.length === 0 ? (
               <div className="px-4 py-8 text-center">
-                <Icon name="notifications_none" size={32} className="text-on-surface-variant/40 mx-auto mb-2" />
-                <p className="text-body-sm text-on-surface-variant">No notifications yet</p>
+                <Icon
+                  name="notifications_none"
+                  size={32}
+                  className="text-on-surface-variant/40 mx-auto mb-2"
+                />
+                <p className="text-body-sm text-on-surface-variant">
+                  No notifications yet
+                </p>
               </div>
             ) : (
               notifications.slice(0, 10).map((n) => (
@@ -109,8 +145,12 @@ export default function NotificationDropdown() {
                       className="text-primary flex-shrink-0 mt-0.5"
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="text-body-sm font-medium text-on-surface truncate">{n.title}</p>
-                      <p className="text-body-sm text-on-surface-variant line-clamp-2">{n.body}</p>
+                      <p className="text-body-sm font-medium text-on-surface truncate">
+                        {n.title}
+                      </p>
+                      <p className="text-body-sm text-on-surface-variant line-clamp-2">
+                        {n.body}
+                      </p>
                       <p className="text-[11px] text-on-surface-variant/60 mt-1">
                         {new Date(n.created_at).toLocaleDateString()}
                       </p>

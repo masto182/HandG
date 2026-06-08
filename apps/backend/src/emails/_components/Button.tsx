@@ -7,13 +7,13 @@ export type ButtonProps = {
 }
 
 const buttonStyle = {
-  backgroundColor: "#D4A843",
-  color: "#1a1a1a",
-  fontSize: "14px",
+  backgroundColor: "#3F7C62",
+  color: "#FFFFFF",
+  fontSize: "12px",
   fontWeight: 600,
-  letterSpacing: "0.5px",
-  padding: "12px 24px",
-  borderRadius: "24px",
+  letterSpacing: "0.08em",
+  padding: "14px 28px",
+  borderRadius: "8px",
   textDecoration: "none",
   textTransform: "uppercase" as const,
   display: "inline-block",
@@ -21,7 +21,7 @@ const buttonStyle = {
 
 export function Button({ href, children }: ButtonProps) {
   return (
-    <Section style={{ textAlign: "center", margin: "24px 0" }}>
+    <Section style={{ textAlign: "center", margin: "28px 0 8px" }}>
       <REButton href={href} style={buttonStyle}>
         {children}
       </REButton>

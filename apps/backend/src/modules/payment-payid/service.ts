@@ -1,8 +1,4 @@
-import {
-  AbstractPaymentProvider,
-  PaymentActions,
-  BigNumber,
-} from "@medusajs/framework/utils"
+import { AbstractPaymentProvider, PaymentActions, BigNumber } from "@medusajs/framework/utils"
 import type {
   Logger,
   InitiatePaymentInput,
@@ -46,13 +42,14 @@ class PayIdPaymentProviderService extends AbstractPaymentProvider<PayIdOptions> 
     this.options_ = options
   }
 
-  async initiatePayment(
-    input: InitiatePaymentInput
-  ): Promise<InitiatePaymentOutput> {
+  async initiatePayment(input: InitiatePaymentInput): Promise<InitiatePaymentOutput> {
     const ctx = (input as any).context || {}
     const cartId: string | undefined = ctx.cart?.id || ctx.resource_id
     const reference = cartId
-      ? `HG-${cartId.replace(/[^A-Z0-9]/gi, "").slice(-8).toUpperCase()}`
+      ? `HG-${cartId
+          .replace(/[^A-Z0-9]/gi, "")
+          .slice(-8)
+          .toUpperCase()}`
       : `HG-${Date.now().toString(36).toUpperCase().slice(-8)}`
 
     return {
@@ -64,60 +61,43 @@ class PayIdPaymentProviderService extends AbstractPaymentProvider<PayIdOptions> 
     }
   }
 
-  async authorizePayment(
-    input: AuthorizePaymentInput
-  ): Promise<AuthorizePaymentOutput> {
+  async authorizePayment(input: AuthorizePaymentInput): Promise<AuthorizePaymentOutput> {
     return {
       status: "authorized",
       data: input.data || {},
     }
   }
 
-  async capturePayment(
-    input: CapturePaymentInput
-  ): Promise<CapturePaymentOutput> {
-    this.logger_.info(
-      `[PayID] Payment captured: ${JSON.stringify(input.data)}`
-    )
+  async capturePayment(input: CapturePaymentInput): Promise<CapturePaymentOutput> {
+    this.logger_.info(`[PayID] Payment captured: ${JSON.stringify(input.data)}`)
     return { data: input.data || {} }
   }
 
-  async refundPayment(
-    input: RefundPaymentInput
-  ): Promise<RefundPaymentOutput> {
-    this.logger_.info(
-      `[PayID] Refund of ${input.amount} requested: ${JSON.stringify(input.data)}`
-    )
+  async refundPayment(input: RefundPaymentInput): Promise<RefundPaymentOutput> {
+    this.logger_.info(`[PayID] Refund of ${input.amount} requested: ${JSON.stringify(input.data)}`)
     return { data: input.data || {} }
   }
 
-  async cancelPayment(
-    input: CancelPaymentInput
-  ): Promise<CancelPaymentOutput> {
+  async cancelPayment(input: CancelPaymentInput): Promise<CancelPaymentOutput> {
+    return { data: { ...(input.data || {}), status: "canceled" } }
+  }
+
+  async deletePayment(input: DeletePaymentInput): Promise<DeletePaymentOutput> {
     return { data: input.data || {} }
   }
 
-  async deletePayment(
-    input: DeletePaymentInput
-  ): Promise<DeletePaymentOutput> {
-    return { data: input.data || {} }
-  }
-
-  async getPaymentStatus(
-    input: GetPaymentStatusInput
-  ): Promise<GetPaymentStatusOutput> {
+  async getPaymentStatus(input: GetPaymentStatusInput): Promise<GetPaymentStatusOutput> {
+    if ((input.data as any)?.status === "canceled") {
+      return { status: "canceled" }
+    }
     return { status: "authorized" }
   }
 
-  async retrievePayment(
-    input: RetrievePaymentInput
-  ): Promise<RetrievePaymentOutput> {
+  async retrievePayment(input: RetrievePaymentInput): Promise<RetrievePaymentOutput> {
     return input.data || {}
   }
 
-  async updatePayment(
-    input: UpdatePaymentInput
-  ): Promise<UpdatePaymentOutput> {
+  async updatePayment(input: UpdatePaymentInput): Promise<UpdatePaymentOutput> {
     return {
       data: input.data || {},
     }

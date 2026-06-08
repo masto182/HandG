@@ -1,4 +1,4 @@
-import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import type { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { Modules } from "@medusajs/framework/utils"
 
 /**
@@ -8,7 +8,7 @@ import { Modules } from "@medusajs/framework/utils"
  * true (so they would be blocked from dispatch). Used by the admin shipping
  * page banner.
  */
-export async function GET(req: MedusaRequest, res: MedusaResponse) {
+export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   let siteConfig: { get(key: string): Promise<unknown> } | null = null
   try {
     siteConfig = req.scope.resolve("siteConfig") as { get(key: string): Promise<unknown> }
@@ -29,16 +29,18 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   // Pull recent unfulfilled / partially fulfilled orders. v2's listOrders is
   // expressive but for this banner a simple recent list is enough.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const orders = await (orderModule as any).listOrders(
-    {
-      status: ["pending", "completed"],
-      fulfillment_status: ["not_fulfilled", "partially_fulfilled"],
-    },
-    { take: 100, relations: ["shipping_address"] },
-  ).catch(() => [])
+  const orders = await (orderModule as any)
+    .listOrders(
+      {
+        status: ["pending", "completed"],
+        fulfillment_status: ["not_fulfilled", "partially_fulfilled"],
+      },
+      { take: 100, relations: ["shipping_address"] }
+    )
+    .catch(() => [])
 
   const filtered = (Array.isArray(orders) ? orders : []).filter(
-    (o: any) => !o?.metadata?.heat_hold_override,
+    (o: any) => !o?.metadata?.heat_hold_override
   )
 
   res.json({

@@ -65,7 +65,7 @@ const EditAddress: React.FC<EditAddressProps> = ({
           "relative p-6 rounded-xl bg-surface-container border border-white/5 min-h-[220px] h-full w-full flex flex-col justify-between transition-colors",
           {
             "border-primary": isActive,
-          }
+          },
         )}
         data-testid="address-container"
       >
@@ -118,7 +118,12 @@ const EditAddress: React.FC<EditAddressProps> = ({
         </div>
       </div>
 
-      <Modal isOpen={state} onClose={close} title="Edit address" data-testid="edit-address-modal">
+      <Modal
+        isOpen={state}
+        onClose={close}
+        title="Edit address"
+        data-testid="edit-address-modal"
+      >
         <form action={formAction}>
           <input type="hidden" name="addressId" value={address.id} />
           <div className="grid grid-cols-1 gap-y-2">
@@ -191,13 +196,6 @@ const EditAddress: React.FC<EditAddressProps> = ({
             <div className="flex items-center h-10 px-4 bg-hg-surface border border-hg-border rounded-md text-hg-text text-sm">
               Australia
             </div>
-            <Input
-              label="Phone"
-              name="phone"
-              autoComplete="phone"
-              defaultValue={address.phone || undefined}
-              data-testid="phone-input"
-            />
           </div>
           {formState.error && (
             <div className="text-rose-500 text-small-regular py-2">

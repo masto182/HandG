@@ -31,20 +31,14 @@ export async function configureIndex() {
   const meili = await getMeiliClient()
   const index = meili.index(PRODUCTS_INDEX)
 
-  await index.updateRankingRules([
-    "typo",
-    "words",
-    "proximity",
-    "attribute",
-    "sort",
-    "exactness",
-  ])
+  await index.updateRankingRules(["typo", "words", "proximity", "attribute", "sort", "exactness"])
 
   await index.updateFilterableAttributes([
     "brewery",
     "style",
     "style_family",
     "hops",
+    "hop_countries",
     "is_collab",
     "abv",
     "packaged_at_ts",
@@ -53,20 +47,9 @@ export async function configureIndex() {
 
   await index.updateFaceting({ maxValuesPerFacet: 100 })
 
-  await index.updateSortableAttributes([
-    "created_at_ts",
-    "abv",
-    "title",
-    "untappd_score",
-  ])
+  await index.updateSortableAttributes(["created_at_ts", "abv", "title", "untappd_score"])
 
-  await index.updateSearchableAttributes([
-    "title",
-    "brewery",
-    "style",
-    "hops",
-    "description",
-  ])
+  await index.updateSearchableAttributes(["title", "brewery", "style", "hops", "description"])
 
   await index.updateSynonyms({
     ipa: ["india pale ale", "indian pale ale"],

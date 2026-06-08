@@ -9,6 +9,7 @@ import { HOP_MODULE } from "../modules/hop"
 type CreateHopInput = {
   name: string
   slug: string
+  is_active?: boolean
   origin?: string | null
   flavor_profile?: string | null
   description?: string | null
@@ -56,14 +57,15 @@ const updateHopStep = createStep(
     if (!prev) throw new Error("Hop not found")
 
     const { id, ...updates } = input
-    const hop = await hopService.updateHops(id, updates)
+    const hop = await hopService.updateHops({ id, ...updates })
     return new StepResponse(hop, { id, prev: { ...prev } })
   },
   async (compensation: any, { container }) => {
     if (!compensation) return
     const hopService = container.resolve(HOP_MODULE) as any
     const { id, prev } = compensation
-    await hopService.updateHops(id, {
+    await hopService.updateHops({
+      id,
       name: prev.name,
       slug: prev.slug,
       origin: prev.origin,
@@ -75,18 +77,12 @@ const updateHopStep = createStep(
   }
 )
 
-export const createHopWorkflow = createWorkflow(
-  "create-hop",
-  function (input: CreateHopInput) {
-    const result = (createHopStep as any)(input)
-    return new WorkflowResponse(result)
-  }
-)
+export const createHopWorkflow = createWorkflow("create-hop", function (input: CreateHopInput) {
+  const result = (createHopStep as any)(input)
+  return new WorkflowResponse(result)
+})
 
-export const updateHopWorkflow = createWorkflow(
-  "update-hop",
-  function (input: UpdateHopInput) {
-    const result = (updateHopStep as any)(input)
-    return new WorkflowResponse(result)
-  }
-)
+export const updateHopWorkflow = createWorkflow("update-hop", function (input: UpdateHopInput) {
+  const result = (updateHopStep as any)(input)
+  return new WorkflowResponse(result)
+})

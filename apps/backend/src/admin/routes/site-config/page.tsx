@@ -8,6 +8,7 @@ import {
   Textarea,
   Badge,
   Switch,
+  usePrompt,
 } from "@medusajs/ui"
 import { useEffect, useState } from "react"
 import { sdk } from "../../lib/sdk"
@@ -68,6 +69,7 @@ function ConfigRow({
   const [history, setHistory] = useState<HistoryRow[]>([])
   const [showHistory, setShowHistory] = useState(false)
   const [bool, setBool] = useState<boolean>(Boolean(entry.effective))
+  const prompt = usePrompt()
 
   useEffect(() => {
     setDraft(formatValue(entry.effective))
@@ -98,7 +100,7 @@ function ConfigRow({
       const value = parseDraft()
       const data = await sdk.client.fetch<{ entry: ConfigEntry }>(
         `/admin/site-config/${entry.key}`,
-        { method: "PATCH", body: { value } }
+        { method: "POST", body: { value } }
       )
       onChanged(data.entry)
       setEditing(false)
@@ -110,6 +112,15 @@ function ConfigRow({
   }
 
   const revert = async () => {
+    const ok = await prompt({
+      title: `Revert "${entry.label}"?`,
+      description:
+        "This will permanently remove the override and restore the default or environment value.",
+      confirmText: "Revert",
+      cancelText: "Cancel",
+      variant: "danger",
+    })
+    if (!ok) return
     setError(null)
     setReverting(true)
     try {
@@ -176,12 +187,7 @@ function ConfigRow({
                   Edit
                 </Button>
                 {entry.source === "override" && (
-                  <Button
-                    size="small"
-                    variant="secondary"
-                    isLoading={reverting}
-                    onClick={revert}
-                  >
+                  <Button size="small" variant="secondary" isLoading={reverting} onClick={revert}>
                     Revert
                   </Button>
                 )}
@@ -198,11 +204,7 @@ function ConfigRow({
                   <Switch checked={bool} onCheckedChange={setBool} />
                 </div>
               ) : entry.type === "json" ? (
-                <Textarea
-                  rows={4}
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                />
+                <Textarea rows={4} value={draft} onChange={(e) => setDraft(e.target.value)} />
               ) : (
                 <Input
                   type={entry.type === "number" ? "number" : "text"}
@@ -231,8 +233,7 @@ function ConfigRow({
             <ul className="space-y-1">
               {history.map((h) => (
                 <li key={h.id} className="text-xs font-mono">
-                  <span className="text-ui-fg-muted">{h.created_at}</span>{" "}
-                  <span>{h.action}</span>{" "}
+                  <span className="text-ui-fg-muted">{h.created_at}</span> <span>{h.action}</span>{" "}
                   {h.actor && <span className="text-ui-fg-muted">by {h.actor}</span>}{" "}
                   <span>old={formatValue(h.value_old)}</span>{" "}
                   <span>new={formatValue(h.value_new)}</span>
@@ -253,9 +254,7 @@ const SiteConfigPage = () => {
   const load = async () => {
     setLoading(true)
     try {
-      const data = await sdk.client.fetch<{ entries: ConfigEntry[] }>(
-        "/admin/site-config"
-      )
+      const data = await sdk.client.fetch<{ entries: ConfigEntry[] }>("/admin/site-config")
       setEntries(data.entries || [])
     } finally {
       setLoading(false)
@@ -282,8 +281,8 @@ const SiteConfigPage = () => {
         Site Configuration
       </Heading>
       <p className="text-ui-fg-subtle mb-6 text-sm">
-        Edit runtime settings for the storefront. Resolution order: DB override &gt; env var &gt; default.
-        Public values are visible to all storefront visitors via{" "}
+        Edit runtime settings for the storefront. Resolution order: DB override &gt; env var &gt;
+        default. Public values are visible to all storefront visitors via{" "}
         <code>/store/site-config/public</code>.
       </p>
 
@@ -297,11 +296,7 @@ const SiteConfigPage = () => {
                 {GROUP_LABELS[g]}
               </Heading>
               {grouped[g].map((entry) => (
-                <ConfigRow
-                  key={entry.key}
-                  entry={entry}
-                  onChanged={onEntryChanged}
-                />
+                <ConfigRow key={entry.key} entry={entry} onChanged={onEntryChanged} />
               ))}
             </section>
           ) : null

@@ -1,16 +1,10 @@
-import {
-  AuthenticatedMedusaRequest,
-  MedusaResponse,
-} from "@medusajs/framework/http"
+import { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { NOTIFICATION_PREFERENCE_MODULE } from "../../../../../../modules/notification-preference"
 import { isKnownCategory } from "../../../../../../modules/notification-preference/categories"
 import type NotificationPreferenceModuleService from "../../../../../../modules/notification-preference/service"
 import type { NotificationCategory } from "../../../../../../lib/email"
 
-export async function GET(
-  req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
-) {
+export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   const customerId = req.params.id
   const svc = req.scope.resolve(
     NOTIFICATION_PREFERENCE_MODULE
@@ -23,24 +17,17 @@ export async function GET(
  * Admin override — bypasses the transactional-disable guard so support staff
  * can adjust at customer request. Audit trail is the request log.
  */
-export async function PATCH(
-  req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
-) {
+export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   const customerId = req.params.id
   const body = (req.body || {}) as {
     category?: NotificationCategory
     enabled?: boolean
   }
   if (!body.category || typeof body.enabled !== "boolean") {
-    return res
-      .status(400)
-      .json({ error: "category and enabled are required" })
+    return res.status(400).json({ error: "category and enabled are required" })
   }
   if (!isKnownCategory(body.category)) {
-    return res
-      .status(400)
-      .json({ error: `unknown category: ${body.category}` })
+    return res.status(400).json({ error: `unknown category: ${body.category}` })
   }
 
   const svc = req.scope.resolve(

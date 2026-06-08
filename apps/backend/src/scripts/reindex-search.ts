@@ -33,15 +33,19 @@ export default async function reindexSearch({ container }: ExecArgs) {
   console.log("[Search] Fetching all products...")
   const products = await productModule.listProducts(
     { status: ["published"] },
-    { select: ["id", "title", "handle", "description", "metadata", "created_at", "thumbnail"], relations: ["variants"] }
+    {
+      select: ["id", "title", "handle", "description", "metadata", "created_at", "thumbnail"],
+      relations: ["variants"],
+    }
   )
 
   const styleMap = new Map<string, { name: string; family: string }>()
   const hopMap = new Map<string, string[]>()
+  const breweryCountMap = new Map<string, number>()
   try {
     const { data: linked } = await query.graph({
       entity: "product",
-      fields: ["id", "beer_style.*", "hops.*"],
+      fields: ["id", "beer_style.*", "hops.*", "breweries.id"],
       filters: { id: products.map((p: any) => p.id) },
     })
     for (const item of linked || []) {
@@ -53,15 +57,20 @@ export default async function reindexSearch({ container }: ExecArgs) {
       }
       const linkedHops = (item as any).hops || []
       if (linkedHops.length > 0) {
-        hopMap.set((item as any).id, linkedHops.map((h: any) => h.name))
+        hopMap.set(
+          (item as any).id,
+          linkedHops.map((h: any) => h.name)
+        )
       }
+      const linkedBreweries = (item as any).breweries || []
+      breweryCountMap.set((item as any).id, linkedBreweries.length)
     }
   } catch {}
 
   const documents = products.map((p: any) => {
     const meta = p.metadata || {}
     const desc = p.description || ""
-    const isCollab = desc.toLowerCase().includes("colab") || desc.toLowerCase().includes("collab")
+    const isCollab = (breweryCountMap.get(p.id) || 0) > 1
     const createdAt = p.created_at ? new Date(p.created_at).getTime() : 0
     const inventoryQty = p.variants?.[0]?.inventory_quantity || 0
 

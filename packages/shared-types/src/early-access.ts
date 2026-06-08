@@ -16,10 +16,7 @@ export type Tier = keyof typeof HOURS_BEFORE_PUBLIC_BY_TIER
 
 const HOUR_MS = 60 * 60 * 1000
 
-export function computeTierVisibleFrom(
-  earlyAccessUntil: Date,
-  tier: Tier
-): Date {
+export function computeTierVisibleFrom(earlyAccessUntil: Date, tier: Tier): Date {
   const hours = HOURS_BEFORE_PUBLIC_BY_TIER[tier]
   return new Date(earlyAccessUntil.getTime() - hours * HOUR_MS)
 }
@@ -50,6 +47,32 @@ export function nextTierForEarlierAccess(
     if (canCustomerAccessProduct(candidate, earlyAccessUntil, now)) {
       return candidate
     }
+  }
+  return null
+}
+
+/**
+ * Forward-looking helper. Given a product's release_at and the per-tier
+ * "hours before public" offsets, return the LOWEST tier whose access window
+ * has already opened (or null if release_at is still in the future).
+ *
+ * The result is the tier label used in the storefront countdown copy:
+ * "Currently available to {label} and above. You'll be able to purchase in …"
+ *
+ * Iteration is bottom-up (approved -> vip5) so the lowest tier with access
+ * wins. When two tiers share an offset (vip4 and vip5 both default to 24h),
+ * the lower index in the iteration order wins (vip4 in that case).
+ */
+export function currentLowestTierWithAccess(
+  releaseAt: Date,
+  offsets: typeof HOURS_BEFORE_PUBLIC_BY_TIER,
+  now: Date = new Date()
+): Tier | null {
+  if (now < releaseAt) return null
+  const order: Tier[] = ["approved", "vip1", "vip2", "vip3", "vip4", "vip5"]
+  for (const t of order) {
+    const opensAtMs = releaseAt.getTime() + (24 - offsets[t]) * HOUR_MS
+    if (now.getTime() >= opensAtMs) return t
   }
   return null
 }

@@ -8,6 +8,7 @@ const Wishlist = model.define("wishlist", {
   target_price: model.float().nullable(),
   stock_threshold: model.number().default(2),
   price_alert_sent: model.boolean().default(false),
+  stock_alert_sent: model.boolean().default(false),
   admin_approved_offer: model.boolean().default(false),
   admin_offer_price: model.float().nullable(),
   admin_offer_expires_at: model.dateTime().nullable(),

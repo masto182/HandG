@@ -32,7 +32,7 @@ function makeProvider(siteConfig: Record<string, unknown>) {
         throw new Error(`unexpected resolve(${name})`)
       },
     } as any,
-    options as any,
+    options as any
   )
   return provider
 }
@@ -50,9 +50,19 @@ const sampleAddress = {
 describe("ShipEngineProviderService heat hold", () => {
   it("blocks createFulfillment when heat_hold_enabled and no override", async () => {
     const provider = makeProvider({ heat_hold_enabled: true })
-    const data = { rate_id: "stub-auspost-parcel", carrier_id: "se-stub-auspost", carrier_code: "australia_post", service_code: "australia_post_parcel_post" }
+    const data = {
+      rate_id: "stub-auspost-parcel",
+      carrier_id: "se-stub-auspost",
+      carrier_code: "australia_post",
+      service_code: "australia_post_parcel_post",
+    }
     await expect(
-      provider.createFulfillment(data, [], { metadata: {}, shipping_address: sampleAddress } as any, {} as any),
+      provider.createFulfillment(
+        data,
+        [],
+        { metadata: {}, shipping_address: sampleAddress } as any,
+        {} as any
+      )
     ).rejects.toThrow(MedusaError)
   })
 
@@ -78,7 +88,12 @@ describe("ShipEngineProviderService heat hold", () => {
       carrier_code: "australia_post",
       service_code: "australia_post_parcel_post",
     }
-    const res = await provider.createFulfillment(data, [], { metadata: {}, shipping_address: sampleAddress } as any, {} as any)
+    const res = await provider.createFulfillment(
+      data,
+      [],
+      { metadata: {}, shipping_address: sampleAddress } as any,
+      {} as any
+    )
     expect(res.labels[0].tracking_number).toMatch(/^STUB/)
   })
 })
@@ -113,6 +128,50 @@ describe("ShipEngineProviderService auto-pick-cheapest", () => {
     const res = await provider.createFulfillment(data, [], order as any, {} as any)
     expect(res.data.auto_picked).toBe(false)
     expect(res.data.service_code).toBe("australia_post_express_post")
+  })
+})
+
+describe("ShipEngineProviderService idempotency", () => {
+  it("createFulfillment returns the existing label without buying a second one", async () => {
+    const provider = makeProvider({ heat_hold_enabled: true, auto_pick_cheapest_label: true })
+    // Fulfillment already carries a purchased label (e.g. retry / double-click).
+    const fulfillment = {
+      data: {
+        label_id: "existing-label-123",
+        tracking_number: "EXIST123",
+        label_url: "http://x/label.pdf",
+      },
+    }
+    const data = {
+      rate_id: "stub-auspost-parcel",
+      carrier_id: "se-stub-auspost",
+      carrier_code: "australia_post",
+      service_code: "australia_post_parcel_post",
+    }
+    const res = await provider.createFulfillment(
+      data,
+      [],
+      { metadata: {}, shipping_address: sampleAddress } as any,
+      fulfillment as any
+    )
+    expect(res.data.label_id).toBe("existing-label-123")
+    expect(res.labels[0].tracking_number).toBe("EXIST123")
+    // Short-circuits before heat-hold and before buying a fresh stub label.
+    expect(String(res.data.label_id)).not.toMatch(/^stub-label-/)
+  })
+})
+
+describe("ShipEngineProviderService currency safety", () => {
+  it("calculatePrice surfaces a currency mismatch as a MedusaError (not a silent $0)", async () => {
+    const provider = makeProvider({})
+    // Stub always quotes AUD; asking for USD must fail loud rather than return 0.
+    await expect(
+      provider.calculatePrice(
+        {} as any,
+        { rate_id: "stub-auspost-parcel" } as any,
+        { shipping_address: sampleAddress, currency_code: "usd", items: [] } as any
+      )
+    ).rejects.toThrow(MedusaError)
   })
 })
 

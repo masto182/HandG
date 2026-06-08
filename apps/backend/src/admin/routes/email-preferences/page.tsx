@@ -1,13 +1,5 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
-import {
-  Container,
-  Heading,
-  Input,
-  Label,
-  Switch,
-  Button,
-  Badge,
-} from "@medusajs/ui"
+import { Container, Heading, Input, Label, Switch, Button, Badge } from "@medusajs/ui"
 import { useState } from "react"
 import { sdk } from "../../lib/sdk"
 
@@ -77,7 +69,7 @@ const EmailPreferencesPage = () => {
         updated: boolean
         preferences: Preference[]
       }>(`/admin/customers/${selected.id}/notifications/preferences`, {
-        method: "PATCH",
+        method: "POST",
         body: { category: pref.category, enabled: !pref.enabled } as any,
       })
       setPrefs(res.preferences)
@@ -93,9 +85,8 @@ const EmailPreferencesPage = () => {
       <div>
         <Heading level="h1">Customer Email Preferences</Heading>
         <p className="text-sm text-ui-fg-subtle mt-1">
-          Search for a customer to view and override their email
-          notification preferences. Admin updates bypass the
-          transactional-required rule.
+          Search for a customer to view and override their email notification preferences. Admin
+          updates bypass the transactional-required rule.
         </p>
       </div>
 
@@ -146,9 +137,7 @@ const EmailPreferencesPage = () => {
                   {p.label}
                   {p.transactional && <Badge size="2xsmall">Transactional</Badge>}
                 </div>
-                <div className="text-xs text-ui-fg-subtle mt-0.5">
-                  {p.description}
-                </div>
+                <div className="text-xs text-ui-fg-subtle mt-0.5">{p.description}</div>
               </div>
               <Switch
                 checked={p.enabled}

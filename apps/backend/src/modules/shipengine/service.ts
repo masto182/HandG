@@ -81,7 +81,7 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
     // expose `siteConfig`, so this is best-effort.
     this.siteConfigResolver_ =
       typeof (deps as { resolve?: unknown }).resolve === "function"
-        ? ((deps as { resolve: (name: string) => unknown }).resolve)
+        ? (deps as { resolve: (name: string) => unknown }).resolve
         : null
   }
 
@@ -136,7 +136,7 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
     return [...rates].sort(
       (a, b) =>
         (a.shipping_amount?.amount ?? Number.POSITIVE_INFINITY) -
-        (b.shipping_amount?.amount ?? Number.POSITIVE_INFINITY),
+        (b.shipping_amount?.amount ?? Number.POSITIVE_INFINITY)
     )[0]
   }
 
@@ -165,7 +165,9 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
 
     this.logger_.info(`[shipengine] getRates request: ${JSON.stringify(body).slice(0, 1000)}`)
     const response = (await this.client_.getRates(body)) as ShipEngineRateResponse
-    this.logger_.info(`[shipengine] getRates response: ${(response?.rate_response?.rates ?? []).length} rates, errors: ${JSON.stringify(response?.rate_response?.errors ?? []).slice(0, 1000)}, invalid_rates: ${JSON.stringify((response?.rate_response?.invalid_rates ?? []).map(r => ({carrier_code: r.carrier_code, error_messages: r.error_messages}))).slice(0, 1000)}`)
+    this.logger_.info(
+      `[shipengine] getRates response: ${(response?.rate_response?.rates ?? []).length} rates, errors: ${JSON.stringify(response?.rate_response?.errors ?? []).slice(0, 1000)}, invalid_rates: ${JSON.stringify((response?.rate_response?.invalid_rates ?? []).map((r) => ({ carrier_code: r.carrier_code, error_messages: r.error_messages }))).slice(0, 1000)}`
+    )
     return response?.rate_response?.rates ?? []
   }
 
@@ -186,7 +188,7 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
   async validateFulfillmentData(
     _optionData: Record<string, unknown>,
     data: Record<string, unknown>,
-    _context: unknown,
+    _context: unknown
   ): Promise<Record<string, unknown>> {
     const hasRateId = typeof data?.rate_id === "string" && (data.rate_id as string).length > 0
     const hasCarrierAndService =
@@ -197,7 +199,7 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
     if (!hasRateId && !hasCarrierAndService) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "ShipEngine shipping method requires `rate_id` or both `carrier_id` and `service_code`.",
+        "ShipEngine shipping method requires `rate_id` or both `carrier_id` and `service_code`."
       )
     }
     return data
@@ -216,71 +218,82 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
   async calculatePrice(
     _optionData: CalculateShippingOptionPriceDTO["optionData"],
     data: CalculateShippingOptionPriceDTO["data"],
-    context: CalculateShippingOptionPriceDTO["context"],
+    context: CalculateShippingOptionPriceDTO["context"]
   ): Promise<CalculatedShippingOptionPrice> {
     // Provider-side amounts are in cents (matches CarrierRate.amount on the
     // rate-quote network type); Medusa stores cart money in major units, so
     // divide here at the boundary.
     const toMajor = (cents: number) => cents / 100
     try {
-    const cachedAmount = typeof data?.amount === "number" ? (data.amount as number) : undefined
-    if (cachedAmount !== undefined && this.isRateCacheFresh(data?.rate_quoted_at as string | undefined)) {
-      return { calculated_amount: toMajor(cachedAmount), is_calculated_price_tax_inclusive: false }
-    }
-
-    if (!context?.shipping_address) {
-      return {
-        calculated_amount: toMajor(cachedAmount ?? 0),
-        is_calculated_price_tax_inclusive: false,
+      const cachedAmount = typeof data?.amount === "number" ? (data.amount as number) : undefined
+      if (
+        cachedAmount !== undefined &&
+        this.isRateCacheFresh(data?.rate_quoted_at as string | undefined)
+      ) {
+        return {
+          calculated_amount: toMajor(cachedAmount),
+          is_calculated_price_tax_inclusive: false,
+        }
       }
-    }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const currency = ((context as any).currency_code ?? "aud").toLowerCase()
-    let rates: ShipEngineRate[] = []
-    try {
-      rates = await this.fetchRates({
-        shippingAddress: context.shipping_address,
-        items: context.items,
-        currency,
-      })
-    } catch (err) {
-      this.logger_.warn(`[shipengine] calculatePrice: getRates failed: ${(err as Error).message}`)
-      return {
-        calculated_amount: toMajor(cachedAmount ?? 0),
-        is_calculated_price_tax_inclusive: false,
+      if (!context?.shipping_address) {
+        return {
+          calculated_amount: toMajor(cachedAmount ?? 0),
+          is_calculated_price_tax_inclusive: false,
+        }
       }
-    }
 
-    const targetRateId = data?.rate_id as string | undefined
-    const targetCarrier = data?.carrier_id as string | undefined
-    const targetService = data?.service_code as string | undefined
-    const matched =
-      (targetRateId && rates.find((r) => r.rate_id === targetRateId)) ||
-      (targetCarrier &&
-        targetService &&
-        rates.find((r) => r.carrier_id === targetCarrier && r.service_code === targetService)) ||
-      this.pickCheapestRate(rates)
-
-    if (!matched) {
-      return {
-        calculated_amount: toMajor(cachedAmount ?? 0),
-        is_calculated_price_tax_inclusive: false,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const currency = ((context as any).currency_code ?? "aud").toLowerCase()
+      let rates: ShipEngineRate[] = []
+      try {
+        rates = await this.fetchRates({
+          shippingAddress: context.shipping_address,
+          items: context.items,
+          currency,
+        })
+      } catch (err) {
+        this.logger_.warn(`[shipengine] calculatePrice: getRates failed: ${(err as Error).message}`)
+        return {
+          calculated_amount: toMajor(cachedAmount ?? 0),
+          is_calculated_price_tax_inclusive: false,
+        }
       }
-    }
 
-    try {
-      const opt = rateToShippingOption(matched, currency)
-      return { calculated_amount: toMajor(opt.amount), is_calculated_price_tax_inclusive: false }
-    } catch (err) {
-      if (err instanceof CurrencyMismatchError) {
-        this.logger_.error(`[shipengine] currency mismatch: ${err.message}`)
-        throw new MedusaError(MedusaError.Types.INVALID_DATA, err.message)
+      const targetRateId = data?.rate_id as string | undefined
+      const targetCarrier = data?.carrier_id as string | undefined
+      const targetService = data?.service_code as string | undefined
+      const matched =
+        (targetRateId && rates.find((r) => r.rate_id === targetRateId)) ||
+        (targetCarrier &&
+          targetService &&
+          rates.find((r) => r.carrier_id === targetCarrier && r.service_code === targetService)) ||
+        this.pickCheapestRate(rates)
+
+      if (!matched) {
+        return {
+          calculated_amount: toMajor(cachedAmount ?? 0),
+          is_calculated_price_tax_inclusive: false,
+        }
       }
-      throw err
-    }
+
+      try {
+        const opt = rateToShippingOption(matched, currency)
+        return { calculated_amount: toMajor(opt.amount), is_calculated_price_tax_inclusive: false }
+      } catch (err) {
+        if (err instanceof CurrencyMismatchError) {
+          this.logger_.error(`[shipengine] currency mismatch: ${err.message}`)
+          throw new MedusaError(MedusaError.Types.INVALID_DATA, err.message)
+        }
+        throw err
+      }
     } catch (outerErr) {
-      this.logger_.error(`[shipengine] calculatePrice CRASHED: ${(outerErr as Error).message}\n${(outerErr as Error).stack}`)
+      // Data-integrity errors (e.g. currency mismatch) must NOT be swallowed as
+      // a silent $0 — surface them so checkout fails loudly.
+      if (outerErr instanceof MedusaError) throw outerErr
+      this.logger_.error(
+        `[shipengine] calculatePrice CRASHED: ${(outerErr as Error).message}\n${(outerErr as Error).stack}`
+      )
       return { calculated_amount: 0, is_calculated_price_tax_inclusive: false }
     }
   }
@@ -289,8 +302,28 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
     data: Record<string, unknown>,
     items: Partial<Omit<FulfillmentItemDTO, "fulfillment">>[],
     order: Partial<FulfillmentOrderDTO> | undefined,
-    fulfillment: Partial<Omit<FulfillmentDTO, "provider_id" | "data" | "items">>,
+    fulfillment: Partial<Omit<FulfillmentDTO, "provider_id" | "data" | "items">>
   ): Promise<CreateFulfillmentResult> {
+    // Idempotency: if this fulfillment already has a purchased label (e.g. a
+    // double-click / retry), do NOT buy a second paid label — return the
+    // existing one.
+    const existingData = ((fulfillment as { data?: Record<string, unknown> }).data ?? {}) as Record<
+      string,
+      unknown
+    >
+    if (existingData.label_id) {
+      return {
+        data: existingData,
+        labels: [
+          {
+            tracking_number: (existingData.tracking_number as string) ?? "",
+            tracking_url: "",
+            label_url: (existingData.label_url as string) ?? "",
+          },
+        ],
+      }
+    }
+
     // ---------- Heat hold gate ----------
     const heatHoldEnabled = await this.siteConfigGet<boolean>("heat_hold_enabled", false)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -300,7 +333,7 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
       throw new MedusaError(
         MedusaError.Types.NOT_ALLOWED,
         "Heat hold is active. Set order.metadata.heat_hold_override = true to dispatch this order.",
-        HEAT_HOLD_BLOCKED_CODE,
+        HEAT_HOLD_BLOCKED_CODE
       )
     }
 
@@ -317,7 +350,8 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
     let autoPickedFlag = false
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const shippingAddress = ((order as any)?.shipping_address ?? (fulfillment as any)?.shipping_address) as
+    const shippingAddress = ((order as any)?.shipping_address ??
+      (fulfillment as any)?.shipping_address) as
       | NonNullable<CalculateShippingOptionPriceDTO["context"]["shipping_address"]>
       | undefined
 
@@ -339,7 +373,9 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
           autoPickedFlag = true
         }
       } catch (err) {
-        this.logger_.warn(`[shipengine] auto-pick re-quote failed; honouring customer choice: ${(err as Error).message}`)
+        this.logger_.warn(
+          `[shipengine] auto-pick re-quote failed; honouring customer choice: ${(err as Error).message}`
+        )
       }
     }
 
@@ -352,7 +388,7 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
       } catch (err) {
         if (err instanceof ShipEngineApiError && (err.status === 404 || err.status === 400)) {
           this.logger_.info(
-            `[shipengine] rate_id ${chosen.rate_id} unusable (${err.status} ${err.code ?? "?"}); falling back to direct buyLabel`,
+            `[shipengine] rate_id ${chosen.rate_id} unusable (${err.status} ${err.code ?? "?"}); falling back to direct buyLabel`
           )
         } else {
           throw err
@@ -363,15 +399,14 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
       if (!chosen.carrier_id || !chosen.service_code) {
         throw new MedusaError(
           MedusaError.Types.INVALID_DATA,
-          "Unable to purchase label: rate_id failed and no carrier_id/service_code fallback was provided.",
+          "Unable to purchase label: rate_id failed and no carrier_id/service_code fallback was provided."
         )
       }
       bought_via = "direct"
       const fromAddress = await this.resolveFromAddress()
-      const validateMode = await this.siteConfigGet<"no_validation" | "validate_only" | "validate_and_clean">(
-        "shipping_validate_address_mode",
-        "validate_and_clean",
-      )
+      const validateMode = await this.siteConfigGet<
+        "no_validation" | "validate_only" | "validate_and_clean"
+      >("shipping_validate_address_mode", "validate_and_clean")
       const defaultWeightG = await this.siteConfigGet<number>("shipping_default_item_weight_g", 750)
       const totalWeight = (items ?? []).reduce((sum: number, it: any) => {
         const qty = typeof it.quantity === "number" ? it.quantity : 1
@@ -380,7 +415,9 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
       }, 0)
       const ship = cartToShipEngineShipment({
         shippingAddress: shippingAddress ?? { country_code: "AU" },
-        packages: [{ weightG: totalWeight || defaultWeightG, lengthCm: 39, widthCm: 28, heightCm: 14 }],
+        packages: [
+          { weightG: totalWeight || defaultWeightG, lengthCm: 39, widthCm: 28, heightCm: 14 },
+        ],
         fromAddress,
         carrierIds: [chosen.carrier_id],
         validateMode,
@@ -401,7 +438,7 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
 
     return {
       data: {
-        ...(((fulfillment as { data?: Record<string, unknown> }).data) ?? {}),
+        ...((fulfillment as { data?: Record<string, unknown> }).data ?? {}),
         label_id: label.label_id,
         rate_id_used: chosen.rate_id ?? null,
         carrier_id: label.carrier_id,
@@ -431,7 +468,9 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await
-  async createReturnFulfillment(_fromData: Record<string, unknown>): Promise<CreateFulfillmentResult> {
+  async createReturnFulfillment(
+    _fromData: Record<string, unknown>
+  ): Promise<CreateFulfillmentResult> {
     return { data: {}, labels: [] }
   }
 
@@ -451,7 +490,10 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await
-  async retrieveDocuments(_fulfillmentData: Record<string, unknown>, _documentType: string): Promise<void> {
+  async retrieveDocuments(
+    _fulfillmentData: Record<string, unknown>,
+    _documentType: string
+  ): Promise<void> {
     return
   }
 }

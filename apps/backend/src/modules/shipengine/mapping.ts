@@ -1,9 +1,49 @@
-import {
-  ShipEngineAddress,
-  ShipEngineGetRatesInput,
-  ShipEngineRate,
-} from "./types"
+import { ShipEngineAddress, ShipEngineGetRatesInput, ShipEngineRate } from "./types"
 import type { PackedBox } from "./packing"
+
+const SE_ADDRESS_LINE_MAX = 50
+
+function truncateAddressLine(
+  raw: string,
+  addr: {
+    city?: string | null
+    province?: string | null
+    postal_code?: string | null
+    country_code?: string | null
+  }
+): string {
+  let line = raw
+  const city = addr.city?.trim()
+  const state = addr.province?.trim()
+  const postcode = addr.postal_code?.trim()
+  const country = addr.country_code?.trim()
+  if (line.length > SE_ADDRESS_LINE_MAX && (city || state || postcode)) {
+    const suffixes = [
+      country ? `, ${country}` : "",
+      country ? ` ${country}` : "",
+      "Australia",
+      ", Australia",
+      postcode ? ` ${postcode}` : "",
+      postcode ? `, ${postcode}` : "",
+      state && postcode ? ` ${state} ${postcode}` : "",
+      state && postcode ? `, ${state} ${postcode}` : "",
+      city && state && postcode ? `, ${city} ${state} ${postcode}` : "",
+      city && state ? `, ${city} ${state}` : "",
+      city ? `, ${city}` : "",
+    ].filter(Boolean)
+    for (const suffix of suffixes) {
+      if (line.endsWith(suffix)) {
+        line = line.slice(0, -suffix.length).trim()
+        if (line.length <= SE_ADDRESS_LINE_MAX) break
+      }
+    }
+    if (line.endsWith(",")) line = line.slice(0, -1).trim()
+  }
+  if (line.length > SE_ADDRESS_LINE_MAX) {
+    line = line.slice(0, SE_ADDRESS_LINE_MAX)
+  }
+  return line
+}
 
 export type FromAddressConfig = {
   shipping_from_name: string
@@ -36,7 +76,11 @@ export type ShippingOptionEphemeral = {
 }
 
 export class CurrencyMismatchError extends Error {
-  constructor(public expected: string, public got: string, public rateId: string) {
+  constructor(
+    public expected: string,
+    public got: string,
+    public rateId: string
+  ) {
     super(`Currency mismatch on rate ${rateId}: expected ${expected}, got ${got}`)
     this.name = "CurrencyMismatchError"
   }
@@ -46,7 +90,10 @@ export class CurrencyMismatchError extends Error {
  * Convert a ShipEngine rate (decimal dollars) into a Medusa-compatible
  * ephemeral shipping option (integer minor units).
  */
-export function rateToShippingOption(rate: ShipEngineRate, expectedCurrency: string): ShippingOptionEphemeral {
+export function rateToShippingOption(
+  rate: ShipEngineRate,
+  expectedCurrency: string
+): ShippingOptionEphemeral {
   const expected = expectedCurrency.toLowerCase()
   const got = (rate.shipping_amount?.currency ?? "").toLowerCase()
   if (got !== expected) {
@@ -102,10 +149,12 @@ export function cartToShipEngineShipment(args: {
   validateMode: "no_validation" | "validate_only" | "validate_and_clean"
 }): ShipEngineGetRatesInput {
   const shipTo: ShipEngineAddress = {
-    name: [args.shippingAddress.first_name, args.shippingAddress.last_name].filter(Boolean).join(" ") || undefined,
+    name:
+      [args.shippingAddress.first_name, args.shippingAddress.last_name].filter(Boolean).join(" ") ||
+      undefined,
     company_name: args.shippingAddress.company ?? undefined,
     phone: args.shippingAddress.phone || args.fromAddress.shipping_from_phone,
-    address_line1: args.shippingAddress.address_1 ?? "",
+    address_line1: truncateAddressLine(args.shippingAddress.address_1 ?? "", args.shippingAddress),
     address_line2: args.shippingAddress.address_2 ?? null,
     city_locality: args.shippingAddress.city ?? "",
     state_province: (args.shippingAddress.province ?? "").toUpperCase(),

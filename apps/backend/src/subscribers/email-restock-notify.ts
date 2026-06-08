@@ -1,17 +1,20 @@
 import { SubscriberArgs, type SubscriberConfig } from "@medusajs/framework"
 import { Modules } from "@medusajs/framework/utils"
-import { sendTemplate, refreshEmailConfig, getStoreUrl } from "../lib/email"
-import * as RestockAvailableTpl from "../emails/restock-available"
 
-export default async function restockNotifier({ event, container }: SubscriberArgs<any>) {
+/**
+ * Detects a product going back in stock and stamps restock_detected_at on each
+ * pending alert. It does NOT send emails — the restock-alert-dispatch cron is
+ * the single send path and honours the tiered early-access ladder (vip5 first
+ * ... approved last) measured from restock_detected_at.
+ */
+export default async function restockDetector({ event, container }: SubscriberArgs<any>) {
   const productId = event.data.id
   const productModule = container.resolve(Modules.PRODUCT)
-  const customerModule = container.resolve(Modules.CUSTOMER)
   const restockAlertService = container.resolve("restockAlert") as any
 
   const [product] = await productModule.listProducts(
     { id: productId },
-    { select: ["id", "title", "handle", "variants"], relations: ["variants"] }
+    { select: ["id"], relations: ["variants"] }
   )
 
   if (!product) return
@@ -22,41 +25,25 @@ export default async function restockNotifier({ event, container }: SubscriberAr
 
   if (totalInventory <= 0) return
 
+  // Only stamp alerts that are pending (not notified) and not already detected.
   const alerts = await restockAlertService.listRestockAlerts({
     product_id: productId,
     notified_at: null,
+    restock_detected_at: null,
   })
 
   if (alerts.length === 0) return
 
-  // Read site config once before the per-alert loop (not per-row).
-  await refreshEmailConfig(container)
-  const storeUrl = getStoreUrl()
-
+  const now = new Date()
   for (const alert of alerts) {
     try {
-      const [customer] = await customerModule.listCustomers({ id: alert.customer_id })
-      if (customer?.email) {
-        await sendTemplate({
-          to: customer.email,
-          customerId: customer.id,
-          category: "restock_alerts",
-          template: RestockAvailableTpl,
-          props: {
-            name: customer.first_name || "Collector",
-            beerName: alert.beer_name,
-            breweryName: alert.brewery_name,
-            handle: product.handle || "",
-            storeUrl,
-          },
-          container,
-        })
-      }
-      await restockAlertService.updateRestockAlerts(alert.id, {
-        notified_at: new Date(),
+      await restockAlertService.updateRestockAlerts({
+        id: alert.id,
+        restock_detected_at: now,
       })
     } catch (err) {
-      console.error(`[Restock] Failed to notify ${alert.customer_id}:`, err)
+      const logger = container.resolve("logger") as any
+      logger.error(`[Restock] Failed to stamp detection for ${alert.id}: ${err}`)
     }
   }
 }

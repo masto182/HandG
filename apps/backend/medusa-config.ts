@@ -1,15 +1,15 @@
-import { loadEnv, defineConfig } from '@medusajs/framework/utils'
-import { requireEnv } from './src/lib/env'
-import { initSentry } from './src/lib/sentry'
+import { loadEnv, defineConfig } from "@medusajs/framework/utils"
+import { requireEnv } from "./src/lib/env"
+import { initSentry } from "./src/lib/sentry"
 
-loadEnv(process.env.NODE_ENV || 'development', process.cwd())
+loadEnv(process.env.NODE_ENV || "development", process.cwd())
 initSentry()
 
 module.exports = defineConfig({
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
     redisUrl: process.env.REDIS_URL,
-    workerMode: process.env.MEDUSA_WORKER_MODE as "shared" | "worker" | "server" || "shared",
+    workerMode: (process.env.MEDUSA_WORKER_MODE as "shared" | "worker" | "server") || "shared",
     http: {
       storeCors: process.env.STORE_CORS!,
       adminCors: process.env.ADMIN_CORS!,
@@ -28,17 +28,25 @@ module.exports = defineConfig({
     path: (process.env.MEDUSA_ADMIN_PATH as `/${string}`) || "/troon/admin",
   },
   modules: [
-    {
-      resolve: "@medusajs/medusa/event-bus-redis",
-      options: {
-        redisUrl: process.env.REDIS_URL,
-        jobOptions: {
-          removeOnComplete: { age: 3600, count: 1000 },
-          removeOnFail: { age: 3600, count: 1000 },
+    // Integration tests bootstrap/tear down the app repeatedly; the redis
+    // (bullmq) event bus leaves connections open and throws "Connection is
+    // closed" mid-workflow. Use the in-memory local event bus under test.
+    process.env.NODE_ENV === "test"
+      ? { resolve: "@medusajs/medusa/event-bus-local" }
+      : {
+          resolve: "@medusajs/medusa/event-bus-redis",
+          options: {
+            redisUrl: process.env.REDIS_URL,
+            jobOptions: {
+              removeOnComplete: { age: 3600, count: 1000 },
+              removeOnFail: { age: 3600, count: 1000 },
+            },
+          },
         },
-      },
-    },
     { resolve: "./src/modules/brewery" },
+    { resolve: "./src/modules/brewery-follow" },
+    { resolve: "./src/modules/hop-alert" },
+    { resolve: "./src/modules/alert-dispatch" },
     { resolve: "./src/modules/beer-detail" },
     { resolve: "./src/modules/wishlist" },
     { resolve: "./src/modules/restock-alert" },
@@ -125,11 +133,14 @@ module.exports = defineConfig({
             options: {
               api_key: process.env.AUSPOST_API_KEY,
               api_base: process.env.AUSPOST_API_BASE,
+              // Provider scoped container can't read SiteConfig in prod; pass
+              // the operational config through here.
+              auspost_enabled: process.env.AUSPOST_ENABLED === "true",
+              shipping_from_postcode: process.env.SHIPPING_FROM_POSTCODE || "3037",
             },
           },
         ],
       },
     },
-
   ],
 })

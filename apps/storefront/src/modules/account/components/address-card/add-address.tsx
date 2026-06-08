@@ -40,11 +40,20 @@ const AddAddress = ({
     closeModal()
   }
 
-  const handleAddressSelect = useCallback((parts: { address_1: string; city: string; province: string; postal_code: string; country_code: string }) => {
-    setAutoCity(parts.city)
-    setAutoProvince(parts.province)
-    setAutoPostal(parts.postal_code)
-  }, [])
+  const handleAddressSelect = useCallback(
+    (parts: {
+      address_1: string
+      city: string
+      province: string
+      postal_code: string
+      country_code: string
+    }) => {
+      setAutoCity(parts.city)
+      setAutoProvince(parts.province)
+      setAutoPostal(parts.postal_code)
+    },
+    [],
+  )
 
   useEffect(() => {
     if (successState) {
@@ -69,10 +78,17 @@ const AddAddress = ({
         <div className="w-14 h-14 rounded-full bg-surface-container-high flex items-center justify-center group-hover:scale-110 transition-transform">
           <Plus className="text-primary" />
         </div>
-        <span className="text-label-caps uppercase tracking-[0.05em] text-on-surface-variant group-hover:text-primary">Add New Address</span>
+        <span className="text-label-caps uppercase tracking-[0.05em] text-on-surface-variant group-hover:text-primary">
+          Add New Address
+        </span>
       </button>
 
-      <Modal isOpen={state} onClose={close} title="Add address" data-testid="add-address-modal">
+      <Modal
+        isOpen={state}
+        onClose={close}
+        title="Add address"
+        data-testid="add-address-modal"
+      >
         <form action={formAction}>
           <div className="flex flex-col gap-y-2">
             <div className="grid grid-cols-2 gap-x-2">
@@ -142,12 +158,6 @@ const AddAddress = ({
             <div className="flex items-center h-10 px-4 bg-hg-surface border border-hg-border rounded-md text-hg-text text-sm">
               Australia
             </div>
-            <Input
-              label="Phone"
-              name="phone"
-              autoComplete="phone"
-              data-testid="phone-input"
-            />
           </div>
           {formState.error && (
             <div

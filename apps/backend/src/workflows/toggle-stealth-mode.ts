@@ -25,7 +25,8 @@ const toggleStealthModeStep = createStep(
     }
 
     const prev = referrals[0].stealth_mode
-    await referralService.updateReferrals(referrals[0].id, {
+    await referralService.updateReferrals({
+      id: referrals[0].id,
       stealth_mode: !!input.enabled,
     })
 
@@ -37,7 +38,8 @@ const toggleStealthModeStep = createStep(
   async (compensation: any, { container }) => {
     if (!compensation) return
     const referralService = container.resolve(REFERRAL_MODULE) as any
-    await referralService.updateReferrals(compensation.referral_id, {
+    await referralService.updateReferrals({
+      id: compensation.referral_id,
       stealth_mode: compensation.previous_stealth,
     })
   }

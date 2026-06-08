@@ -26,7 +26,7 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  OWNER: sfc-gh-cmasterson
+  OWNER: masto182
 
 jobs:
   retag:
@@ -97,8 +97,8 @@ jobs:
             cd /opt/retail-example
             git fetch origin main
             git reset --hard origin/main
-            export BACKEND_IMAGE="ghcr.io/sfc-gh-cmasterson/backend:prod"
-            export STOREFRONT_IMAGE="ghcr.io/sfc-gh-cmasterson/storefront:prod"
+            export BACKEND_IMAGE="ghcr.io/masto182/backend:prod"
+            export STOREFRONT_IMAGE="ghcr.io/masto182/storefront:prod"
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
             docker compose -f docker-compose.prod.yml --env-file .env.production pull
             docker compose -f docker-compose.prod.yml --env-file .env.production up -d --remove-orphans

@@ -13,6 +13,10 @@ export const createReferralStep = createStep(
     if (!input.referrer_customer_id) {
       return new StepResponse(null)
     }
+    // Self-referral guard: a customer cannot refer themselves.
+    if (input.referrer_customer_id === input.referred_customer_id) {
+      return new StepResponse(null)
+    }
 
     const referralService = container.resolve(REFERRAL_MODULE) as any
     const referral = await referralService.createReferrals({

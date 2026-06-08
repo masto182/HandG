@@ -6,6 +6,10 @@ import { SortOptions } from "@modules/store/components/refinement-list/sort-prod
 import FilterPanel from "@modules/store/components/filter-panel"
 import FilterChips from "@modules/store/components/filter-chips"
 import ViewToggle from "@modules/store/components/view-toggle"
+import {
+  HOURS_BEFORE_PUBLIC_BY_TIER,
+  type Tier,
+} from "@retail-example/shared-types"
 
 import PaginatedProducts from "./paginated-products"
 
@@ -30,6 +34,8 @@ const StoreTemplate = ({
   canSeePricing = true,
   filterParams,
   view = "grid",
+  viewerTier = null,
+  earlyAccessOffsets,
 }: {
   sortBy?: SortOptions
   page?: string
@@ -37,6 +43,8 @@ const StoreTemplate = ({
   canSeePricing?: boolean
   filterParams?: FilterParams
   view?: "grid" | "list"
+  viewerTier?: Tier | null
+  earlyAccessOffsets?: typeof HOURS_BEFORE_PUBLIC_BY_TIER
 }) => {
   const pageNumber = page ? parseInt(page) : 1
   const sort = sortBy || "created_at"
@@ -56,7 +64,9 @@ const StoreTemplate = ({
           <div>
             {filterParams?.q ? (
               <>
-                <p className="font-semibold text-[10px] text-hg-text-secondary tracking-widest uppercase mb-2">SEARCH RESULTS</p>
+                <p className="font-semibold text-[10px] text-hg-text-secondary tracking-widest uppercase mb-2">
+                  SEARCH RESULTS
+                </p>
                 <h1 className="text-h2 text-hg-text">
                   &ldquo;{filterParams.q}&rdquo;
                 </h1>
@@ -65,7 +75,9 @@ const StoreTemplate = ({
               <>
                 <div className="flex items-center gap-2 mb-2">
                   <span className="w-2 h-2 rounded-full bg-hl-accent animate-pulse" />
-                  <span className="font-semibold text-[10px] text-hl-accent tracking-widest uppercase">NEW DROPS TODAY</span>
+                  <span className="font-semibold text-[10px] text-hl-accent tracking-widest uppercase">
+                    NEW DROPS TODAY
+                  </span>
                 </div>
                 <h1 className="text-h2 text-hg-text">The Collection</h1>
               </>
@@ -85,6 +97,8 @@ const StoreTemplate = ({
             canSeePricing={canSeePricing}
             filterParams={filterParams}
             view={view}
+            viewerTier={viewerTier}
+            earlyAccessOffsets={earlyAccessOffsets}
           />
         </Suspense>
       </section>

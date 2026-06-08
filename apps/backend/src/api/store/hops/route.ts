@@ -25,7 +25,12 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       name: hop.name,
       slug: hop.slug,
       origin: hop.origin,
+      country_code: hop.country_code,
+      breeder: hop.breeder,
+      available_forms: hop.available_forms || [],
+      farm_notes: hop.farm_notes,
       flavor_profile: hop.flavor_profile,
+      image_url: hop.image_url,
       product_count: countMap.get(hop.id) || 0,
     }))
     .filter((hop: any) => hop.product_count > 0)

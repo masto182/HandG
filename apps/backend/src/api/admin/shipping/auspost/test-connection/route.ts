@@ -1,4 +1,5 @@
-import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+// workflow-exempt
+import type { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { getAusPostClient } from "../../../../../modules/auspost/factory"
 import type { PacRateRequest } from "../../../../../modules/auspost/types"
 
@@ -10,7 +11,7 @@ import type { PacRateRequest } from "../../../../../modules/auspost/types"
  *
  * Body (optional): { fromPostcode, toPostcode, weightKg, lengthCm, widthCm, heightCm }
  */
-export async function POST(req: MedusaRequest, res: MedusaResponse) {
+export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   const body = (req.body ?? {}) as Partial<PacRateRequest>
 
   const sample: PacRateRequest = {

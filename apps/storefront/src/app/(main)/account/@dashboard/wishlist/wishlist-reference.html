@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Wishlist | Hops &amp; Glory</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "outline": "#89938c",
+                    "on-secondary-fixed-variant": "#3e4c00",
+                    "text-muted-dark": "#AAB4AE",
+                    "price-light": "#244C3D",
+                    "outline-variant": "#3f4943",
+                    "on-secondary-container": "#242d00",
+                    "surface-variant": "#323633",
+                    "primary-container": "#63a987",
+                    "surface-elevated-dark": "#202925",
+                    "surface": "#101412",
+                    "text-muted-light": "#66706B",
+                    "secondary-fixed-dim": "#b6d247",
+                    "on-surface-variant": "#bfc9c1",
+                    "secondary-fixed": "#d2ef60",
+                    "tertiary-container": "#d78486",
+                    "background": "#101412",
+                    "on-tertiary-fixed-variant": "#733336",
+                    "bg-dark": "#111715",
+                    "surface-container": "#1d201e",
+                    "surface-elevated-light": "#EEF2EE",
+                    "surface-container-lowest": "#0b0f0d",
+                    "on-primary-fixed": "#002114",
+                    "on-secondary-fixed": "#171e00",
+                    "primary-fixed": "#a9f2cc",
+                    "on-primary-container": "#003b27",
+                    "on-tertiary-container": "#5a1f23",
+                    "on-primary-fixed-variant": "#005237",
+                    "tertiary": "#ffb3b4",
+                    "on-error-container": "#ffdad6",
+                    "primary": "#8ed5b1",
+                    "secondary": "#b6d247",
+                    "surface-dark": "#171E1B",
+                    "bg-light": "#F5F7F4",
+                    "tertiary-fixed-dim": "#ffb3b4",
+                    "secondary-container": "#819b08",
+                    "inverse-on-surface": "#2d312e",
+                    "on-primary": "#003825",
+                    "on-surface": "#e0e3df",
+                    "tertiary-fixed": "#ffdad9",
+                    "surface-bright": "#363a37",
+                    "border-light": "#D9E0DA",
+                    "on-error": "#690005",
+                    "inverse-primary": "#226a4d",
+                    "error": "#ffb4ab",
+                    "surface-dim": "#101412",
+                    "surface-container-high": "#272b28",
+                    "on-tertiary-fixed": "#3b080e",
+                    "on-tertiary": "#571d21",
+                    "error-container": "#93000a",
+                    "surface-container-low": "#191c1a",
+                    "on-secondary": "#2a3400",
+                    "surface-tint": "#8ed5b1",
+                    "text-primary-dark": "#EDF2EE",
+                    "surface-container-highest": "#323633",
+                    "primary-fixed-dim": "#8ed5b1",
+                    "price-dark": "#8FD0B0",
+                    "on-background": "#e0e3df",
+                    "inverse-surface": "#e0e3df",
+                    "text-primary-light": "#1E2421",
+                    "surface-light": "#FCFDFC",
+                    "border-dark": "#2F3A35"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "sm": "8px",
+                    "md": "16px",
+                    "xs": "4px",
+                    "unit": "4px",
+                    "lg": "24px",
+                    "gutter": "24px",
+                    "container-max": "1440px",
+                    "xl": "40px",
+                    "2xl": "64px"
+            },
+            "fontFamily": {
+                    "body-md": ["Inter"],
+                    "h1": ["Inter"],
+                    "price": ["Inter"],
+                    "h2": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "label-caps": ["Inter"],
+                    "h3": ["Inter"],
+                    "body-sm": ["Inter"]
+            },
+            "fontSize": {
+                    "body-md": ["16px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                    "h1": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.04em", "fontWeight": "700"}],
+                    "price": ["20px", {"lineHeight": "1", "fontWeight": "700"}],
+                    "h2": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "label-caps": ["12px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "h3": ["24px", {"lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "body-sm": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .glass-nav {
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #101412;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #3f4943;
+            border-radius: 10px;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-md custom-scrollbar">
+<!-- TopNavBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-lg h-20 max-w-container-max mx-auto bg-surface-container/88 backdrop-blur-md dark:bg-surface-container/88 border-b border-outline-variant/30 shadow-sm">
+<div class="flex items-center gap-xl">
+<span class="font-h3 text-h3 font-bold tracking-tight text-on-surface dark:text-on-surface">Hops &amp; Glory</span>
+<nav class="hidden md:flex gap-lg">
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface font-body-md text-body-md transition-colors duration-200" href="#">Collection</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface font-body-md text-body-md transition-colors duration-200" href="#">Breweries</a>
+<a class="text-primary dark:text-primary font-semibold border-b-2 border-primary pb-1 font-body-md text-body-md" href="#">Wishlist</a>
+</nav>
+</div>
+<div class="flex items-center gap-md">
+<div class="hidden sm:flex items-center bg-surface-bright/10 rounded-full px-md py-xs border border-outline-variant/20">
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-body-sm text-on-surface placeholder:text-on-surface-variant/50 w-48" placeholder="Search Collections..." type="text"/>
+</div>
+<button class="material-symbols-outlined text-on-surface-variant hover:bg-surface-bright/10 p-2 rounded-full transition-colors active:scale-95" data-icon="notifications">notifications</button>
+<button class="material-symbols-outlined text-on-surface-variant hover:bg-surface-bright/10 p-2 rounded-full transition-colors active:scale-95" data-icon="account_circle">account_circle</button>
+</div>
+</header>
+<main class="pt-32 pb-24 px-gutter max-w-[1440px] mx-auto min-h-screen">
+<!-- Header Section -->
+<section class="mb-xl">
+<h1 class="font-h1 text-h1 mb-sm tracking-tight">Wishlist</h1>
+<p class="text-on-surface-variant text-body-lg max-w-[600px]">The drops you're watching in your curated Collection. Stay updated on stock levels and price movements.</p>
+</section>
+<!-- Filter Controls -->
+<div class="flex mb-lg w-full md:w-fit"><div class="flex items-center p-1 bg-[#171E1B] border border-white/5 rounded-xl w-full md:w-auto overflow-x-auto custom-scrollbar"><button class="flex items-center justify-center gap-2 px-6 py-2 bg-[#63A987] text-[#101412] font-label-caps text-label-caps rounded-lg whitespace-nowrap">All <span class="opacity-40 text-[10px]">12</span></button><button class="flex items-center justify-center gap-2 px-6 py-2 bg-transparent text-[#7E8982] hover:text-white font-label-caps text-label-caps rounded-lg transition-colors whitespace-nowrap">Watching <span class="opacity-40 text-[10px]">4</span></button><button class="flex items-center justify-center gap-2 px-6 py-2 bg-transparent text-[#7E8982] hover:text-white font-label-caps text-label-caps rounded-lg transition-colors whitespace-nowrap">Low Stock <span class="opacity-40 text-[10px]">2</span></button><button class="flex items-center justify-center gap-2 px-6 py-2 bg-transparent text-[#7E8982] hover:text-white font-label-caps text-label-caps rounded-lg transition-colors whitespace-nowrap">Price <span class="opacity-40 text-[10px]">1</span></button><button class="flex items-center justify-center gap-2 px-6 py-2 bg-transparent text-[#7E8982] hover:text-white font-label-caps text-label-caps rounded-lg transition-colors whitespace-nowrap">Restock</button></div></div>
+<!-- Wishlist Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter"><!-- 1. Tree House Tenth Anniversary IPA -->
+<div class="bg-surface-dark border-2 border-tertiary rounded-xl overflow-hidden group flex flex-col h-[620px] relative"><div class="absolute left-0 w-full bg-tertiary text-on-tertiary text-center font-label-caps text-label-caps tracking-widest z-10 h-7 flex items-center justify-center -top-\[2px\]">LOW STOCK ALERT MET</div><div class="relative aspect-square bg-surface-container-highest overflow-hidden"><img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCDfT10z8XZi0ky7Lcmsql__rLAVWaepIx1W6DHK-EuQB2tZ5Km5Xi8c1m_EqPeh1ylKPq6aXnwjQEFwGhP4VDI-Ja8zMB5gz8kYQmla5g8jCqFnfE9U6IQgDD9ixIA3vdlBSxbGSfH7c-KiTZnNShH3ZmzqmLVq2DiOgsY-ntX0lhmRQOM48oxQiTCUBbb72UisRxQI4Ci-2TYS7FCeXkSgLa47A9bm2IRk_uOYeNi33OXmJFgohhvFPxVTqDWhYdUB3yimwy22SRd"/><button class="absolute top-md right-md bg-background/60 backdrop-blur-md p-1.5 rounded-full text-on-surface-variant hover:text-on-surface transition-colors"><span class="material-symbols-outlined text-[18px]">close</span></button></div><div class="p-lg flex flex-col flex-grow"><span class="text-on-surface-variant font-label-caps text-label-caps uppercase tracking-[0.1em] mb-1">Tree House Brewing</span><h3 class="font-h3 text-h3 font-bold tracking-tight mb-md">Tree House Tenth Anniversary IPA</h3><div class="mt-auto space-y-md"><div class="border-t border-outline-variant/20 pt-md grid grid-cols-1 gap-md"><div class="flex justify-between items-end"><div><p class="text-on-surface-variant font-label-caps text-label-caps mb-1 uppercase">Current Price</p><p class="font-price text-price text-price-dark">$65.00</p></div><div class="text-right"> <p class="text-on-surface-variant font-label-caps text-label-caps mb-1 uppercase">Current Stock</p> <p class="font-price text-price text-tertiary">2</p></div></div><div class="grid grid-cols-2 gap-sm h-14"><div class="p-2 rounded bg-surface-container/50 border border-secondary/30 flex flex-col justify-between"><p class="text-on-surface-variant text-[10px] font-bold uppercase mb-0.5">PRICE ALERT</p><div class="flex items-center justify-between"><span class="text-secondary font-bold text-sm leading-none">$60.00</span><div class="flex gap-1"><span class="material-symbols-outlined text-[14px] text-on-surface-variant cursor-pointer hover:text-primary">edit</span><span class="material-symbols-outlined text-[14px] text-on-surface-variant cursor-pointer hover:text-error">close</span></div></div></div><div class="p-2 rounded bg-tertiary/10 border border-tertiary flex flex-col justify-between"><p class="text-on-surface-variant text-[10px] font-bold uppercase mb-0.5">STOCK ALERT</p><div class="flex items-center justify-between"><span class="text-tertiary font-bold text-sm leading-none">MET AT 5</span><div class="flex gap-1"><span class="material-symbols-outlined text-[14px] text-on-surface-variant cursor-pointer hover:text-primary">edit</span><span class="material-symbols-outlined text-[14px] text-on-surface-variant cursor-pointer hover:text-error">close</span></div></div></div></div></div><button class="w-full bg-primary text-on-primary py-md rounded-xl font-bold transition-transform active:scale-95">Buy Now</button></div></div></div>
+<!-- 2. Other Half Haze Engine -->
+<div class="bg-surface-dark border-2 border-secondary rounded-xl overflow-hidden group flex flex-col h-[620px] relative">
+<div class="absolute left-0 w-full bg-secondary text-on-secondary text-center font-label-caps text-label-caps tracking-widest z-10 h-7 flex items-center justify-center -top-\[2px\]">TARGET PRICE MET</div>
+<div class="relative aspect-square bg-surface-container-highest overflow-hidden">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBO_Sz-HpkZzvcVQo4DhqpR0586WY3nR1_LH-Ysp-PlyijCWTfyBCBAP7hFvzft0EEW07eI4lMnIInQa8siPyIWV7Jhw1oOM7G-CT4U8dWBl_tsglHNhxOMtQ0NmeyRoIw4fT3025vpinq1kZlgS6bsNDYL4AoHaq1yMnyyPc5RqHSmumRnfBRUiIZ4r_DSltg95DnYlz-wF92c7R0ut5A4Fp9Wkjxe5aDc2f5WPD2hvXasYgGU_93oLhTWnvgHpiq8M2q4fglgHNL6"/>
+<button class="absolute top-md right-md bg-background/60 backdrop-blur-md p-1.5 rounded-full text-on-surface-variant hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div>
+<div class="p-lg flex flex-col flex-grow">
+<span class="text-on-surface-variant font-label-caps text-label-caps uppercase tracking-[0.1em] mb-1">Other Half Brewing</span>
+<h3 class="font-h3 text-h3 font-bold tracking-tight mb-md">Other Half Haze Engine</h3>
+<div class="mt-auto space-y-md">
+<div class="border-t border-outline-variant/20 pt-md grid grid-cols-1 gap-md">
+<div class="flex justify-between items-end"><div><p class="text-on-surface-variant font-label-caps text-label-caps mb-1 uppercase">Current Price</p><p class="font-price text-price text-secondary">$20.00</p></div><div class="text-right"> <p class="text-on-surface-variant font-label-caps text-label-caps mb-1 uppercase">Current Stock</p> <p class="font-price text-price text-tertiary">14</p></div></div>
+<div class="grid grid-cols-2 gap-sm h-14">
+<div class="p-2 rounded bg-secondary/10 border border-secondary">
+<p class="text-on-surface-variant text-[10px] font-bold uppercase mb-1">PRICE ALERT</p>
+<div class="flex items-center justify-between"><span class="text-secondary font-bold text-sm leading-none">MET AT $20</span><div class="flex gap-1"><span class="material-symbols-outlined text-[14px] text-on-surface-variant cursor-pointer hover:text-primary">edit</span><span class="material-symbols-outlined text-[14px] text-on-surface-variant cursor-pointer hover:text-error">close</span></div></div>
+</div>
+<div class="p-2 rounded border border-dashed border-outline-variant hover:bg-surface-bright/5 cursor-pointer flex flex-col items-center justify-center">
+<span class="text-[10px] font-bold text-outline uppercase">+ Stock</span>
+</div>
+</div>
+</div>
+<button class="w-full bg-primary text-on-primary py-md rounded-xl font-bold transition-transform active:scale-95">Buy Now</button>
+</div>
+</div>
+</div>
+<!-- 3. Northern Monk -->
+<div class="bg-surface-dark border border-outline-variant/30 rounded-xl overflow-hidden group flex flex-col h-[620px] opacity-90">
+<div class="relative aspect-square bg-surface-container-highest overflow-hidden">
+<img class="w-full h-full object-cover grayscale transition-transform duration-500 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDlYnpz_yjP09srZk2t3uhcD5TuHPTzMWZ8EiYjTUcAJfbGC3Tn7DacS4V2avDza-FXPdqTAIWiuq-3WRYnbu-YRrmDcNIX5BWV82m6txHTsNrb-YDSR115nsqBuR164uV5lbbXzlcvqa-gNriOeFegGqFp5ZpUu1puyKkGkoTvqNvbwlTpil0BJCduebKlF-DwhWL7rjJmqUo5wT36SGOcvBX6UVU6nON7FQk4KTagNHgamb3sl2MaRTTBykbmOB0bbn7Ho5mCsplk"/>
+<div class="absolute inset-0 bg-background/40 flex items-center justify-center">
+<span class="bg-background/80 backdrop-blur-md text-on-surface px-lg py-xs rounded-full font-label-caps text-label-caps border border-outline-variant/30">OUT OF STOCK</span>
+</div>
+</div>
+<div class="p-lg flex flex-col flex-grow">
+<span class="text-on-surface-variant font-label-caps text-label-caps uppercase tracking-[0.1em] mb-1">Northern Monk</span>
+<h3 class="font-h3 text-h3 font-bold tracking-tight mb-md">Faith in the Future</h3>
+<div class="mt-auto space-y-md">
+<div class="border-t border-outline-variant/20 pt-md grid grid-cols-1 gap-md">
+<div class="flex justify-between items-end"><div><p class="text-on-surface-variant font-label-caps text-label-caps mb-1 uppercase">Last Price</p><p class="font-price text-price text-outline">$45.00</p></div><div class="text-right"> <p class="text-on-surface-variant font-label-caps text-label-caps mb-1 uppercase">Current Stock</p> <p class="font-price text-price text-error">OUT OF STOCK</p></div></div>
+<div class="grid grid-cols-2 gap-sm h-14">
+<div class="p-2 rounded border border-dashed border-outline-variant flex flex-col items-center justify-center">
+<span class="text-[10px] font-bold text-outline uppercase">No Alert</span>
+</div>
+<div class="p-2 rounded bg-primary/10 border border-primary">
+<p class="text-on-surface-variant text-[10px] font-bold uppercase mb-1">STOCK ALERT</p>
+<div class="flex items-center justify-between"><span class="text-primary font-bold text-sm">NOTIFY</span><div class="flex gap-1"><span class="material-symbols-outlined text-[14px] text-on-surface-variant cursor-pointer hover:text-primary">edit</span><span class="material-symbols-outlined text-[14px] text-on-surface-variant cursor-pointer hover:text-error">close</span></div></div>
+</div>
+</div>
+</div>
+<button class="w-full border border-error/50 text-error py-md rounded-xl font-bold hover:bg-error/5 transition-colors">Remove</button>
+</div>
+</div>
+</div>
+<!-- 4. Cloudwater Echoes -->
+<div class="bg-surface-dark border border-outline-variant/30 rounded-xl overflow-hidden group flex flex-col h-[620px]"><div class="relative aspect-square bg-surface-container-highest overflow-hidden"><img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBebOU0csMnzy84T94Zy-hs4hC2U1IlN9n7kG8yAczkX3XDYc2XPsmRNkzgSXicknUu0b772ZPGrSwBnQqE1CZs3NMA2NuBh382VG9B2naMRDPLpQDmxNHPofYQO0TD2qRsmK8agy6ePs1NS3wRflNzRnJzOjtj7n7Mj0jajYoseYmAqP6G11wOwK0MHUReKQND3tz60ktTdg2OJ_BiINYjd_g8Bo04CAYjR5BtDzJwJNNZZFgW_6fTj0ybQ2VsRBM-jRqxdkAo6R4x"/><button class="absolute top-md right-md bg-background/60 backdrop-blur-md p-1.5 rounded-full text-on-surface-variant hover:text-on-surface transition-colors"><span class="material-symbols-outlined text-[18px]">close</span></button></div><div class="p-lg flex flex-col flex-grow"><span class="text-on-surface-variant font-label-caps text-label-caps uppercase tracking-[0.1em] mb-1">Cloudwater Brew Co</span><h3 class="font-h3 text-h3 font-bold tracking-tight mb-md">Cloudwater Echoes</h3><div class="mt-auto space-y-md"><div class="border-t border-outline-variant/20 pt-md grid grid-cols-1 gap-md"><div class="flex justify-between items-end"><div><p class="text-on-surface-variant font-label-caps text-label-caps mb-1 uppercase">Current Price</p><p class="font-price text-price text-price-dark">$58.00</p></div><div class="text-right"> <p class="text-on-surface-variant font-label-caps text-label-caps mb-1 uppercase">Current Stock</p> <p class="font-price text-price text-price-dark">12</p></div></div><div class="grid grid-cols-2 gap-sm h-14"><div class="p-2 rounded border border-dashed border-outline-variant hover:bg-surface-bright/5 cursor-pointer flex flex-col items-center justify-center"><span class="text-[10px] font-bold text-outline uppercase">+ Price Alert</span></div><div class="p-2 rounded border border-dashed border-outline-variant hover:bg-surface-bright/5 cursor-pointer flex flex-col items-center justify-center"><span class="text-[10px] font-bold text-outline uppercase">+ Stock Alert</span></div></div></div><button class="w-full bg-primary text-on-primary py-md rounded-xl font-bold transition-transform active:scale-95">Buy Now</button></div></div></div>
+<!-- 5. Starve: Exhibit A -->
+<div class="bg-surface-dark border border-outline-variant/30 rounded-xl overflow-hidden group flex flex-col h-[620px]">
+<div class="relative aspect-square bg-surface-container-highest overflow-hidden">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBg5m30PL3viHKGGL3agNvhAVBkXlFn2uQVRVxG3THrhr8tquumsJ1SZZ8qLkhaE2DMD0T8mKrzPn4Gc-5xFiZL89A5Kxj8kTQSAPErq2xikny6sLxfItIGvjhfy1a2gRBaCd5HvQwaNImbAY40HvtP6h2es7m64v6VylBp5DhPyx9_vDOBvauf6dgXEeYFCIoL3IyXZxf6dhKVpTx7lrAOUcVDwexJ4mdQljPCCWVsRlymJeUtfQdZlEpoMQQpoMro9KgDEjzmVC8V"/>
+<button class="absolute top-md right-md bg-background/60 backdrop-blur-md p-1.5 rounded-full text-on-surface-variant hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div>
+<div class="p-lg flex flex-col flex-grow">
+<span class="text-on-surface-variant font-label-caps text-label-caps uppercase tracking-[0.1em] mb-1">The Veil Brewing Co.</span>
+<h3 class="font-h3 text-h3 font-bold tracking-tight mb-md">Starve: Exhibit A</h3>
+<div class="mt-auto space-y-md">
+<div class="border-t border-outline-variant/20 pt-md grid grid-cols-1 gap-md">
+<div class="flex justify-between items-end"><div><p class="text-on-surface-variant font-label-caps text-label-caps mb-1 uppercase">Current Price</p><p class="font-price text-price text-price-dark">$65.00</p></div><div class="text-right"> <p class="text-on-surface-variant font-label-caps text-label-caps mb-1 uppercase">Current Stock</p> <p class="font-price text-price text-tertiary">5</p></div></div>
+<div class="grid grid-cols-2 gap-sm h-14">
+<div class="p-2 rounded border border-dashed border-outline-variant hover:bg-surface-bright/5 cursor-pointer flex flex-col items-center justify-center"><span class="text-[10px] font-bold text-outline uppercase">+ Price Alert</span></div>
+<div class="p-2 rounded bg-surface-container/50 border border-tertiary/30">
+<p class="text-on-surface-variant text-[10px] font-bold uppercase mb-1">STOCK</p>
+<div class="flex items-center justify-between">
+<span class="text-tertiary font-bold text-sm">4 LEFT</span>
+<div class="flex gap-1">
+<span class="material-symbols-outlined text-[14px] text-on-surface-variant cursor-pointer hover:text-primary">edit</span>
+<span class="material-symbols-outlined text-[14px] text-on-surface-variant cursor-pointer hover:text-error">close</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<button class="w-full bg-primary text-on-primary py-md rounded-xl font-bold transition-transform active:scale-95">Buy Now</button>
+</div>
+</div>
+</div>
+<!-- 6. Find more drops -->
+<div class="bg-surface-container/30 border border-dashed border-outline-variant/50 rounded-xl flex flex-col items-center justify-center h-[620px] p-xl text-center group cursor-pointer hover:border-primary/50 transition-colors">
+<div class="w-16 h-16 rounded-full bg-surface-container flex items-center justify-center mb-md group-hover:bg-primary/10 transition-colors">
+<span class="material-symbols-outlined text-outline group-hover:text-primary">add_shopping_cart</span>
+</div>
+<h4 class="font-h3 text-h3 font-bold mb-xs">Find more drops</h4>
+<p class="text-on-surface-variant text-body-sm mb-lg">Browse the collection to add more items to your wishlist.</p>
+<button class="text-primary font-bold hover:underline">Explore Collection</button>
+</div></div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<footer class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-16 pb-safe md:hidden bg-surface-container/88 backdrop-blur-md dark:bg-surface-container/88 border-t border-outline-variant/30 shadow-lg">
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant active:scale-90 transition-transform duration-150">
+<span class="material-symbols-outlined">explore</span>
+<span class="font-label-caps text-label-caps">Explore</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant active:scale-90 transition-transform duration-150">
+<span class="material-symbols-outlined">sports_bar</span>
+<span class="font-label-caps text-label-caps">Brewers</span>
+</button>
+<button class="flex flex-col items-center justify-center text-primary dark:text-primary-fixed-dim active:scale-90 transition-transform duration-150">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">favorite</span>
+<span class="font-label-caps text-label-caps">Wishlist</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant active:scale-90 transition-transform duration-150"><span class="material-symbols-outlined">inventory_2</span><span class="font-label-caps text-label-caps">Owned</span></button>
+</footer>
+<script>
+        // Micro-interactions and subtle effects
+        document.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('mouseenter', () => {
+                // Logic for hover sounds or subtle glows could go here
+            });
+        });
+
+        // Simple toggle simulation for the restock alert
+        const restockToggle = document.querySelector('.bg-primary.rounded-full.relative');
+        if(restockToggle) {
+            restockToggle.addEventListener('click', function() {
+                const innerCircle = this.querySelector('div');
+                if(this.classList.contains('bg-primary')) {
+                    this.classList.remove('bg-primary');
+                    this.classList.add('bg-surface-variant');
+                    innerCircle.classList.remove('right-0.5');
+                    innerCircle.classList.add('left-0.5');
+                    innerCircle.classList.replace('bg-on-primary', 'bg-outline');
+                } else {
+                    this.classList.remove('bg-surface-variant');
+                    this.classList.add('bg-primary');
+                    innerCircle.classList.remove('left-0.5');
+                    innerCircle.classList.add('right-0.5');
+                    innerCircle.classList.replace('bg-outline', 'bg-on-primary');
+                }
+            });
+        }
+    </script>
+</body></html>

@@ -1,4 +1,9 @@
-import { buildProductJsonLd, buildOrganizationJsonLd, buildWebSiteJsonLd } from "./json-ld"
+import {
+  buildProductJsonLd,
+  buildOrganizationJsonLd,
+  buildWebSiteJsonLd,
+  serializeJsonLd,
+} from "./json-ld"
 
 describe("JSON-LD utilities", () => {
   describe("buildProductJsonLd", () => {
@@ -9,7 +14,11 @@ describe("JSON-LD utilities", () => {
         thumbnail: "https://img.example.com/pliny.jpg",
         metadata: { brewery_name: "Russian River" },
         variants: [
-          { sku: "PLINY-01", prices: [{ amount: 2500, currency_code: "aud" }], inventory_quantity: 5 },
+          {
+            sku: "PLINY-01",
+            calculated_price: { calculated_amount: 25, currency_code: "aud" },
+            inventory_quantity: 5,
+          },
         ],
       })
       expect(schema["@type"]).toBe("Product")
@@ -19,12 +28,15 @@ describe("JSON-LD utilities", () => {
       expect(schema.sku).toBe("PLINY-01")
     })
 
-    it("builds correct offers with price in dollars", () => {
+    it("builds correct offers with price in dollars (calculated_price, no /100)", () => {
       const schema = buildProductJsonLd({
         title: "Test",
         handle: "test",
         variants: [
-          { prices: [{ amount: 1550, currency_code: "aud" }], inventory_quantity: 3 },
+          {
+            calculated_price: { calculated_amount: 15.5, currency_code: "aud" },
+            inventory_quantity: 3,
+          },
         ],
       })
       expect(schema.offers.price).toBe("15.50")
@@ -37,7 +49,10 @@ describe("JSON-LD utilities", () => {
         title: "Test",
         handle: "test",
         variants: [
-          { prices: [{ amount: 1000, currency_code: "aud" }], inventory_quantity: 0 },
+          {
+            calculated_price: { calculated_amount: 10, currency_code: "aud" },
+            inventory_quantity: 0,
+          },
         ],
       })
       expect(schema.offers.availability).toBe("https://schema.org/OutOfStock")
@@ -50,6 +65,23 @@ describe("JSON-LD utilities", () => {
       expect(schema.brand).toBeUndefined()
       expect(schema.offers).toBeUndefined()
       expect(schema.sku).toBeUndefined()
+    })
+  })
+
+  describe("serializeJsonLd", () => {
+    it("escapes < so a value cannot break out of the script element", () => {
+      const out = serializeJsonLd(
+        buildProductJsonLd({
+          title: "Evil</script><script>alert(1)</script>",
+          handle: "x",
+        }),
+      )
+      expect(out).not.toContain("</script>")
+      expect(out).toContain("\\u003c")
+      // Still valid JSON once parsed.
+      expect(JSON.parse(out).name).toBe(
+        "Evil</script><script>alert(1)</script>",
+      )
     })
   })
 

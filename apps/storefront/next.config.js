@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const checkEnvVariables = require("./check-env-variables")
 
 globalThis.localStorage = {
@@ -34,6 +35,9 @@ const nextConfig = {
     },
   },
   images: {
+    // Explicit quality allowlist. Avoids Next 16 narrowing the default set and
+    // hard-erroring on quality={50} used by Thumbnail for card images.
+    qualities: [50, 75, 90],
     remotePatterns: [
       ...imageHostnames.map((hostname) => ({
         protocol: "https",
@@ -49,7 +53,7 @@ const nextConfig = {
 module.exports = process.env.NEXT_PUBLIC_SENTRY_DSN
   ? (() => {
       try {
-        const { withSentryConfig } = require("@sentry/nextjs")
+        const { withSentryConfig } = require("@sentry/nextjs") // eslint-disable-line @typescript-eslint/no-require-imports
         return withSentryConfig(nextConfig, {
           silent: true,
           hideSourceMaps: true,

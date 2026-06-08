@@ -26,35 +26,61 @@ const ABV_RANGES = [
   { label: "11%+", value: "11+" },
 ]
 
-const STYLE_FAMILIES = [
-  { label: "DIPA", value: "hoppy" },
-  { label: "Stout", value: "dark" },
-  { label: "Sauer", value: "sour" },
-  { label: "Pilsner", value: "lager" },
-  { label: "Pale Ale", value: "pale" },
-]
+const STYLE_FAMILY_ORDER = ["IPA", "Pale Ale", "Dark", "Sour", "Lager"]
 
 const INITIAL_SHOW = 6
 
-export default function FilterPanel({ facets: propFacets, canSeePricing }: FilterPanelProps) {
+export default function FilterPanel({
+  facets: propFacets,
+  canSeePricing,
+}: FilterPanelProps) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [baseFacets, setBaseFacets] = useState<FacetDistribution | undefined>(propFacets)
-  const [liveFacets, setLiveFacets] = useState<FacetDistribution | undefined>(propFacets)
-  const [fallbackBreweries, setFallbackBreweries] = useState<Record<string, number>>({})
+  const [baseFacets, setBaseFacets] = useState<FacetDistribution | undefined>(
+    propFacets,
+  )
+  const [liveFacets, setLiveFacets] = useState<FacetDistribution | undefined>(
+    propFacets,
+  )
+  const [fallbackBreweries, setFallbackBreweries] = useState<
+    Record<string, number>
+  >({})
+  const [styleFamilies, setStyleFamilies] = useState<string[]>([])
   const abortRef = useRef<AbortController | null>(null)
   const initialFetchDone = useRef(false)
 
-  useEffect(() => { setMobileOpen(false) }, [searchParams])
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [searchParams])
 
   useEffect(() => {
-    sdk.client.fetch<{ breweries: any[] }>("/store/breweries", { method: "GET" })
+    sdk.client
+      .fetch<{ families: string[] }>("/store/beer-styles", { method: "GET" })
+      .then((d) => {
+        if (Array.isArray(d.families) && d.families.length > 0) {
+          const ordered = [
+            ...STYLE_FAMILY_ORDER.filter((f) => d.families.includes(f)),
+            ...d.families.filter((f) => !STYLE_FAMILY_ORDER.includes(f)),
+          ]
+          setStyleFamilies(ordered)
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    sdk.client
+      .fetch<{ breweries: any[] }>("/store/breweries", { method: "GET" })
       .then((d) => {
         if (d.breweries && d.breweries.length > 0) {
-          sdk.client.fetch<{ products: any[] }>("/store/products?limit=200&fields=metadata,+metadata", { method: "GET" })
+          sdk.client
+            .fetch<{ products: any[] }>(
+              "/store/products?limit=200&fields=metadata,+metadata",
+              { method: "GET" },
+            )
             .then((pd) => {
               const breweryFacets: Record<string, number> = {}
               ;(pd.products || []).forEach((p: any) => {
@@ -64,13 +90,17 @@ export default function FilterPanel({ facets: propFacets, canSeePricing }: Filte
               if (Object.keys(breweryFacets).length > 0) {
                 setFallbackBreweries(breweryFacets)
               } else {
-                d.breweries.forEach((b: any) => { breweryFacets[b.name] = 1 })
+                d.breweries.forEach((b: any) => {
+                  breweryFacets[b.name] = 1
+                })
                 setFallbackBreweries(breweryFacets)
               }
             })
             .catch(() => {
               const breweryFacets: Record<string, number> = {}
-              d.breweries.forEach((b: any) => { breweryFacets[b.name] = 1 })
+              d.breweries.forEach((b: any) => {
+                breweryFacets[b.name] = 1
+              })
               setFallbackBreweries(breweryFacets)
             })
         }
@@ -81,7 +111,8 @@ export default function FilterPanel({ facets: propFacets, canSeePricing }: Filte
   useEffect(() => {
     if (!initialFetchDone.current) {
       const ctrl = new AbortController()
-      sdk.client.fetch<any>("/store/search?", { method: "GET", signal: ctrl.signal })
+      sdk.client
+        .fetch<any>("/store/search?", { method: "GET", signal: ctrl.signal })
         .then((d) => {
           if (!ctrl.signal.aborted) {
             setBaseFacets(d.facetDistribution)
@@ -101,8 +132,14 @@ export default function FilterPanel({ facets: propFacets, canSeePricing }: Filte
     abortRef.current = ctrl
     const params = new URLSearchParams(searchParams.toString())
     params.delete("page")
-    sdk.client.fetch<any>(`/store/search?${params.toString()}`, { method: "GET", signal: ctrl.signal })
-      .then((d) => { if (!ctrl.signal.aborted) setLiveFacets(d.facetDistribution) })
+    sdk.client
+      .fetch<any>(`/store/search?${params.toString()}`, {
+        method: "GET",
+        signal: ctrl.signal,
+      })
+      .then((d) => {
+        if (!ctrl.signal.aborted) setLiveFacets(d.facetDistribution)
+      })
       .catch(() => {})
     return () => ctrl.abort()
   }, [searchParams])
@@ -116,35 +153,57 @@ export default function FilterPanel({ facets: propFacets, canSeePricing }: Filte
   const selectedStyles = getParam("style")
   const selectedFreshness = getParam("freshness")
   const selectedHops = getParam("hops")
+  const selectedHopCountry = getParam("hop_country")
   const selectedAbv = getParam("abv")
   const hopsMode = searchParams.get("hopsMode") || "or"
 
-  const updateParams = useCallback((key: string, value: string | null) => {
-    const params = new URLSearchParams(searchParams.toString())
-    if (value) { params.set(key, value) } else { params.delete(key) }
-    params.delete("page")
-    router.push(`${pathname}?${params.toString()}`, { scroll: false })
-  }, [router, pathname, searchParams])
+  const updateParams = useCallback(
+    (key: string, value: string | null) => {
+      const params = new URLSearchParams(searchParams.toString())
+      if (value) {
+        params.set(key, value)
+      } else {
+        params.delete(key)
+      }
+      params.delete("page")
+      router.push(`${pathname}?${params.toString()}`, { scroll: false })
+    },
+    [router, pathname, searchParams],
+  )
 
-  const toggleArrayParam = useCallback((key: string, item: string) => {
-    const current = getParam(key)
-    const next = current.includes(item) ? current.filter((v) => v !== item) : [...current, item]
-    updateParams(key, next.length ? next.join(",") : null)
-  }, [searchParams, updateParams])
+  const toggleArrayParam = useCallback(
+    (key: string, item: string) => {
+      const current = getParam(key)
+      const next = current.includes(item)
+        ? current.filter((v) => v !== item)
+        : [...current, item]
+      updateParams(key, next.length ? next.join(",") : null)
+    },
+    [searchParams, updateParams],
+  )
 
-  const baseBreweryFacets = Object.keys(baseFacets?.brewery || {}).length > 0 ? baseFacets!.brewery : fallbackBreweries
-  const baseStyleFacets = baseFacets?.style || {}
+  const baseBreweryFacets =
+    Object.keys(baseFacets?.brewery || {}).length > 0
+      ? baseFacets!.brewery
+      : fallbackBreweries
+  const baseStyleFacets = baseFacets?.style_family || {}
   const baseHopsFacets = baseFacets?.hops || {}
 
-  const liveBreweryFacets = Object.keys(liveFacets?.brewery || {}).length > 0 ? liveFacets!.brewery : fallbackBreweries
+  const liveBreweryFacets =
+    Object.keys(liveFacets?.brewery || {}).length > 0
+      ? liveFacets!.brewery
+      : fallbackBreweries
+  const liveStyleFacets = liveFacets?.style_family || {}
   const liveHopsFacets = liveFacets?.hops || {}
 
   const sortedBreweries = Object.entries(baseBreweryFacets)
-    .map((entry) => [entry[0], liveBreweryFacets[entry[0]] ?? entry[1]] as [string, number])
+    .map(
+      (entry) =>
+        [entry[0], liveBreweryFacets[entry[0]] ?? entry[1]] as [string, number],
+    )
     .sort((a, b) => b[1] - a[1])
 
-  const sortedHops = Object.entries(baseHopsFacets)
-    .sort((a, b) => b[1] - a[1])
+  const sortedHops = Object.entries(baseHopsFacets).sort((a, b) => b[1] - a[1])
 
   const selectedCollab = searchParams.get("collab") === "true"
   const selectedTags = getParam("tags")
@@ -152,19 +211,34 @@ export default function FilterPanel({ facets: propFacets, canSeePricing }: Filte
   const selectedAvailable = searchParams.get("available") !== "false"
 
   const [breweryExpanded, setBreweryExpanded] = useState(false)
-  const visibleBreweries = breweryExpanded ? sortedBreweries : sortedBreweries.slice(0, INITIAL_SHOW)
+  const visibleBreweries = breweryExpanded
+    ? sortedBreweries
+    : sortedBreweries.slice(0, INITIAL_SHOW)
 
   const [hopsExpanded, setHopsExpanded] = useState(false)
-  const visibleHops = hopsExpanded ? sortedHops : sortedHops.slice(0, INITIAL_SHOW)
+  const visibleHops = hopsExpanded
+    ? sortedHops
+    : sortedHops.slice(0, INITIAL_SHOW)
 
-  const checkboxClass = "appearance-none w-4 h-4 rounded-[3px] bg-hl-surface3 border border-hg-text-muted mr-3 checked:bg-hg-gold checked:border-hg-gold focus:ring-2 focus:ring-hg-gold/20 relative after:content-[''] after:absolute after:inset-0 after:flex after:items-center after:justify-center checked:after:content-['✓'] after:text-[10px] after:text-hg-on-primary after:font-bold after:leading-4 after:text-center cursor-pointer flex-shrink-0"
+  const checkboxClass =
+    "appearance-none w-4 h-4 rounded-sm bg-hl-surface3 border border-hg-text-muted mr-3 checked:bg-hg-gold checked:border-hg-gold focus:ring-2 focus:ring-hg-gold/20 relative after:content-[''] after:absolute after:inset-0 after:flex after:items-center after:justify-center checked:after:content-['✓'] after:text-[10px] after:text-hg-on-primary after:font-bold after:leading-4 after:text-center cursor-pointer flex-shrink-0"
 
   const filterContent = (
     <>
       <details className="group border-b border-hg-border pb-4" open>
         <summary className="flex justify-between items-center cursor-pointer list-none">
-          <h3 className="font-semibold text-[12px] text-hg-text-muted uppercase tracking-widest">{canSeePricing ? "Brewery" : "Producer"}</h3>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-hg-text-muted group-open:rotate-180 transition-transform">
+          <h3 className="font-semibold text-[12px] text-hg-text-muted uppercase tracking-widest">
+            {canSeePricing ? "Brewery" : "Producer"}
+          </h3>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            className="text-hg-text-muted group-open:rotate-180 transition-transform"
+          >
             <polyline points="6 9 12 15 18 9" />
           </svg>
         </summary>
@@ -172,23 +246,39 @@ export default function FilterPanel({ facets: propFacets, canSeePricing }: Filte
           {visibleBreweries.map(([name]) => {
             const isActive = selectedBreweries.includes(name)
             return (
-              <label key={name} className="flex items-center group/item cursor-pointer">
+              <label
+                key={name}
+                className="flex items-center group/item cursor-pointer"
+              >
                 <input
                   type="checkbox"
                   checked={isActive}
                   onChange={() => toggleArrayParam("brewery", name)}
                   className={checkboxClass}
                 />
-                <span className={`text-[14px] ${isActive ? "text-hg-text" : "text-hg-text-secondary"} group-hover/item:text-hg-gold transition-colors`}>
+                <span
+                  className={`text-[14px] ${isActive ? "text-hg-text" : "text-hg-text-secondary"} group-hover/item:text-hg-gold transition-colors`}
+                >
                   {name}
                 </span>
               </label>
             )
           })}
           {sortedBreweries.length > INITIAL_SHOW && !breweryExpanded && (
-            <button onClick={() => setBreweryExpanded(true)} className="text-[10px] font-semibold text-hg-gold hover:underline flex items-center mt-2 uppercase tracking-widest">
+            <button
+              onClick={() => setBreweryExpanded(true)}
+              className="text-[10px] font-semibold text-hg-gold hover:underline flex items-center mt-2 uppercase tracking-widest"
+            >
               SHOW MORE
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="ml-1">
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="ml-1"
+              >
                 <polyline points="6 9 12 15 18 9" />
               </svg>
             </button>
@@ -199,25 +289,46 @@ export default function FilterPanel({ facets: propFacets, canSeePricing }: Filte
       {canSeePricing && (
         <details className="group border-b border-hg-border py-4" open>
           <summary className="flex justify-between items-center cursor-pointer list-none">
-            <h3 className="font-semibold text-[12px] text-hg-text-muted uppercase tracking-widest">Style</h3>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-hg-text-muted group-open:rotate-180 transition-transform">
+            <h3 className="font-semibold text-[12px] text-hg-text-muted uppercase tracking-widest">
+              Style
+            </h3>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="text-hg-text-muted group-open:rotate-180 transition-transform"
+            >
               <polyline points="6 9 12 15 18 9" />
             </svg>
           </summary>
           <div className="space-y-3 mt-4">
-            {STYLE_FAMILIES.map((fam) => {
-              const isActive = selectedStyles.includes(fam.value)
+            {styleFamilies.map((fam) => {
+              const isActive = selectedStyles.includes(fam)
+              const count = liveStyleFacets[fam] ?? baseStyleFacets[fam] ?? 0
               return (
-                <label key={fam.value} className="flex items-center group/item cursor-pointer">
+                <label
+                  key={fam}
+                  className="flex items-center group/item cursor-pointer"
+                >
                   <input
                     type="checkbox"
                     checked={isActive}
-                    onChange={() => toggleArrayParam("style", fam.value)}
+                    onChange={() => toggleArrayParam("style", fam)}
                     className={checkboxClass}
                   />
-                  <span className={`text-[14px] ${isActive ? "text-hg-text" : "text-hg-text-secondary"} group-hover/item:text-hg-gold transition-colors`}>
-                    {fam.label}
+                  <span
+                    className={`text-[14px] flex-1 ${isActive ? "text-hg-text" : "text-hg-text-secondary"} group-hover/item:text-hg-gold transition-colors`}
+                  >
+                    {fam}
                   </span>
+                  {count > 0 && (
+                    <span className="text-xs text-hg-text-muted ml-2">
+                      {count}
+                    </span>
+                  )}
                 </label>
               )
             })}
@@ -228,8 +339,18 @@ export default function FilterPanel({ facets: propFacets, canSeePricing }: Filte
       {canSeePricing && (
         <details className="group border-b border-hg-border py-4" open>
           <summary className="flex justify-between items-center cursor-pointer list-none">
-            <h3 className="font-semibold text-[12px] text-hg-text-muted uppercase tracking-widest">ABV %</h3>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-hg-text-muted group-open:rotate-180 transition-transform">
+            <h3 className="font-semibold text-[12px] text-hg-text-muted uppercase tracking-widest">
+              ABV %
+            </h3>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="text-hg-text-muted group-open:rotate-180 transition-transform"
+            >
               <polyline points="6 9 12 15 18 9" />
             </svg>
           </summary>
@@ -237,14 +358,19 @@ export default function FilterPanel({ facets: propFacets, canSeePricing }: Filte
             {ABV_RANGES.map((range) => {
               const isActive = selectedAbv.includes(range.value)
               return (
-                <label key={range.value} className="flex items-center group/item cursor-pointer">
+                <label
+                  key={range.value}
+                  className="flex items-center group/item cursor-pointer"
+                >
                   <input
                     type="checkbox"
                     checked={isActive}
                     onChange={() => toggleArrayParam("abv", range.value)}
                     className={checkboxClass}
                   />
-                  <span className={`text-[14px] ${isActive ? "text-hg-text" : "text-hg-text-secondary"} group-hover/item:text-hg-gold transition-colors`}>
+                  <span
+                    className={`text-[14px] ${isActive ? "text-hg-text" : "text-hg-text-secondary"} group-hover/item:text-hg-gold transition-colors`}
+                  >
                     {range.label}
                   </span>
                 </label>
@@ -256,8 +382,18 @@ export default function FilterPanel({ facets: propFacets, canSeePricing }: Filte
 
       <details className="group border-b border-hg-border py-4" open>
         <summary className="flex justify-between items-center cursor-pointer list-none">
-          <h3 className="font-semibold text-[12px] text-hg-text-muted uppercase tracking-widest">Freshness</h3>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-hg-text-muted group-open:rotate-180 transition-transform">
+          <h3 className="font-semibold text-[12px] text-hg-text-muted uppercase tracking-widest">
+            Freshness
+          </h3>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            className="text-hg-text-muted group-open:rotate-180 transition-transform"
+          >
             <polyline points="6 9 12 15 18 9" />
           </svg>
         </summary>
@@ -265,14 +401,19 @@ export default function FilterPanel({ facets: propFacets, canSeePricing }: Filte
           {FRESHNESS_BANDS.map((band) => {
             const isActive = selectedFreshness.includes(band.value)
             return (
-              <label key={band.value} className="flex items-center group/item cursor-pointer">
+              <label
+                key={band.value}
+                className="flex items-center group/item cursor-pointer"
+              >
                 <input
                   type="checkbox"
                   checked={isActive}
                   onChange={() => toggleArrayParam("freshness", band.value)}
                   className={checkboxClass}
                 />
-                <span className={`text-[14px] ${isActive ? "text-hg-text" : "text-hg-text-secondary"} group-hover/item:text-hg-gold transition-colors`}>
+                <span
+                  className={`text-[14px] ${isActive ? "text-hg-text" : "text-hg-text-secondary"} group-hover/item:text-hg-gold transition-colors`}
+                >
                   {band.label}
                 </span>
               </label>
@@ -283,8 +424,18 @@ export default function FilterPanel({ facets: propFacets, canSeePricing }: Filte
 
       <details className="group border-b border-hg-border py-4" open>
         <summary className="flex justify-between items-center cursor-pointer list-none">
-          <h3 className="font-semibold text-[12px] text-hg-text-muted uppercase tracking-widest">Hops</h3>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-hg-text-muted group-open:rotate-180 transition-transform">
+          <h3 className="font-semibold text-[12px] text-hg-text-muted uppercase tracking-widest">
+            Hops
+          </h3>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            className="text-hg-text-muted group-open:rotate-180 transition-transform"
+          >
             <polyline points="6 9 12 15 18 9" />
           </svg>
         </summary>
@@ -307,31 +458,58 @@ export default function FilterPanel({ facets: propFacets, canSeePricing }: Filte
             {visibleHops.map(([name]) => {
               const isActive = selectedHops.includes(name)
               return (
-                <label key={name} className="flex items-center group/item cursor-pointer">
+                <label
+                  key={name}
+                  className="flex items-center group/item cursor-pointer"
+                >
                   <input
                     type="checkbox"
                     checked={isActive}
                     onChange={() => toggleArrayParam("hops", name)}
                     className={checkboxClass}
                   />
-                  <span className={`text-[14px] flex-1 ${isActive ? "text-hg-text" : "text-hg-text-secondary"} group-hover/item:text-hg-gold transition-colors`}>
+                  <span
+                    className={`text-[14px] flex-1 ${isActive ? "text-hg-text" : "text-hg-text-secondary"} group-hover/item:text-hg-gold transition-colors`}
+                  >
                     {name}
                   </span>
                 </label>
               )
             })}
             {sortedHops.length > INITIAL_SHOW && !hopsExpanded && (
-              <button onClick={() => setHopsExpanded(true)} className="text-[10px] font-semibold text-hg-gold hover:underline flex items-center mt-2 uppercase tracking-widest">
+              <button
+                onClick={() => setHopsExpanded(true)}
+                className="text-[10px] font-semibold text-hg-gold hover:underline flex items-center mt-2 uppercase tracking-widest"
+              >
                 SHOW MORE
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="ml-1">
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="ml-1"
+                >
                   <polyline points="6 9 12 15 18 9" />
                 </svg>
               </button>
             )}
             {hopsExpanded && (
-              <button onClick={() => setHopsExpanded(false)} className="text-[10px] font-semibold text-hg-gold hover:underline flex items-center mt-2 uppercase tracking-widest">
+              <button
+                onClick={() => setHopsExpanded(false)}
+                className="text-[10px] font-semibold text-hg-gold hover:underline flex items-center mt-2 uppercase tracking-widest"
+              >
                 SHOW LESS
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="ml-1">
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="ml-1"
+                >
                   <polyline points="18 15 12 9 6 15" />
                 </svg>
               </button>
@@ -342,8 +520,61 @@ export default function FilterPanel({ facets: propFacets, canSeePricing }: Filte
 
       <details className="group py-4" open>
         <summary className="flex justify-between items-center cursor-pointer list-none">
-          <h3 className="font-semibold text-[12px] text-hg-text-muted uppercase tracking-widest">Special Filters</h3>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-hg-text-muted group-open:rotate-180 transition-transform">
+          <h3 className="font-semibold text-[12px] text-hg-text-muted uppercase tracking-widest">
+            Hop Origin
+          </h3>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            className="text-hg-text-muted group-open:rotate-180 transition-transform"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </summary>
+        <div className="flex flex-wrap gap-2 mt-4">
+          {(["NZ", "AU", "US", "EU"] as const).map((code) => {
+            const label = {
+              NZ: "New Zealand",
+              AU: "Australia",
+              US: "United States",
+              EU: "Europe",
+            }[code]
+            const isActive = selectedHopCountry.includes(code)
+            return (
+              <button
+                key={code}
+                onClick={() => toggleArrayParam("hop_country", code)}
+                className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                  isActive
+                    ? "bg-hg-gold text-hg-on-primary border-hg-gold"
+                    : "border-hg-border text-hg-text-muted hover:text-hg-text hover:border-hg-accent"
+                }`}
+              >
+                {label}
+              </button>
+            )
+          })}
+        </div>
+      </details>
+
+      <details className="group py-4" open>
+        <summary className="flex justify-between items-center cursor-pointer list-none">
+          <h3 className="font-semibold text-[12px] text-hg-text-muted uppercase tracking-widest">
+            Special Filters
+          </h3>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            className="text-hg-text-muted group-open:rotate-180 transition-transform"
+          >
             <polyline points="6 9 12 15 18 9" />
           </svg>
         </summary>
@@ -352,10 +583,14 @@ export default function FilterPanel({ facets: propFacets, canSeePricing }: Filte
             <input
               type="checkbox"
               checked={selectedOnSale}
-              onChange={() => updateParams("on_sale", selectedOnSale ? null : "true")}
+              onChange={() =>
+                updateParams("on_sale", selectedOnSale ? null : "true")
+              }
               className={checkboxClass}
             />
-            <span className={`text-[14px] ${selectedOnSale ? "text-hg-text" : "text-hg-text-secondary"} group-hover/item:text-hg-gold transition-colors`}>
+            <span
+              className={`text-[14px] ${selectedOnSale ? "text-hg-text" : "text-hg-text-secondary"} group-hover/item:text-hg-gold transition-colors`}
+            >
               On Sale
             </span>
           </label>
@@ -366,7 +601,9 @@ export default function FilterPanel({ facets: propFacets, canSeePricing }: Filte
               onChange={() => toggleArrayParam("tags", "anniversary")}
               className={checkboxClass}
             />
-            <span className={`text-[14px] ${selectedTags.includes("anniversary") ? "text-hg-text" : "text-hg-text-secondary"} group-hover/item:text-hg-gold transition-colors`}>
+            <span
+              className={`text-[14px] ${selectedTags.includes("anniversary") ? "text-hg-text" : "text-hg-text-secondary"} group-hover/item:text-hg-gold transition-colors`}
+            >
               Anniversary
             </span>
           </label>
@@ -374,10 +611,14 @@ export default function FilterPanel({ facets: propFacets, canSeePricing }: Filte
             <input
               type="checkbox"
               checked={selectedCollab}
-              onChange={() => updateParams("collab", selectedCollab ? null : "true")}
+              onChange={() =>
+                updateParams("collab", selectedCollab ? null : "true")
+              }
               className={checkboxClass}
             />
-            <span className={`text-[14px] ${selectedCollab ? "text-hg-text" : "text-hg-text-secondary"} group-hover/item:text-hg-gold transition-colors`}>
+            <span
+              className={`text-[14px] ${selectedCollab ? "text-hg-text" : "text-hg-text-secondary"} group-hover/item:text-hg-gold transition-colors`}
+            >
               Collaborations
             </span>
           </label>
@@ -385,10 +626,14 @@ export default function FilterPanel({ facets: propFacets, canSeePricing }: Filte
             <input
               type="checkbox"
               checked={!selectedAvailable}
-              onChange={() => updateParams("available", selectedAvailable ? "false" : null)}
+              onChange={() =>
+                updateParams("available", selectedAvailable ? "false" : null)
+              }
               className={checkboxClass}
             />
-            <span className={`text-[14px] ${!selectedAvailable ? "text-hg-text" : "text-hg-text-secondary"} group-hover/item:text-hg-gold transition-colors`}>
+            <span
+              className={`text-[14px] ${!selectedAvailable ? "text-hg-text" : "text-hg-text-secondary"} group-hover/item:text-hg-gold transition-colors`}
+            >
               Include Sold Out
             </span>
           </label>
@@ -403,27 +648,49 @@ export default function FilterPanel({ facets: propFacets, canSeePricing }: Filte
         onClick={() => setMobileOpen(true)}
         className="md:hidden flex items-center gap-2 px-4 py-2 border border-hg-border rounded-lg text-sm text-hg-text-muted mb-4"
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" />
-          <line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" />
-          <line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" />
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
+          <line x1="4" y1="21" x2="4" y2="14" />
+          <line x1="4" y1="10" x2="4" y2="3" />
+          <line x1="12" y1="21" x2="12" y2="12" />
+          <line x1="12" y1="8" x2="12" y2="3" />
+          <line x1="20" y1="21" x2="20" y2="16" />
+          <line x1="20" y1="12" x2="20" y2="3" />
         </svg>
         Filters
       </button>
 
-      <div className="hidden md:block">
-        {filterContent}
-      </div>
+      <div className="hidden md:block">{filterContent}</div>
 
       {mobileOpen && (
         <div className="fixed inset-0 z-[90] md:hidden">
-          <div className="fixed inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
+          <div
+            className="fixed inset-0 bg-black/50"
+            onClick={() => setMobileOpen(false)}
+          />
           <div className="fixed inset-y-0 left-0 w-[300px] bg-hg-surface-low border-r border-hg-border p-6 overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-hg-text">Filters</h2>
-              <button onClick={() => setMobileOpen(false)} className="text-hg-text-muted">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              <button
+                onClick={() => setMobileOpen(false)}
+                className="text-hg-text-muted"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
               </button>
             </div>

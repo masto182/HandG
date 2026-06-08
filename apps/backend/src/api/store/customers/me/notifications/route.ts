@@ -1,8 +1,9 @@
 import { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import { INBOX_MODULE } from "../../../../../modules/notification"
 
 export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   const customerId = req.auth_context.actor_id
-  const notificationService = req.scope.resolve("notification") as any
+  const notificationService = req.scope.resolve(INBOX_MODULE) as any
 
   const notifications = await notificationService.listNotifications(
     { customer_id: customerId },

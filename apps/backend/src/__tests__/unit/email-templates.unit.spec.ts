@@ -42,7 +42,7 @@ describe("email templates render", () => {
       name: "Cam",
       storeUrl: STORE_URL,
     })
-    expect(out.subject).toMatch(/regarding your application/i)
+    expect(out.subject).toMatch(/your hops & glory application/i)
     expect(out.html).toContain("Cam")
     expect(out.html).not.toContain(PREFS_LINK_HREF)
   })
@@ -84,7 +84,7 @@ describe("email templates render", () => {
       storeUrl: STORE_URL,
     })
     expect(out.subject).toContain("1042")
-    expect(out.subject).toMatch(/payment received/i)
+    expect(out.subject).toMatch(/payment confirmed/i)
   })
 
   it("order_shipped with tracking URL", async () => {
@@ -109,7 +109,7 @@ describe("email templates render", () => {
       locationHours: "Mon-Fri 9-5",
       storeUrl: STORE_URL,
     })
-    expect(out.subject).toMatch(/ready for pickup/i)
+    expect(out.subject).toMatch(/ready to collect/i)
     expect(out.html).toContain("Hillside")
     expect(out.html).toContain("1 Brewery Lane")
   })
@@ -143,7 +143,7 @@ describe("email templates render", () => {
       daysRemaining: 14,
       storeUrl: STORE_URL,
     })
-    expect(out.subject).toMatch(/risk/i)
+    expect(out.subject).toMatch(/up for review/i)
     expect(out.html).toContain("14")
     expect(out.html).toContain(PREFS_LINK_HREF)
   })
@@ -154,7 +154,7 @@ describe("email templates render", () => {
       referralName: "Alex",
       storeUrl: STORE_URL,
     })
-    expect(out.subject).toMatch(/referral placed their first order/i)
+    expect(out.subject).toMatch(/placed their first order/i)
     expect(out.html).toContain("Alex")
     expect(out.html).toContain(PREFS_LINK_HREF)
   })
@@ -183,8 +183,20 @@ describe("email templates render", () => {
     const out = await renderEmail(WishlistOfferApproved as any, {
       name: "Cam",
       items: [
-        { beerName: "Pliny", breweryName: "RR", offerPrice: 5000, currencyCode: "aud", handle: "pliny" },
-        { beerName: "Heady Topper", breweryName: "Alchemist", offerPrice: 4000, currencyCode: "aud", handle: "heady" },
+        {
+          beerName: "Pliny",
+          breweryName: "RR",
+          offerPrice: 5000,
+          currencyCode: "aud",
+          handle: "pliny",
+        },
+        {
+          beerName: "Heady Topper",
+          breweryName: "Alchemist",
+          offerPrice: 4000,
+          currencyCode: "aud",
+          handle: "heady",
+        },
       ],
       expiresInDays: 14,
       storeUrl: STORE_URL,

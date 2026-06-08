@@ -15,13 +15,39 @@ default:
 
 # ---- Bootstrap ---------------------------------------------------------------
 
-# One-shot bootstrap: env + install + infra + migrate + seed
-bootstrap: copy-env install up migrate seed
+# One-shot bootstrap: env + install + infra + migrate + seed + wire publishable key
+bootstrap: copy-env gen-secrets install up migrate seed wire-publishable-key
     @echo ""
     @echo "✔  Bootstrap complete."
     @echo "   Backend:    http://localhost:9000"
-    @echo "   Admin:      http://localhost:9000/admin"
+    @echo "   Admin:      http://localhost:9000/app"
     @echo "   Storefront: http://localhost:8000  (start with: just dev)"
+
+# Replace placeholder JWT_SECRET / COOKIE_SECRET in apps/backend/.env with real values
+gen-secrets:
+    @F={{backend}}/.env; \
+    if grep -q '^JWT_SECRET=replace-me' $F; then \
+      JWT=$(openssl rand -hex 32); \
+      sed -i.bak "s|^JWT_SECRET=.*|JWT_SECRET=$JWT|" $F && rm -f $F.bak; \
+      echo "gen-secrets: JWT_SECRET set"; \
+    else echo "gen-secrets: JWT_SECRET already set, skipping"; fi; \
+    if grep -q '^COOKIE_SECRET=replace-me' $F; then \
+      COOKIE=$(openssl rand -hex 32); \
+      sed -i.bak "s|^COOKIE_SECRET=.*|COOKIE_SECRET=$COOKIE|" $F && rm -f $F.bak; \
+      echo "gen-secrets: COOKIE_SECRET set"; \
+    else echo "gen-secrets: COOKIE_SECRET already set, skipping"; fi
+
+# Pull the seeded publishable API key from Postgres into apps/storefront/.env.local
+wire-publishable-key:
+    @KEY=$(docker compose exec -T postgres psql -U medusa -d medusa -At -c "SELECT token FROM api_key WHERE type='publishable' AND revoked_at IS NULL ORDER BY created_at LIMIT 1;" | tr -d '\r'); \
+    if [ -z "$KEY" ]; then echo "wire-publishable-key: no publishable key found in DB"; exit 1; fi; \
+    F={{storefront}}/.env.local; \
+    if grep -q '^NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=' $F; then \
+      sed -i.bak "s|^NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=.*|NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=$KEY|" $F && rm -f $F.bak; \
+    else \
+      printf "\nNEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=%s\n" "$KEY" >> $F; \
+    fi; \
+    echo "wire-publishable-key: storefront publishable key set"
 
 # Copy .env.example files to .env (no overwrite)
 copy-env:
@@ -68,6 +94,19 @@ migration name:
 seed:
     pnpm --filter {{backend}} exec medusa exec ./src/scripts/seed.ts
 
+# Run the e2e fixture chain (vip-config + beer-styles + hops + e2e products).
+# Not part of `bootstrap` — production stays product-free.
+seed-e2e:
+    pnpm --filter {{backend}} exec medusa exec ./src/scripts/seed-vip-config.ts
+    pnpm --filter {{backend}} exec medusa exec ./src/scripts/seed-beer-styles.ts
+    pnpm --filter {{backend}} exec medusa exec ./src/scripts/seed-hops.ts
+    pnpm --filter {{backend}} exec medusa exec ./src/scripts/seed-e2e-products.ts
+
+# Re-stamp the VIP-window release_at values without touching styles/hops.
+# Useful when fixture timestamps have drifted past their window.
+seed-e2e-refresh-windows:
+    pnpm --filter {{backend}} exec medusa exec ./src/scripts/seed-e2e-products.ts
+
 # Create an admin user
 admin email="admin@example.test" password="ChangeMe123!":
     pnpm --filter {{backend}} exec medusa user -e {{email}} -p {{password}}
@@ -78,6 +117,7 @@ reset-db: nuke up
     just migrate
     just admin
     just seed
+    just wire-publishable-key
 
 # ---- Dev / build / test -----------------------------------------------------
 
@@ -126,6 +166,30 @@ storybook:
 # Build static Storybook
 build-storybook:
     pnpm --filter {{storefront}} build-storybook
+
+# ---- Smoke tests ------------------------------------------------------------
+# Requires a running backend on :9000 + env vars set (see scripts/smoke/helpers.sh).
+# Quickstart: export MEDUSA_PUBLISHABLE_KEY=<key> CUSTOMER_JWT=<token> VIP5_JWT=<token> TEST_PRODUCT_ID=<id>
+
+# Run all smoke scripts
+smoke: smoke-restock smoke-early-access smoke-product-alerts smoke-api-emails
+    @echo "✔  All smoke scripts passed."
+
+# Restock alert: subscribe → detect → cron dispatch → verified
+smoke-restock:
+    bash scripts/smoke/restock-alerts.sh
+
+# Early-access gate: approved → 409, VIP5 → 201, gate lifted → 201
+smoke-early-access:
+    bash scripts/smoke/early-access.sh
+
+# Product alerts: new-drop, wishlist low-stock, wishlist price alert
+smoke-product-alerts:
+    bash scripts/smoke/product-alerts.sh
+
+# API email routes: ready-for-pickup, email-change-request, check-price-alert
+smoke-api-emails:
+    bash scripts/smoke/api-emails.sh
 
 # ---- Quality gates ----------------------------------------------------------
 

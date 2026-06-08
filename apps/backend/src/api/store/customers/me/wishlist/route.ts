@@ -1,6 +1,10 @@
 import { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
-import { addWishlistWorkflow, removeWishlistByProductWorkflow } from "../../../../../workflows/manage-wishlist"
+import {
+  addWishlistWorkflow,
+  removeWishlistByProductWorkflow,
+} from "../../../../../workflows/manage-wishlist"
+import { checkPriceAlertImmediate } from "./check-price-alert"
 
 export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   const customerId = req.auth_context.actor_id
@@ -180,6 +184,10 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
       target_price: target_price ?? null,
       stock_threshold,
     },
+  })
+
+  checkPriceAlertImmediate(req.scope, result).catch((err) => {
+    console.error("[Wishlist] Immediate price check failed:", err)
   })
 
   res.status(201).json({ wishlist_item: result })

@@ -1,14 +1,9 @@
-import {
-  AuthenticatedMedusaRequest,
-  MedusaResponse,
-} from "@medusajs/framework/http"
+// workflow-exempt
+import { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { SITE_CONFIG_MODULE } from "../../../../modules/site-config"
 import type SiteConfigModuleService from "../../../../modules/site-config/service"
 
-export async function GET(
-  req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
-) {
+export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   const svc = req.scope.resolve(SITE_CONFIG_MODULE) as SiteConfigModuleService
   const { key } = req.params
   try {
@@ -19,10 +14,7 @@ export async function GET(
   }
 }
 
-export async function PATCH(
-  req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
-) {
+export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   const svc = req.scope.resolve(SITE_CONFIG_MODULE) as SiteConfigModuleService
   const { key } = req.params
   const body = req.body as { value: unknown }
@@ -40,10 +32,7 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
-) {
+export async function DELETE(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   const svc = req.scope.resolve(SITE_CONFIG_MODULE) as SiteConfigModuleService
   const { key } = req.params
   const actor = (req as any).auth_context?.actor_id ?? null

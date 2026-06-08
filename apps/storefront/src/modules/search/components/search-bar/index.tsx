@@ -50,15 +50,18 @@ export default function SearchBar() {
     }
     setLoading(true)
     try {
-      const data = await sdk.client.fetch<{ hits: SearchHit[]; totalHits?: number }>(
-        `/store/search?q=${encodeURIComponent(q)}&limit=8`,
-        { method: "GET" }
-      )
+      const data = await sdk.client.fetch<{
+        hits: SearchHit[]
+        totalHits?: number
+      }>(`/store/search?q=${encodeURIComponent(q)}&limit=8`, { method: "GET" })
       setResults(data.hits || [])
       if (q.trim().length >= 2) {
         trackGoal("search", {
           q: q.trim().slice(0, 80),
-          resultCount: typeof data.totalHits === "number" ? data.totalHits : (data.hits?.length ?? 0),
+          resultCount:
+            typeof data.totalHits === "number"
+              ? data.totalHits
+              : (data.hits?.length ?? 0),
         })
       }
     } catch {}
@@ -92,32 +95,44 @@ export default function SearchBar() {
       >
         <span className="material-symbols-outlined text-[18px]">search</span>
         <span className="hidden medium:inline text-sm">Search</span>
-        <kbd className="hidden medium:inline text-[10px] text-on-surface-variant/60 border border-outline-variant rounded px-1.5 py-0.5 ml-2">⌘K</kbd>
+        <kbd className="hidden medium:inline text-[10px] text-on-surface-variant/60 border border-outline-variant rounded px-1.5 py-0.5 ml-2">
+          ⌘K
+        </kbd>
       </button>
     )
   }
 
   return (
     <div className="fixed inset-0 z-[100] flex items-start justify-center pt-[15vh]">
-      <div className="fixed inset-0 bg-black/60" onClick={() => setOpen(false)} />
+      <div
+        className="fixed inset-0 bg-black/60"
+        onClick={() => setOpen(false)}
+      />
       <div className="relative w-full max-w-lg mx-4 bg-surface-container-high border border-outline-variant rounded-2xl overflow-hidden shadow-2xl">
         <div className="flex items-center gap-3 px-4 py-3 border-b border-outline-variant">
-          <span className="material-symbols-outlined text-[18px] text-on-surface-variant flex-shrink-0">search</span>
+          <span className="material-symbols-outlined text-[18px] text-on-surface-variant flex-shrink-0">
+            search
+          </span>
           <input
             ref={inputRef}
             type="text"
             value={query}
             onChange={(e) => handleInput(e.target.value)}
             placeholder="Search collection..."
+            aria-label="Search products"
             className="flex-1 bg-transparent text-hg-text text-sm outline-none placeholder:text-hg-text-secondary/50"
           />
-          <kbd className="text-[10px] text-hg-text-secondary border border-hg-border rounded px-1.5 py-0.5">ESC</kbd>
+          <kbd className="text-[10px] text-hg-text-secondary border border-hg-border rounded px-1.5 py-0.5">
+            ESC
+          </kbd>
         </div>
 
         {(results.length > 0 || loading) && (
           <div className="max-h-[50vh] overflow-y-auto">
             {loading && results.length === 0 && (
-              <div className="px-4 py-6 text-center text-sm text-hg-text-secondary">Searching...</div>
+              <div className="px-4 py-6 text-center text-sm text-hg-text-secondary">
+                Searching...
+              </div>
             )}
             {results.map((hit, i) => (
               <button
@@ -127,9 +142,21 @@ export default function SearchBar() {
               >
                 <div className="w-10 h-10 rounded-lg overflow-hidden bg-hg-bg border border-hg-border/50 flex-shrink-0 flex items-center justify-center">
                   {hit.thumbnail ? (
-                    <img src={hit.thumbnail} alt="" className="w-full h-full object-cover" />
+                    <img
+                      src={hit.thumbnail}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-hg-text-secondary/30">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      className="text-hg-text-secondary/30"
+                    >
                       <rect x="3" y="3" width="18" height="18" rx="2" />
                       <circle cx="8.5" cy="8.5" r="1.5" />
                       <path d="M21 15l-5-5L5 21" />
@@ -137,14 +164,30 @@ export default function SearchBar() {
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-hg-text truncate">{hit.title}</p>
+                  <p className="text-sm font-medium text-hg-text truncate">
+                    {hit.title}
+                  </p>
                   <p className="text-xs text-hg-text-secondary">
                     {hit.brewery && <span>{hit.brewery}</span>}
-                    {hit.brewery && hit.style && <span className="mx-1.5 opacity-40">·</span>}
-                    {hit.style && <span className="text-hg-text-secondary/70">{hit.style}</span>}
+                    {hit.brewery && hit.style && (
+                      <span className="mx-1.5 opacity-40">·</span>
+                    )}
+                    {hit.style && (
+                      <span className="text-hg-text-secondary/70">
+                        {hit.style}
+                      </span>
+                    )}
                   </p>
                 </div>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-hg-text-secondary/30 flex-shrink-0">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="text-hg-text-secondary/30 flex-shrink-0"
+                >
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
               </button>

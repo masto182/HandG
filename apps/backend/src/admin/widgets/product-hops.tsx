@@ -21,13 +21,28 @@ const ProductHopsWidget = ({ data }: { data: any }) => {
   const [saving, setSaving] = useState(false)
   const [pendingAdd, setPendingAdd] = useState<Set<string>>(new Set())
   const [pendingRemove, setPendingRemove] = useState<Set<string>>(new Set())
+  const [hopProvenance, setHopProvenance] = useState("")
+  const [provenanceDirty, setProvenanceDirty] = useState(false)
+  const [savingProvenance, setSavingProvenance] = useState(false)
 
   const fetchLinkedHops = async () => {
     try {
-      const data = await sdk.client.fetch<{ hops: Hop[] }>(`/admin/products/${product.id}/hops`, { method: "GET" })
+      const data = await sdk.client.fetch<{ hops: Hop[] }>(`/admin/products/${product.id}/hops`, {
+        method: "GET",
+      })
       setLinkedHops(data.hops || [])
     } catch {}
     setLoading(false)
+  }
+
+  const fetchBeerDetail = async () => {
+    try {
+      const d = await sdk.client.fetch<{ beer_detail: any }>(
+        `/admin/products/${product.id}/beer-detail`,
+        { method: "GET" }
+      )
+      setHopProvenance(d.beer_detail?.hop_provenance || "")
+    } catch {}
   }
 
   const fetchAllHops = async () => {
@@ -40,6 +55,7 @@ const ProductHopsWidget = ({ data }: { data: any }) => {
   useEffect(() => {
     fetchLinkedHops()
     fetchAllHops()
+    fetchBeerDetail()
   }, [product.id])
 
   const toggleHop = (hop: Hop) => {
@@ -49,13 +65,21 @@ const ProductHopsWidget = ({ data }: { data: any }) => {
 
     if (isCurrentlyLinked) {
       if (isInPendingRemove) {
-        setPendingRemove((prev) => { const next = new Set(prev); next.delete(hop.id); return next })
+        setPendingRemove((prev) => {
+          const next = new Set(prev)
+          next.delete(hop.id)
+          return next
+        })
       } else {
         setPendingRemove((prev) => new Set(prev).add(hop.id))
       }
     } else {
       if (isInPendingAdd) {
-        setPendingAdd((prev) => { const next = new Set(prev); next.delete(hop.id); return next })
+        setPendingAdd((prev) => {
+          const next = new Set(prev)
+          next.delete(hop.id)
+          return next
+        })
       } else {
         setPendingAdd((prev) => new Set(prev).add(hop.id))
       }
@@ -91,6 +115,20 @@ const ProductHopsWidget = ({ data }: { data: any }) => {
       await fetchLinkedHops()
     } catch {}
     setSaving(false)
+  }
+
+  const saveProvenance = async () => {
+    setSavingProvenance(true)
+    try {
+      await sdk.client.fetch(`/admin/products/${product.id}/beer-detail`, {
+        method: "POST",
+        body: { hop_provenance: hopProvenance },
+      })
+      setProvenanceDirty(false)
+    } catch {
+      // silent fail
+    }
+    setSavingProvenance(false)
   }
 
   const discardChanges = () => {
@@ -159,8 +197,8 @@ const ProductHopsWidget = ({ data }: { data: any }) => {
                   isPendingNew
                     ? "bg-ui-tag-green-bg border-ui-tag-green-border text-ui-tag-green-text"
                     : isBeingRemoved
-                    ? "bg-ui-tag-red-bg border-ui-tag-red-border text-ui-tag-red-text line-through opacity-60"
-                    : "bg-ui-bg-base-hover border-ui-border-base text-ui-fg-base"
+                      ? "bg-ui-tag-red-bg border-ui-tag-red-border text-ui-tag-red-text line-through opacity-60"
+                      : "bg-ui-bg-base-hover border-ui-border-base text-ui-fg-base"
                 }`}
               >
                 {hop.name}
@@ -195,18 +233,30 @@ const ProductHopsWidget = ({ data }: { data: any }) => {
                     key={hop.id}
                     onClick={() => toggleHop(hop)}
                     className={`w-full text-left px-3 py-2 rounded-md flex items-center gap-3 text-sm transition-colors ${
-                      selected ? "bg-ui-bg-interactive text-ui-fg-on-color" : "hover:bg-ui-bg-base-hover"
+                      selected
+                        ? "bg-ui-bg-interactive text-ui-fg-on-color"
+                        : "hover:bg-ui-bg-base-hover"
                     }`}
                   >
-                    <span className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
-                      selected ? "bg-ui-fg-interactive border-ui-fg-interactive" : "border-ui-border-base"
-                    }`}>
+                    <span
+                      className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
+                        selected
+                          ? "bg-ui-fg-interactive border-ui-fg-interactive"
+                          : "border-ui-border-base"
+                      }`}
+                    >
                       {selected && <span className="text-white text-[10px] font-bold">✓</span>}
                     </span>
                     <div className="flex-1">
-                      <span className={selected ? "font-medium" : "text-ui-fg-base font-medium"}>{hop.name}</span>
+                      <span className={selected ? "font-medium" : "text-ui-fg-base font-medium"}>
+                        {hop.name}
+                      </span>
                       {hop.origin && (
-                        <span className={`ml-2 text-xs ${selected ? "opacity-80" : "text-ui-fg-subtle"}`}>{hop.origin}</span>
+                        <span
+                          className={`ml-2 text-xs ${selected ? "opacity-80" : "text-ui-fg-subtle"}`}
+                        >
+                          {hop.origin}
+                        </span>
                       )}
                     </div>
                   </button>
@@ -216,6 +266,36 @@ const ProductHopsWidget = ({ data }: { data: any }) => {
           </div>
         </div>
       )}
+
+      {/* Hop display text */}
+      <div className="mt-4 border-t border-ui-border-base pt-4 space-y-2">
+        <div>
+          <p className="text-xs font-medium text-ui-fg-base mb-0.5">Hop display text</p>
+          <p className="text-xs text-ui-fg-muted mb-2">
+            Paste the full hop string from the brewery&apos;s website or can label. Shown verbatim
+            on the product page for members.
+          </p>
+        </div>
+        <textarea
+          rows={2}
+          value={hopProvenance}
+          onChange={(e) => {
+            setHopProvenance(e.target.value)
+            setProvenanceDirty(true)
+          }}
+          placeholder="Eggers Riwaka, Freestyle Nelson Sauvin SubZero Hop Kief, Citra Incognito"
+          className="w-full text-sm border border-ui-border-base rounded-md px-3 py-2 bg-ui-bg-field text-ui-fg-base placeholder:text-ui-fg-muted resize-none focus:outline-none focus:ring-2 focus:ring-ui-border-interactive"
+        />
+        {provenanceDirty && (
+          <button
+            onClick={saveProvenance}
+            disabled={savingProvenance}
+            className="px-3 py-1.5 text-xs font-medium rounded-md bg-ui-button-inverted text-ui-fg-on-inverted hover:bg-ui-button-inverted-hover disabled:opacity-50 transition-colors"
+          >
+            {savingProvenance ? "Saving..." : "Save display text"}
+          </button>
+        )}
+      </div>
     </div>
   )
 }

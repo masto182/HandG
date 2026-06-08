@@ -1,0 +1,32 @@
+# Staging reverse proxy — single domain, no www redirect, no mirror block.
+# Used on the staging VM via docker-compose.staging.yml override.
+# Set PRIMARY_DOMAIN=staging.hopsandglory.au in .env.staging.
+
+(security_headers) {
+	header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+	header X-Content-Type-Options "nosniff"
+	header X-Frame-Options "DENY"
+	header Referrer-Policy "strict-origin-when-cross-origin"
+	header Permissions-Policy "camera=(), microphone=(), geolocation=()"
+	header -Server
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+	import security_headers
+	header X-Robots-Tag "noindex, nofollow"
+
+	@backendHealth path /health /health/live /health/ready
+	handle @backendHealth {
+		reverse_proxy backend:9000
+	}
+
+	@backendApi path /store* /admin* /auth* /webhooks*
+	handle @backendApi {
+		reverse_proxy backend:9000
+	}
+
+	handle {
+		reverse_proxy storefront:3000
+	}
+}

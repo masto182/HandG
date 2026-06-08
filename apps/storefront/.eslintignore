@@ -1,0 +1,4 @@
+# next.config.js is CommonJS — require() is correct and necessary here.
+next.config.js
+check-env-variables.js
+tailwind.config.js

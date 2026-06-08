@@ -12,6 +12,8 @@ export default function ApplyForm() {
 
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [whyJoinLength, setWhyJoinLength] = useState(0)
+  const WHY_JOIN_MAX = 500
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -41,13 +43,27 @@ export default function ApplyForm() {
       return
     }
 
+    // Validate referral code format if provided (8-char alphanumeric)
+    if (
+      profile.referral_code &&
+      !/^[A-Z0-9]{8}$/i.test(profile.referral_code.trim())
+    ) {
+      setError("Referral code must be an 8-character code (e.g. A1B2C3D4).")
+      setLoading(false)
+      return
+    }
+
     try {
       // Step 1: create the auth identity (Medusa's emailpass register).
       // This returns a registration JWT scoped to the new identity.
-      const registrationToken = (await sdk.auth.register("customer", "emailpass", {
-        email,
-        password,
-      })) as string
+      const registrationToken = (await sdk.auth.register(
+        "customer",
+        "emailpass",
+        {
+          email,
+          password,
+        },
+      )) as string
 
       // Step 2: submit the applicant profile with the registration JWT
       await sdk.client.fetch("/store/customers/register", {
@@ -71,19 +87,34 @@ export default function ApplyForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-y-4 w-full max-w-md">
+    <form
+      onSubmit={handleSubmit}
+      className="flex flex-col gap-y-4 w-full max-w-md"
+    >
       <div className="grid grid-cols-2 gap-4">
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-hg-text-secondary">First name</label>
+          <label
+            htmlFor="apply-first-name"
+            className="text-xs text-hg-text-secondary"
+          >
+            First name
+          </label>
           <input
+            id="apply-first-name"
             name="first_name"
             required
             className="bg-hg-surface border border-hg-border rounded-lg px-4 py-2.5 text-sm text-hg-text focus:border-hg-gold focus:outline-none"
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-hg-text-secondary">Last name</label>
+          <label
+            htmlFor="apply-last-name"
+            className="text-xs text-hg-text-secondary"
+          >
+            Last name
+          </label>
           <input
+            id="apply-last-name"
             name="last_name"
             required
             className="bg-hg-surface border border-hg-border rounded-lg px-4 py-2.5 text-sm text-hg-text focus:border-hg-gold focus:outline-none"
@@ -92,8 +123,11 @@ export default function ApplyForm() {
       </div>
 
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-hg-text-secondary">Email</label>
+        <label htmlFor="apply-email" className="text-xs text-hg-text-secondary">
+          Email
+        </label>
         <input
+          id="apply-email"
           name="email"
           type="email"
           required
@@ -102,8 +136,14 @@ export default function ApplyForm() {
       </div>
 
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-hg-text-secondary">Password</label>
+        <label
+          htmlFor="apply-password"
+          className="text-xs text-hg-text-secondary"
+        >
+          Password
+        </label>
         <input
+          id="apply-password"
           name="password"
           type="password"
           required
@@ -113,30 +153,54 @@ export default function ApplyForm() {
       </div>
 
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-hg-text-secondary">Date of birth</label>
+        <label htmlFor="apply-dob" className="text-xs text-hg-text-secondary">
+          Date of birth
+        </label>
         <input
+          id="apply-dob"
           name="date_of_birth"
           type="date"
           required
           className="bg-hg-surface border border-hg-border rounded-lg px-4 py-2.5 text-sm text-hg-text focus:border-hg-gold focus:outline-none"
         />
-        <span className="text-xs text-hg-text-secondary/60">You must be 18 or older</span>
+        <span className="text-xs text-hg-text-secondary/60">
+          You must be 18 or older
+        </span>
       </div>
 
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-hg-text-secondary">Why do you want to join?</label>
+        <label
+          htmlFor="apply-why-join"
+          className="text-xs text-hg-text-secondary"
+        >
+          Why do you want to join?
+        </label>
         <textarea
+          id="apply-why-join"
           name="why_join"
           required
           rows={3}
+          maxLength={WHY_JOIN_MAX}
           placeholder="Tell us about your interest in collecting..."
           className="bg-hg-surface border border-hg-border rounded-lg px-4 py-2.5 text-sm text-hg-text focus:border-hg-gold focus:outline-none resize-none"
+          onChange={(e) => setWhyJoinLength(e.target.value.length)}
         />
+        <span
+          className={`text-xs text-right ${whyJoinLength > WHY_JOIN_MAX * 0.9 ? "text-hg-gold" : "text-hg-text-secondary/60"}`}
+        >
+          {whyJoinLength}/{WHY_JOIN_MAX}
+        </span>
       </div>
 
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-hg-text-secondary">Favourite producer or source</label>
+        <label
+          htmlFor="apply-favourite-brewery"
+          className="text-xs text-hg-text-secondary"
+        >
+          Favourite producer or source
+        </label>
         <input
+          id="apply-favourite-brewery"
           name="favourite_brewery"
           required
           placeholder="Your go-to sources"
@@ -145,16 +209,20 @@ export default function ApplyForm() {
       </div>
 
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-hg-text-secondary">Referral code (optional)</label>
+        <label
+          htmlFor="apply-referral-code"
+          className="text-xs text-hg-text-secondary"
+        >
+          Referral code (optional)
+        </label>
         <input
+          id="apply-referral-code"
           name="referral_code"
           defaultValue={referralFromUrl}
           placeholder="Enter a member referral code"
           className="bg-hg-surface border border-hg-border rounded-lg px-4 py-2.5 text-sm text-hg-text focus:border-hg-gold focus:outline-none"
         />
       </div>
-
-
 
       {error && (
         <div className="text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-2">

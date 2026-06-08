@@ -38,6 +38,16 @@ type InjectedDependencies = {
 type ProviderOptions = {
   api_key?: string
   api_base?: string
+  // Config that the scoped container can't read via SiteConfig in production;
+  // pass through medusa-config.ts provider options instead.
+  auspost_enabled?: boolean
+  shipping_from_postcode?: string
+  auspost_extra_cover_threshold_aud?: number
+  auspost_sod_trigger_aud?: number
+  auspost_discount_pct_standard?: number
+  auspost_discount_pct_express?: number
+  auspost_services_enabled?: string[]
+  shipping_default_item_weight_g?: number
 }
 
 type SiteConfigLike = {
@@ -80,6 +90,14 @@ class AusPostProviderService extends AbstractFulfillmentProviderService {
   // ---------- helpers ----------
 
   private async siteConfigGet<T>(key: string, fallback: T): Promise<T> {
+    // Resolution order (mirrors shipengine): provider options from
+    // medusa-config.ts first (the fulfillment provider's scoped container does
+    // NOT expose custom modules in production, so SiteConfig DI is best-effort),
+    // then SiteConfig service, then static fallback.
+    const fromOptions = (this.options_ as Record<string, unknown>)[key]
+    if (fromOptions !== undefined && fromOptions !== null) {
+      return fromOptions as T
+    }
     if (!this.container_) return fallback
     try {
       const svc = this.container_.resolve("siteConfig") as SiteConfigLike
@@ -104,35 +122,40 @@ class AusPostProviderService extends AbstractFulfillmentProviderService {
   }
 
   private async resolveServicesEnabled(): Promise<PacServiceCode[]> {
-    const raw = await this.siteConfigGet<string[]>(
-      "auspost_services_enabled",
-      ["AUS_PARCEL_REGULAR", "AUS_PARCEL_EXPRESS"],
-    )
-    return raw.filter((c): c is PacServiceCode =>
-      c === "AUS_PARCEL_REGULAR" || c === "AUS_PARCEL_EXPRESS",
+    const raw = await this.siteConfigGet<string[]>("auspost_services_enabled", [
+      "AUS_PARCEL_REGULAR",
+      "AUS_PARCEL_EXPRESS",
+    ])
+    return raw.filter(
+      (c): c is PacServiceCode => c === "AUS_PARCEL_REGULAR" || c === "AUS_PARCEL_EXPRESS"
     )
   }
 
   private buildPackedBoxes(
     items: CalculateShippingOptionPriceDTO["context"]["items"] | undefined,
-    defaultWeightG: number,
+    defaultWeightG: number
   ): PackedBox[] {
-    const packable: PackableItem[] = ((items ?? []) as Array<{
-      quantity: number
-      variant?: {
-        weight?: number | null
-        options?: Array<{ value?: string; option?: { title?: string } }>
-      } | null
-      product?: { weight?: number | null } | null
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      metadata?: any
-    }>).map((it) => {
+    const packable: PackableItem[] = (
+      (items ?? []) as Array<{
+        quantity: number
+        variant?: {
+          weight?: number | null
+          options?: Array<{ value?: string; option?: { title?: string } }>
+        } | null
+        product?: { weight?: number | null } | null
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        metadata?: any
+      }>
+    ).map((it) => {
       const formatOpt = (it.variant?.options ?? []).find(
-        (o) => (o?.option?.title ?? "").toLowerCase() === "format",
+        (o) => (o?.option?.title ?? "").toLowerCase() === "format"
       )?.value
       const containerType = resolveContainerType(formatOpt ?? null)
       const weight =
-        it.variant?.weight ?? it.product?.weight ?? CONTAINER_WEIGHTS[containerType] ?? defaultWeightG
+        it.variant?.weight ??
+        it.product?.weight ??
+        CONTAINER_WEIGHTS[containerType] ??
+        defaultWeightG
       return {
         quantity: typeof it.quantity === "number" ? it.quantity : Number(it.quantity ?? 1),
         weightG: weight,
@@ -159,13 +182,13 @@ class AusPostProviderService extends AbstractFulfillmentProviderService {
   async validateFulfillmentData(
     _optionData: Record<string, unknown>,
     data: Record<string, unknown>,
-    _context: unknown,
+    _context: unknown
   ): Promise<Record<string, unknown>> {
     const code = data?.service_code as string | undefined
     if (!code || (code !== "AUS_PARCEL_REGULAR" && code !== "AUS_PARCEL_EXPRESS")) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "AusPost shipping method requires `service_code` of AUS_PARCEL_REGULAR or AUS_PARCEL_EXPRESS.",
+        "AusPost shipping method requires `service_code` of AUS_PARCEL_REGULAR or AUS_PARCEL_EXPRESS."
       )
     }
     return data
@@ -184,7 +207,7 @@ class AusPostProviderService extends AbstractFulfillmentProviderService {
   async calculatePrice(
     _optionData: CalculateShippingOptionPriceDTO["optionData"],
     data: CalculateShippingOptionPriceDTO["data"],
-    context: CalculateShippingOptionPriceDTO["context"],
+    context: CalculateShippingOptionPriceDTO["context"]
   ): Promise<CalculatedShippingOptionPrice> {
     // Cents -> dollars at the Medusa boundary (storefront still sends/displays cents).
     const toMajor = (cents: number) => cents / 100
@@ -200,45 +223,62 @@ class AusPostProviderService extends AbstractFulfillmentProviderService {
     const country = (context.shipping_address.country_code ?? "").toLowerCase()
     if (country !== "au") {
       // PAC is AU-domestic only.
-      return { calculated_amount: toMajor(cachedAmount ?? 0), is_calculated_price_tax_inclusive: false }
+      return {
+        calculated_amount: toMajor(cachedAmount ?? 0),
+        is_calculated_price_tax_inclusive: false,
+      }
     }
 
     const enabled = await this.siteConfigGet<boolean>("auspost_enabled", false)
     if (!enabled) {
-      return { calculated_amount: toMajor(cachedAmount ?? 0), is_calculated_price_tax_inclusive: false }
+      return {
+        calculated_amount: toMajor(cachedAmount ?? 0),
+        is_calculated_price_tax_inclusive: false,
+      }
     }
 
     const fromPostcode = await this.resolveFromPostcode()
     const toPostcode = (context.shipping_address.postal_code ?? "").trim()
     if (!toPostcode || !/^\d{4}$/.test(toPostcode)) {
-      return { calculated_amount: toMajor(cachedAmount ?? 0), is_calculated_price_tax_inclusive: false }
+      return {
+        calculated_amount: toMajor(cachedAmount ?? 0),
+        is_calculated_price_tax_inclusive: false,
+      }
     }
 
     const defaultWeightG = await this.siteConfigGet<number>("shipping_default_item_weight_g", 750)
     const packedBoxes = this.buildPackedBoxes(context.items, defaultWeightG)
     if (!packedBoxes.length) {
-      return { calculated_amount: toMajor(cachedAmount ?? 0), is_calculated_price_tax_inclusive: false }
+      return {
+        calculated_amount: toMajor(cachedAmount ?? 0),
+        is_calculated_price_tax_inclusive: false,
+      }
     }
 
     const services = await this.resolveServicesEnabled()
     const requestedService =
       (data?.service_code as PacServiceCode | undefined) ?? services[0] ?? "AUS_PARCEL_REGULAR"
     if (!services.includes(requestedService)) {
-      return { calculated_amount: toMajor(cachedAmount ?? 0), is_calculated_price_tax_inclusive: false }
+      return {
+        calculated_amount: toMajor(cachedAmount ?? 0),
+        is_calculated_price_tax_inclusive: false,
+      }
     }
 
     const opts = await this.resolveRateOptions()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const cartSubtotalCents = ((context as any).subtotal ?? (context as any).item_total ?? 0) as number
-    const cartSubtotalAud = Math.max(0, cartSubtotalCents / 100)
+    const cartSubtotalAud = Math.max(
+      0,
+      ((context as any).subtotal ?? (context as any).item_total ?? 0) as number
+    )
     // Customer-driven signature opt-in: storefront may set data.force_sod = true
     // (or pass a require_signature flag through the rates route which threads
     // it onto the calculate context). Either way, force SOD on regardless of
     // subtotal threshold when the flag is true.
     const forceSod =
-      (data?.force_sod === true) ||
+      data?.force_sod === true ||
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ((context as any)?.require_signature === true)
+      (context as any)?.require_signature === true
 
     let quote: ShipmentQuote
     try {
@@ -254,17 +294,23 @@ class AusPostProviderService extends AbstractFulfillmentProviderService {
       })
     } catch (err) {
       this.logger_.warn(`[auspost] calculatePrice failed: ${(err as Error).message}`)
-      return { calculated_amount: toMajor(cachedAmount ?? 0), is_calculated_price_tax_inclusive: false }
+      return {
+        calculated_amount: toMajor(cachedAmount ?? 0),
+        is_calculated_price_tax_inclusive: false,
+      }
     }
 
-    return { calculated_amount: toMajor(quote.customer_total_cents), is_calculated_price_tax_inclusive: false }
+    return {
+      calculated_amount: toMajor(quote.customer_total_cents),
+      is_calculated_price_tax_inclusive: false,
+    }
   }
 
   async createFulfillment(
     data: Record<string, unknown>,
     items: Partial<Omit<FulfillmentItemDTO, "fulfillment">>[],
     order: Partial<FulfillmentOrderDTO> | undefined,
-    fulfillment: Partial<Omit<FulfillmentDTO, "provider_id" | "data" | "items">>,
+    fulfillment: Partial<Omit<FulfillmentDTO, "provider_id" | "data" | "items">>
   ): Promise<CreateFulfillmentResult> {
     // Heat-hold gate (parity with shipengine, even though AusPost is manual)
     const heatHoldEnabled = await this.siteConfigGet<boolean>("heat_hold_enabled", false)
@@ -275,7 +321,7 @@ class AusPostProviderService extends AbstractFulfillmentProviderService {
       throw new MedusaError(
         MedusaError.Types.NOT_ALLOWED,
         "Heat hold is active. Set order.metadata.heat_hold_override = true to dispatch this order.",
-        HEAT_HOLD_BLOCKED_CODE,
+        HEAT_HOLD_BLOCKED_CODE
       )
     }
 
@@ -285,12 +331,12 @@ class AusPostProviderService extends AbstractFulfillmentProviderService {
     const defaultWeightG = await this.siteConfigGet<number>("shipping_default_item_weight_g", 750)
     const packedBoxes = this.buildPackedBoxes(
       items as unknown as CalculateShippingOptionPriceDTO["context"]["items"],
-      defaultWeightG,
+      defaultWeightG
     )
 
     return {
       data: {
-        ...(((fulfillment as { data?: Record<string, unknown> }).data) ?? {}),
+        ...((fulfillment as { data?: Record<string, unknown> }).data ?? {}),
         manual_lodgement: true,
         provider: "auspost",
         service_code: serviceCode,
@@ -318,7 +364,9 @@ class AusPostProviderService extends AbstractFulfillmentProviderService {
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await
-  async createReturnFulfillment(_fromData: Record<string, unknown>): Promise<CreateFulfillmentResult> {
+  async createReturnFulfillment(
+    _fromData: Record<string, unknown>
+  ): Promise<CreateFulfillmentResult> {
     return { data: {}, labels: [] }
   }
 
@@ -338,7 +386,10 @@ class AusPostProviderService extends AbstractFulfillmentProviderService {
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await
-  async retrieveDocuments(_fulfillmentData: Record<string, unknown>, _documentType: string): Promise<void> {
+  async retrieveDocuments(
+    _fulfillmentData: Record<string, unknown>,
+    _documentType: string
+  ): Promise<void> {
     return
   }
 }

@@ -1,9 +1,36 @@
 import { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createBreweryWorkflow } from "../../../workflows/manage-brewery"
 
 export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
-  const breweryService = req.scope.resolve("brewery") as any
-  const breweries = await breweryService.listBreweries({})
+  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
+
+  const { data } = await query.graph({
+    entity: "brewery",
+    fields: [
+      "id",
+      "name",
+      "slug",
+      "description",
+      "location",
+      "logo_url",
+      "hero_image_url",
+      "website_url",
+      "untappd_url",
+      "facebook_url",
+      "instagram_url",
+      "is_active",
+      "products.id",
+    ],
+  })
+
+  const breweries = (data as any[])
+    .map(({ products, ...b }) => ({
+      ...b,
+      product_count: (products ?? []).length,
+    }))
+    .sort((a, b) => (a.name || "").localeCompare(b.name || ""))
+
   res.json({ breweries })
 }
 

@@ -6,10 +6,17 @@ import {
 } from "../../modules/notification-preference/categories"
 
 describe("notification-preference categories", () => {
-  it("exposes exactly 7 categories in display order", () => {
-    expect(NOTIFICATION_CATEGORIES).toHaveLength(7)
+  it("exposes exactly 10 categories in display order", () => {
+    expect(NOTIFICATION_CATEGORIES).toHaveLength(10)
     const orders = NOTIFICATION_CATEGORIES.map((c) => c.order)
-    expect(orders).toEqual([0, 1, 2, 3, 4, 5, 6])
+    expect(orders).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+  })
+
+  it("includes the new-drop and hop alert marketing categories", () => {
+    expect(isKnownCategory("new_drops")).toBe(true)
+    expect(isKnownCategory("hop_alerts")).toBe(true)
+    expect(isTransactional("new_drops")).toBe(false)
+    expect(isTransactional("hop_alerts")).toBe(false)
   })
 
   it("classifies applications + orders + account as transactional only", () => {
@@ -51,11 +58,7 @@ describe("notification-preference service (transactional guard)", () => {
     // Re-implement setPreference with the same logic the real service uses,
     // backed by our jest.fn stubs. This validates the *intended* behaviour
     // without coupling to MikroORM internals.
-    svc.setPreference = async (
-      customerId: string,
-      category: string,
-      enabled: boolean
-    ) => {
+    svc.setPreference = async (customerId: string, category: string, enabled: boolean) => {
       if (!isKnownCategory(category)) {
         return {
           updated: false,
@@ -123,9 +126,7 @@ describe("notification-preference service (transactional guard)", () => {
     })
 
     const svcUpdate = makeService()
-    svcUpdate.listNotificationPreferences = jest.fn(async () => [
-      { id: "pref_existing" },
-    ])
+    svcUpdate.listNotificationPreferences = jest.fn(async () => [{ id: "pref_existing" }])
     await svcUpdate.setPreference("cust_1", "restock_alerts", false)
     expect(svcUpdate.updateNotificationPreferences).toHaveBeenCalledWith({
       selector: { id: "pref_existing" },
