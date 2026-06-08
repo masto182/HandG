@@ -63,37 +63,38 @@ medusaIntegrationTestRunner({
 
         const email = "hops-test@uat.dev"
         const password = "HopsTest123!"
-        const [existingCust] = await customerModule.listCustomers({ email })
-        if (existingCust) {
-          customerId = existingCust.id
-        } else {
-          const cust = await customerModule.createCustomers({
-            email,
-            first_name: "Hops",
-            last_name: "Tester",
-          })
-          customerId = cust.id
-        }
 
-        // Register + login to get JWT, then link auth identity to customer
+        // Use the full HTTP registration flow so auth identity is linked to customer
+        let registrationToken = ""
         try {
-          await api.post("/auth/customer/emailpass/register", { email, password })
+          const regRes = await api.post("/auth/customer/emailpass/register", { email, password })
+          registrationToken = regRes.data.token ?? ""
         } catch {}
-        // Link the auth identity to the customer so JWT resolves correctly
         try {
-          const [identity] = await authModule.listAuthIdentities({ provider: "emailpass" })
-          if (identity) {
-            await authModule.updateAuthIdentities([
-              {
-                id: identity.id,
-                app_metadata: {
-                  ...((identity as any).app_metadata ?? {}),
-                  customer_id: customerId,
-                },
+          const regCustomerRes = await api.post(
+            "/store/customers/register",
+            {
+              email,
+              first_name: "Hops",
+              last_name: "Tester",
+              date_of_birth: "1990-01-01",
+              why_join: "Integration test",
+              favourite_brewery: "Test Brewery",
+            },
+            {
+              headers: {
+                "x-publishable-api-key": publishableKey,
+                ...(registrationToken ? { authorization: `Bearer ${registrationToken}` } : {}),
               },
-            ])
-          }
+            }
+          )
+          customerId = regCustomerRes.data.customer?.id ?? ""
         } catch {}
+        // Fallback: look up customer if already registered
+        if (!customerId) {
+          const [existing] = await customerModule.listCustomers({ email })
+          if (existing) customerId = existing.id
+        }
         const authRes = await api.post("/auth/customer/emailpass", { email, password })
         customerJwt = authRes.data.token
       })
