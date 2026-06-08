@@ -443,7 +443,7 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
         { title: row.name },
         {
           select: ["id", "title", "status", "thumbnail", "metadata"],
-          relations: ["variants", "variants.prices", "images"],
+          relations: ["variants", "images"],
         }
       )
       const existing = existingProducts.find(
