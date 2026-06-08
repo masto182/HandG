@@ -11,7 +11,7 @@ medusaIntegrationTestRunner({
       const attackerId = "cust_notif_attacker_1"
 
       async function makeNotification(container: any, customerId: string) {
-        const svc = container.resolve("notification") as any
+        const svc = container.resolve("inbox") as any
         const [n] = await svc.createNotifications([
           {
             customer_id: customerId,
@@ -25,7 +25,7 @@ medusaIntegrationTestRunner({
 
       it("marks the OWNER's notification read (validates {id, read} signature)", async () => {
         const container = getContainer()
-        const svc = container.resolve("notification") as any
+        const svc = container.resolve("inbox") as any
         const n = await makeNotification(container, ownerId)
         expect(n.read).toBe(false)
 
@@ -39,7 +39,7 @@ medusaIntegrationTestRunner({
 
       it("rejects marking ANOTHER customer's notification read (IDOR closed)", async () => {
         const container = getContainer()
-        const svc = container.resolve("notification") as any
+        const svc = container.resolve("inbox") as any
         const n = await makeNotification(container, ownerId)
 
         await expect(

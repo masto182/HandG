@@ -41,11 +41,14 @@ medusaIntegrationTestRunner({
         if (!pg) await customerModule.createCustomerGroups({ name: "pending" })
 
         // Register customer and login
+        // Step 1: register auth identity, capture the one-time registration token
+        let registrationToken = ""
         try {
-          await api.post("/auth/customer/emailpass/register", { email, password })
+          const regRes = await api.post("/auth/customer/emailpass/register", { email, password })
+          registrationToken = regRes.data.token ?? ""
         } catch {}
         try {
-          // Register via store route to get the customer row
+          // Step 2: create customer record — requires the registration token as Bearer
           await api.post(
             "/store/customers/register",
             {
@@ -56,7 +59,12 @@ medusaIntegrationTestRunner({
               why_join: "Integration test",
               favourite_brewery: "Test",
             },
-            { headers: { "x-publishable-api-key": publishableKey } }
+            {
+              headers: {
+                "x-publishable-api-key": publishableKey,
+                ...(registrationToken ? { authorization: `Bearer ${registrationToken}` } : {}),
+              },
+            }
           )
         } catch {}
 

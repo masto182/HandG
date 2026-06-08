@@ -75,9 +75,24 @@ medusaIntegrationTestRunner({
           customerId = cust.id
         }
 
-        // Register + login to get JWT
+        // Register + login to get JWT, then link auth identity to customer
         try {
           await api.post("/auth/customer/emailpass/register", { email, password })
+        } catch {}
+        // Link the auth identity to the customer so JWT resolves correctly
+        try {
+          const [identity] = await authModule.listAuthIdentities({ provider: "emailpass" })
+          if (identity) {
+            await authModule.updateAuthIdentities([
+              {
+                id: identity.id,
+                app_metadata: {
+                  ...((identity as any).app_metadata ?? {}),
+                  customer_id: customerId,
+                },
+              },
+            ])
+          }
         } catch {}
         const authRes = await api.post("/auth/customer/emailpass", { email, password })
         customerJwt = authRes.data.token
