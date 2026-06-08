@@ -32,6 +32,8 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
   }
 }
 
+export const PATCH = POST
+
 export async function DELETE(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   const svc = req.scope.resolve(SITE_CONFIG_MODULE) as SiteConfigModuleService
   const { key } = req.params

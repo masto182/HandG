@@ -38,7 +38,7 @@ const createHopStep = createStep(
       flavor_profile: input.flavor_profile ?? null,
       description: input.description ?? null,
       image_url: input.image_url ?? null,
-      is_active: true,
+      is_active: input.is_active ?? true,
     })
     return new StepResponse(hop, { id: hop.id })
   },

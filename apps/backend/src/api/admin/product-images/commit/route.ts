@@ -40,7 +40,6 @@ export async function POST(
         {
           id: product_id,
           thumbnail: url,
-          images: [{ url }],
         },
       ])
 

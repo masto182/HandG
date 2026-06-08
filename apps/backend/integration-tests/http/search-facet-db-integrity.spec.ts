@@ -40,25 +40,31 @@ medusaIntegrationTestRunner({
         const container = getContainer()
         const productModule = container.resolve(Modules.PRODUCT) as any
 
-        const searchRes = await fetch(`${MEILI_URL}/indexes/products/search`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(MEILI_KEY ? { Authorization: `Bearer ${MEILI_KEY}` } : {}),
-          },
-          body: JSON.stringify({
-            q: "",
-            facets: ["collection_handle", "category_handle"],
-            limit: 0,
-          }),
-        })
+        let searchData: any
+        try {
+          const searchRes = await fetch(`${MEILI_URL}/indexes/products/search`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(MEILI_KEY ? { Authorization: `Bearer ${MEILI_KEY}` } : {}),
+            },
+            body: JSON.stringify({
+              q: "",
+              facets: ["collection_handle", "category_handle"],
+              limit: 0,
+            }),
+          })
 
-        if (!searchRes.ok) {
-          console.warn(`MeiliSearch search endpoint failed (${searchRes.status}) — skipping`)
+          if (!searchRes.ok) {
+            console.warn(`MeiliSearch search endpoint failed (${searchRes.status}) — skipping`)
+            return
+          }
+
+          searchData = await searchRes.json()
+        } catch {
+          console.warn("MeiliSearch unreachable — skipping facet integrity check")
           return
         }
-
-        const searchData = await searchRes.json()
         const facets = searchData.facetDistribution || {}
 
         const categoryFacets = facets.category_handle || facets.collection_handle || {}
