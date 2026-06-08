@@ -108,11 +108,13 @@ medusaIntegrationTestRunner({
         it("409 when new_email belongs to another customer", async () => {
           // Register a second customer to occupy the email
           const otherEmail = `other-${Date.now()}@uat.dev`
+          let otherRegToken = ""
           try {
-            await api.post("/auth/customer/emailpass/register", {
+            const regRes = await api.post("/auth/customer/emailpass/register", {
               email: otherEmail,
               password: "Other123!",
             })
+            otherRegToken = regRes.data.token ?? ""
           } catch {}
           try {
             await api.post(
@@ -125,7 +127,12 @@ medusaIntegrationTestRunner({
                 why_join: "test",
                 favourite_brewery: "Test",
               },
-              { headers: { "x-publishable-api-key": publishableKey } }
+              {
+                headers: {
+                  "x-publishable-api-key": publishableKey,
+                  ...(otherRegToken ? { authorization: `Bearer ${otherRegToken}` } : {}),
+                },
+              }
             )
           } catch {}
 
@@ -156,7 +163,7 @@ medusaIntegrationTestRunner({
       })
 
       describe("POST /store/email-change/confirm", () => {
-        it("400 on unknown token", async () => {
+        it("404 on unknown token", async () => {
           try {
             await api.post(
               "/store/email-change/confirm",
@@ -165,11 +172,11 @@ medusaIntegrationTestRunner({
             )
             expect(true).toBe(false)
           } catch (err: any) {
-            expect(err.response.status).toBe(400)
+            expect(err.response.status).toBe(404)
           }
         })
 
-        it("400 on expired token", async () => {
+        it("410 on expired token", async () => {
           if (!customerId) return
           const container = getContainer()
           const svc = container.resolve("emailChangeRequest") as any
@@ -193,7 +200,7 @@ medusaIntegrationTestRunner({
             )
             expect(true).toBe(false)
           } catch (err: any) {
-            expect(err.response.status).toBe(400)
+            expect(err.response.status).toBe(410)
           }
         })
       })
