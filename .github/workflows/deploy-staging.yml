@@ -40,7 +40,7 @@ jobs:
           envs: "GITHUB_SHA,GHCR_USER,GHCR_TOKEN"
           script: |
             set -euo pipefail
-            cd /opt/retail-example-staging
+            cd /opt/hopsandglory-staging
             git fetch origin main
             git reset --hard origin/main
             export BACKEND_IMAGE="ghcr.io/masto182/backend:staging"
