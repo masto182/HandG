@@ -5,7 +5,7 @@ import { isQuietHours, exceedsThrottle } from "../lib/alert-throttle"
 import { ALERT_DISPATCH_MODULE } from "../modules/alert-dispatch"
 import { BREWERY_FOLLOW_MODULE } from "../modules/brewery-follow"
 import { HOP_ALERT_MODULE } from "../modules/hop-alert"
-import { INBOX_MODULE } from "../modules/notification"
+import { INBOX_MODULE } from "../modules/inbox"
 import * as NewDropTpl from "../emails/new-drop"
 
 export type AlertKind = "all_new" | "brewery" | "hop"

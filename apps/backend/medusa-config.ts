@@ -54,7 +54,7 @@ module.exports = defineConfig({
     { resolve: "./src/modules/referral" },
     { resolve: "./src/modules/announcement" },
     { resolve: "./src/modules/beer-style" },
-    { resolve: "./src/modules/notification" },
+    { resolve: "./src/modules/inbox" },
     { resolve: "./src/modules/hop" },
     { resolve: "./src/modules/site-config" },
     { resolve: "./src/modules/pickup-location" },

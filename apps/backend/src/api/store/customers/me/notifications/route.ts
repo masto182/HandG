@@ -1,5 +1,5 @@
 import { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { INBOX_MODULE } from "../../../../../modules/notification"
+import { INBOX_MODULE } from "../../../../../modules/inbox"
 
 export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   const customerId = req.auth_context.actor_id

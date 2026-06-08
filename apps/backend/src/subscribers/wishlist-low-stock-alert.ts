@@ -1,6 +1,6 @@
 import { SubscriberArgs, type SubscriberConfig } from "@medusajs/framework"
 import { Modules } from "@medusajs/framework/utils"
-import { INBOX_MODULE } from "../modules/notification"
+import { INBOX_MODULE } from "../modules/inbox"
 import { sendTemplate, refreshEmailConfig, getStoreUrl } from "../lib/email"
 import * as WishlistLowStockTpl from "../emails/wishlist-low-stock"
 

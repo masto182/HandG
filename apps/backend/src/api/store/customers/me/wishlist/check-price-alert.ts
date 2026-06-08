@@ -1,5 +1,5 @@
 import { Modules } from "@medusajs/framework/utils"
-import { INBOX_MODULE } from "../../../../../modules/notification"
+import { INBOX_MODULE } from "../../../../../modules/inbox"
 import { sendTemplate, refreshEmailConfig, getStoreUrl } from "../../../../../lib/email"
 import * as WishlistPriceAlertTpl from "../../../../../emails/wishlist-price-alert"
 import { getLowestVariantPrice } from "../../../../../lib/wishlist-price"

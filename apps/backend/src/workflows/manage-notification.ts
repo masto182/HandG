@@ -5,7 +5,7 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import { MedusaError } from "@medusajs/framework/utils"
-import { INBOX_MODULE } from "../modules/notification"
+import { INBOX_MODULE } from "../modules/inbox"
 
 type MarkReadInput = {
   id: string
