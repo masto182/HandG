@@ -1,6 +1,6 @@
 import { model } from "@medusajs/framework/utils"
 
-const Notification = model.define("notification", {
+const Notification = model.define("inbox_notification", {
   id: model.id().primaryKey(),
   customer_id: model.text(),
   type: model.text(),
