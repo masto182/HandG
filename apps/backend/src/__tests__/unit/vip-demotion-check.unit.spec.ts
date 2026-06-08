@@ -30,7 +30,7 @@ import evaluateVipDemotionWorkflow from "../../workflows/evaluate-vip-demotion"
 
 // Typed references to the mocks after import
 const sendMock = emailLib.sendTemplate as jest.Mock
-const workflowFactory = evaluateVipDemotionWorkflow as jest.Mock
+const workflowFactory = evaluateVipDemotionWorkflow as unknown as jest.Mock
 let workflowRunMock: jest.Mock
 
 const VIP_SCORE_MODULE_KEY = "vipScore"
