@@ -105,10 +105,11 @@ jobs:
             # Bring up datastores first so migrations have something to connect to.
             $COMPOSE up -d --remove-orphans postgres redis meilisearch
             # Migrate via a one-off container BEFORE starting the backend, unless
-            # skipped. The backend crashes on boot when tables are missing, so
-            # `exec`-based migration on a running backend fails on a first deploy.
+            # skipped. We use scripts/run-migrations.cjs instead of `medusa
+            # db:migrate`: on this OCI host the official migrator hangs in
+            # MedusaApp_ module bootstrap. The direct-SQL runner is idempotent.
             if [ "${{ github.event.inputs.skip_migrations }}" != "true" ]; then
-              $COMPOSE run --rm --no-deps backend npx medusa db:migrate
+              $COMPOSE run --rm --no-deps backend node scripts/run-migrations.cjs
             fi
             $COMPOSE up -d --remove-orphans
         env:

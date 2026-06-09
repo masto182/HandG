@@ -35,4 +35,7 @@ USER medusa
 
 EXPOSE 9000
 
-CMD ["npx", "medusa", "start"]
+# Call the medusa binary directly, not via `npx`. On restricted-egress hosts
+# (e.g. OCI) `npx` blocks on a registry.npmjs.org lookup before running the
+# command, which can hang container start indefinitely.
+CMD ["./node_modules/.bin/medusa", "start"]

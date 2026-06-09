@@ -50,12 +50,12 @@ jobs:
             $COMPOSE pull
             # Bring up datastores first so migrations have something to connect to.
             $COMPOSE up -d --remove-orphans postgres redis meilisearch
-            # Run migrations in a one-off container BEFORE starting the backend.
-            # The backend crashes on boot if its tables don't exist, so migrating
-            # via `exec` on a running backend can never work on a first deploy.
-            # `run --rm` inherits the compose environment (DATABASE_URL etc.) and
-            # MEDUSA_DISABLE_TELEMETRY. No `|| true`: a failed migration must fail the deploy.
-            $COMPOSE run --rm --no-deps backend npx medusa db:migrate
+            # Run DB migrations in a one-off container BEFORE starting the backend.
+            # We use scripts/run-migrations.cjs instead of `medusa db:migrate`:
+            # on this OCI host the official migrator hangs in MedusaApp_ module
+            # bootstrap and never applies migrations. The direct-SQL runner applies
+            # each module's migration SQL straight to postgres and is idempotent.
+            $COMPOSE run --rm --no-deps backend node scripts/run-migrations.cjs
             $COMPOSE up -d --remove-orphans
         env:
           GHCR_USER: ${{ github.repository_owner }}
