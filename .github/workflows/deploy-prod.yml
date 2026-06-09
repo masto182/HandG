@@ -101,6 +101,16 @@ jobs:
             export STOREFRONT_IMAGE="ghcr.io/masto182/storefront:prod"
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
             COMPOSE="docker compose -f docker-compose.prod.yml --env-file .env.production"
+            echo "Docker disk usage before cleanup:"
+            docker system df
+            # Only prune stopped containers and build cache BEFORE pull. Do NOT
+            # prune images here: that would delete the current running image and
+            # weaken rollback if the pull below fails. Images are pruned after a
+            # successful pull + up.
+            docker container prune -f
+            docker builder prune -af || true
+            echo "Docker disk usage after cleanup:"
+            docker system df
             $COMPOSE pull
             # Bring up datastores first so migrations have something to connect to.
             $COMPOSE up -d --remove-orphans postgres redis meilisearch
@@ -114,6 +124,10 @@ jobs:
               $COMPOSE run --rm --no-deps backend ./node_modules/.bin/medusa db:sync-links
             fi
             $COMPOSE up -d --remove-orphans
+            docker image prune -af
+            docker builder prune -af || true
+            echo "Docker disk usage after deploy cleanup:"
+            docker system df
         env:
           GHCR_USER: ${{ github.repository_owner }}
           GHCR_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}

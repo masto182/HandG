@@ -1,7 +1,9 @@
 name: Build images (arm64 -> ghcr.io)
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
     inputs:
@@ -27,6 +29,7 @@ env:
 jobs:
   build:
     name: Build + push ${{ matrix.app }}
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 30
     strategy:
@@ -36,7 +39,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.sha || github.sha }}
+          ref: ${{ github.event.inputs.sha || github.event.workflow_run.head_sha || github.sha }}
 
       - name: Set image tags
         id: tags
@@ -45,10 +48,10 @@ jobs:
           echo "sha_short=$SHA" >> "$GITHUB_OUTPUT"
           REPO="${REGISTRY}/${OWNER}/${{ matrix.app }}"
           echo "repo=$REPO" >> "$GITHUB_OUTPUT"
-          # On main pushes, tag :staging and :sha-<short>. Manual dispatch
-          # also tags :sha-<short>. Production promotion happens via the
-          # promote-prod workflow.
-          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]]; then
+          # A successful CI run on main (workflow_run) tags :staging and
+          # :sha-<short>. Manual dispatch tags :manual and :sha-<short>.
+          # Production promotion happens via the promote-prod workflow.
+          if [[ "${{ github.event_name }}" == "workflow_run" && "${{ github.event.workflow_run.head_branch }}" == "main" ]]; then
             echo "primary_tag=staging" >> "$GITHUB_OUTPUT"
           else
             echo "primary_tag=manual" >> "$GITHUB_OUTPUT"

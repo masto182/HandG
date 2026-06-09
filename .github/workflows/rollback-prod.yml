@@ -61,8 +61,22 @@ jobs:
             export BACKEND_IMAGE="ghcr.io/masto182/backend:prod"
             export STOREFRONT_IMAGE="ghcr.io/masto182/storefront:prod"
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+            echo "Docker disk usage before cleanup:"
+            docker system df
+            # Rollback must stay resilient if the registry is unreachable. Only
+            # prune stopped containers and build cache before pull; never prune
+            # images here or we could delete the very image we are rolling back
+            # to. Images are pruned after a successful pull + up.
+            docker container prune -f
+            docker builder prune -af || true
+            echo "Docker disk usage after cleanup:"
+            docker system df
             docker compose -f docker-compose.prod.yml --env-file .env.production pull
             docker compose -f docker-compose.prod.yml --env-file .env.production up -d --remove-orphans
+            docker image prune -af
+            docker builder prune -af || true
+            echo "Docker disk usage after deploy cleanup:"
+            docker system df
         env:
           GHCR_USER: ${{ github.repository_owner }}
           GHCR_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
