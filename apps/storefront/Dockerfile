@@ -29,9 +29,14 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 
-COPY --from=builder /app/apps/storefront/public ./public
+# Next standalone output uses the monorepo layout (server.js lives under
+# apps/storefront/, alongside a hoisted node_modules and the workspace packages),
+# because shared-types is now a real dist package so Next's outputFileTracingRoot
+# resolves to the monorepo root. Copy static/public under apps/storefront and run
+# server.js from there.
 COPY --from=builder --chown=nextjs:nodejs /app/apps/storefront/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/apps/storefront/.next/static ./.next/static
+COPY --from=builder /app/apps/storefront/public ./apps/storefront/public
+COPY --from=builder --chown=nextjs:nodejs /app/apps/storefront/.next/static ./apps/storefront/.next/static
 
 USER nextjs
 
@@ -40,4 +45,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["node", "server.js"]
+CMD ["node", "apps/storefront/server.js"]
