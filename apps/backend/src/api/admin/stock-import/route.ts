@@ -438,17 +438,20 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
         }
       }
 
-      // Look up existing product
+      // Look up existing product by handle (brewery-slug + product-slug) — the
+      // same key used at create time (line ~652). Matching on title alone can
+      // return a duplicate row and cause the update to target the wrong product.
+      const handle = `${brewery.slug}-${slugify(row.name)}`
       const existingProducts = await productModule.listProducts(
-        { title: row.name },
+        { handle },
         {
-          select: ["id", "title", "status", "thumbnail", "metadata"],
+          // No explicit `select`: Medusa v2's query builder drops relations when
+          // the select list omits the relation fields. Without select, all scalar
+          // fields + the specified relations are returned, so variants is populated.
           relations: ["variants", "images"],
         }
       )
-      const existing = existingProducts.find(
-        (p: any) => p.title === row.name && (p.status === "published" || p.status === "draft")
-      )
+      const existing = existingProducts[0] ?? null
 
       const containerValue = row.container || "Can 440ml"
 
@@ -648,8 +651,6 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
           })
           continue
         }
-
-        const handle = `${brewery.slug}-${slugify(row.name)}`
 
         const productInput: Record<string, any> = {
           title: row.name,
