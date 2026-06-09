@@ -10,6 +10,9 @@ COPY packages/shared-types/package.json packages/shared-types/
 RUN pnpm install --frozen-lockfile --filter=storefront...
 
 COPY packages/shared-types/ packages/shared-types/
+# Build shared-types to dist so the Next build resolves it as compiled JS
+# (its package main now points at dist/index.js).
+RUN cd packages/shared-types && pnpm build
 COPY apps/storefront/ apps/storefront/
 
 ENV NEXT_TELEMETRY_DISABLED=1

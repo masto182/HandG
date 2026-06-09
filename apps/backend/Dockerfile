@@ -10,6 +10,9 @@ COPY packages/shared-types/package.json packages/shared-types/
 RUN pnpm install --frozen-lockfile --filter=backend...
 
 COPY packages/shared-types/ packages/shared-types/
+# Build the shared-types workspace package to dist (plain JS) so the compiled
+# server can require it without ts-node at runtime.
+RUN cd packages/shared-types && pnpm build
 COPY apps/backend/ apps/backend/
 RUN cd apps/backend && pnpm build
 
@@ -35,7 +38,11 @@ USER medusa
 
 EXPOSE 9000
 
-# Call the medusa binary directly, not via `npx`. On restricted-egress hosts
-# (e.g. OCI) `npx` blocks on a registry.npmjs.org lookup before running the
-# command, which can hang container start indefinitely.
-CMD ["./node_modules/.bin/medusa", "start"]
+# Start the COMPILED server from .medusa/server (Medusa v2's production layout):
+# the admin bundle is served from <cwd>/public/admin, so cwd must be .medusa/server.
+# Running from /app/apps/backend looks in the wrong place and crashes with
+# "Could not find index.html in the admin build directory". Calling the medusa
+# binary directly (not npx) avoids a registry.npmjs.org lookup that hangs on
+# restricted-egress hosts. WORKDIR stays /app/apps/backend so the deploy's
+# migration step (node scripts/run-migrations.cjs) still resolves.
+CMD ["sh", "-c", "cd /app/apps/backend/.medusa/server && exec /app/apps/backend/node_modules/.bin/medusa start"]
