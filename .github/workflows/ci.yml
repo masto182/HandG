@@ -82,6 +82,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @retail-example/shared-types build
       - run: pnpm --filter ./apps/backend test:unit:coverage
 
   component-storefront:
@@ -163,6 +164,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @retail-example/shared-types build
       # Hard gate: the integration suite (per-file runner, ~18-20 min for 11
       # specs) MUST run and pass. No conditional skip. Meilisearch is not
       # provided here; the search-facet spec self-skips its Meili assertions
@@ -211,6 +213,11 @@ jobs:
       E2E_ADMIN_PASSWORD: ChangeMe123!
       PLAYWRIGHT_BACKEND_URL: http://localhost:9000
       PLAYWRIGHT_STOREFRONT_URL: http://localhost:8000
+      S3_FILE_URL: http://localhost:9100/medusa
+      S3_ACCESS_KEY: medusa
+      S3_SECRET_KEY: medusa_dev_password
+      S3_BUCKET: medusa
+      MEILI_MASTER_KEY: dev-meili-master-key
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -221,6 +228,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @retail-example/shared-types build
       - name: Build backend
         run: pnpm --filter ./apps/backend build
       - name: Migrate + seed
@@ -231,19 +239,19 @@ jobs:
           pnpm --filter ./apps/backend exec medusa exec ./src/scripts/seed.ts
           pnpm --filter ./apps/backend exec medusa user --email "${E2E_ADMIN_EMAIL}" --password "${E2E_ADMIN_PASSWORD}" || true
       - name: Start backend
-        run: pnpm --filter ./apps/backend start &
+        run: pnpm --filter ./apps/backend start > /tmp/backend.log 2>&1 &
       - name: Start storefront
         run: pnpm --filter ./apps/storefront dev &
       - name: Install Playwright browsers
         run: pnpm --filter ./apps/storefront exec playwright install --with-deps chromium
       - name: Wait for servers
         run: |
+          ok=0
           for i in $(seq 1 60); do
-            if curl -sf http://localhost:9000/health && curl -sf http://localhost:8000/ > /dev/null; then
-              echo "ready"; break
-            fi
+            if curl -sf http://localhost:9000/health && curl -sf http://localhost:8000/ > /dev/null; then ok=1; break; fi
             sleep 2
           done
+          [ "$ok" = 1 ] || { echo "--- backend log ---"; cat /tmp/backend.log; echo "servers never became ready"; exit 1; }
       - name: Prepare smoke env (create test customers + resolve keys)
         run: bash scripts/smoke/ci-setup.sh
         env:
