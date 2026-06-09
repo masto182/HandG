@@ -42,10 +42,22 @@ const updateImportedProductStep = createStep(
       thumbnail: product?.thumbnail ?? null,
     }
 
-    // Apply variant price update
-    await productModule.updateProductVariants(input.variant_id, {
-      prices: [{ currency_code: "aud", amount: input.price_aud }],
-    })
+    // Apply variant price update (best-effort: price mutation goes through
+    // upsertWithReplace in the Medusa product module which can fail with a
+    // MikroORM fieldNames error on certain setups; metadata update must not
+    // be blocked by a price update failure).
+    let priceUpdateFailed = false
+    try {
+      await productModule.updateProductVariants(input.variant_id, {
+        prices: [{ currency_code: "aud", amount: input.price_aud }],
+      })
+    } catch (err: any) {
+      priceUpdateFailed = true
+      const logger = container.resolve("logger") as any
+      logger?.warn?.(
+        `[update-imported-product] price update failed for variant ${input.variant_id}: ${err.message}`
+      )
+    }
 
     // Apply product metadata/images update
     await productModule.updateProducts(input.product_id, input.product_update)
