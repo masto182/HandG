@@ -46,9 +46,17 @@ jobs:
             export BACKEND_IMAGE="ghcr.io/masto182/backend:staging"
             export STOREFRONT_IMAGE="ghcr.io/masto182/storefront:staging"
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
-            docker compose -f docker-compose.prod.yml -f docker-compose.staging.yml --env-file .env.staging pull
-            docker compose -f docker-compose.prod.yml -f docker-compose.staging.yml --env-file .env.staging up -d --remove-orphans
-            docker compose -f docker-compose.prod.yml -f docker-compose.staging.yml --env-file .env.staging exec -T backend npx medusa db:migrate || true
+            COMPOSE="docker compose -f docker-compose.prod.yml -f docker-compose.staging.yml --env-file .env.staging"
+            $COMPOSE pull
+            # Bring up datastores first so migrations have something to connect to.
+            $COMPOSE up -d --remove-orphans postgres redis meilisearch
+            # Run migrations in a one-off container BEFORE starting the backend.
+            # The backend crashes on boot if its tables don't exist, so migrating
+            # via `exec` on a running backend can never work on a first deploy.
+            # `run --rm` inherits the compose environment (DATABASE_URL etc.) and
+            # MEDUSA_DISABLE_TELEMETRY. No `|| true`: a failed migration must fail the deploy.
+            $COMPOSE run --rm --no-deps backend npx medusa db:migrate
+            $COMPOSE up -d --remove-orphans
         env:
           GHCR_USER: ${{ github.repository_owner }}
           GHCR_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}

@@ -100,11 +100,17 @@ jobs:
             export BACKEND_IMAGE="ghcr.io/masto182/backend:prod"
             export STOREFRONT_IMAGE="ghcr.io/masto182/storefront:prod"
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
-            docker compose -f docker-compose.prod.yml --env-file .env.production pull
-            docker compose -f docker-compose.prod.yml --env-file .env.production up -d --remove-orphans
+            COMPOSE="docker compose -f docker-compose.prod.yml --env-file .env.production"
+            $COMPOSE pull
+            # Bring up datastores first so migrations have something to connect to.
+            $COMPOSE up -d --remove-orphans postgres redis meilisearch
+            # Migrate via a one-off container BEFORE starting the backend, unless
+            # skipped. The backend crashes on boot when tables are missing, so
+            # `exec`-based migration on a running backend fails on a first deploy.
             if [ "${{ github.event.inputs.skip_migrations }}" != "true" ]; then
-              docker compose -f docker-compose.prod.yml --env-file .env.production exec -T backend npx medusa db:migrate
+              $COMPOSE run --rm --no-deps backend npx medusa db:migrate
             fi
+            $COMPOSE up -d --remove-orphans
         env:
           GHCR_USER: ${{ github.repository_owner }}
           GHCR_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}

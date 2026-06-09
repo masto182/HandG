@@ -87,6 +87,9 @@ services:
       MEDUSA_BACKEND_URL: https://${PRIMARY_DOMAIN}
       MEDUSA_ADMIN_PATH: ${MEDUSA_ADMIN_PATH:-/admin}
       MEDUSA_FF_INDEX_ENGINE: "true"
+      # Disable telemetry: the outbound POST to telemetry.medusa-commerce.com
+      # hangs on restricted-egress hosts (e.g. OCI) and can stall db:migrate.
+      MEDUSA_DISABLE_TELEMETRY: "true"
       S3_FILE_URL: ${S3_FILE_URL}
       S3_ACCESS_KEY: ${S3_ACCESS_KEY}
       S3_SECRET_KEY: ${S3_SECRET_KEY}
