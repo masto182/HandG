@@ -24,6 +24,7 @@ RUN addgroup --system --gid 1001 medusa && adduser --system --uid 1001 medusa
 
 COPY --from=builder /app/pnpm-lock.yaml /app/pnpm-workspace.yaml /app/package.json ./
 COPY --from=builder /app/apps/backend ./apps/backend
+COPY --from=builder /app/packages/shared-types ./packages/shared-types
 COPY --from=builder /app/node_modules ./node_modules
 
 WORKDIR /app/apps/backend
