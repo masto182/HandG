@@ -186,7 +186,7 @@ medusaIntegrationTestRunner({
           "name,brewery,style,abv,price,stock,container,hops\n" +
           "Merge Test Beer,Mountain Culture IT,IPA,6.0,10,5,Can 440ml,Nelson MT\n"
 
-        await api.post(
+        const replaceRes = await api.post(
           "/admin/stock-import",
           {
             csv: replaceCsv,
@@ -194,8 +194,11 @@ medusaIntegrationTestRunner({
           },
           adminAuth
         )
+        expect(replaceRes.status).toBe(200)
+        expect(replaceRes.data.errors).toEqual([])
 
-        const [updated] = await productModule.listProducts({ title: "Merge Test Beer" })
+        // Look up by ID (not title) to avoid ambiguity if a duplicate was accidentally created
+        const [updated] = await productModule.listProducts({ id: product.id })
         expect(updated.metadata.hops).toEqual(["Nelson MT"])
       })
     })
