@@ -110,6 +110,8 @@ jobs:
             # MedusaApp_ module bootstrap. The direct-SQL runner is idempotent.
             if [ "${{ github.event.inputs.skip_migrations }}" != "true" ]; then
               $COMPOSE run --rm --no-deps backend node scripts/run-migrations.cjs
+              # Sync cross-module link tables (pivot tables between modules).
+              $COMPOSE run --rm --no-deps backend ./node_modules/.bin/medusa db:sync-links
             fi
             $COMPOSE up -d --remove-orphans
         env:

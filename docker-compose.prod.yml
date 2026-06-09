@@ -75,7 +75,7 @@ services:
       retries: 3
       start_period: 30s
     environment:
-      DATABASE_URL: postgres://${DB_USER:-medusa}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-medusa}
+      DATABASE_URL: postgres://${DB_USER:-medusa}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-medusa}?sslmode=disable
       REDIS_URL: redis://redis:6379
       MEILI_HOST: http://meilisearch:7700
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}

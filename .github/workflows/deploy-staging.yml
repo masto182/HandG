@@ -56,6 +56,10 @@ jobs:
             # bootstrap and never applies migrations. The direct-SQL runner applies
             # each module's migration SQL straight to postgres and is idempotent.
             $COMPOSE run --rm --no-deps backend node scripts/run-migrations.cjs
+            # Sync cross-module link tables (pivot tables between modules). Must
+            # run after module migrations. Uses the binary directly (not npx) to
+            # avoid the registry.npmjs.org lookup that hangs on restricted-egress hosts.
+            $COMPOSE run --rm --no-deps backend ./node_modules/.bin/medusa db:sync-links
             $COMPOSE up -d --remove-orphans
         env:
           GHCR_USER: ${{ github.repository_owner }}
