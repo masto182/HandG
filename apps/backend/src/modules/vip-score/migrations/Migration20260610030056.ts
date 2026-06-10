@@ -8,6 +8,9 @@ export class Migration20260610030056 extends Migration {
     this.addSql(
       `CREATE INDEX IF NOT EXISTS "IDX_vip_score_deleted_at" ON "vip_score" ("deleted_at") WHERE deleted_at IS NULL;`
     )
+    this.addSql(
+      `CREATE UNIQUE INDEX IF NOT EXISTS "UQ_vip_score_customer_id" ON "vip_score" ("customer_id") WHERE deleted_at IS NULL;`
+    )
   }
 
   override async down(): Promise<void> {
