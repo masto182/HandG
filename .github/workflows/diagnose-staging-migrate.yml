@@ -1,0 +1,95 @@
+name: Diagnose staging migrate
+
+# Manual-only diagnostic. SSHes to the staging Oracle host and runs the standard
+# `medusa db:migrate` with Node network tracing while sampling pg_stat_activity,
+# to determine WHY the official migrator hangs on this OCI host (vs the
+# direct-SQL scripts/run-migrations.cjs we currently use). Captures everything
+# to the Actions log. Mutates the staging DB only (migrations are idempotent);
+# runs with --skip-scripts --skip-links and an in-container timeout so it cannot
+# hang the job or touch links/scripts.
+
+on:
+  workflow_dispatch:
+    inputs:
+      node_debug:
+        description: "NODE_DEBUG channels for the trace"
+        required: false
+        default: "net,dns,tls"
+      migrate_timeout_seconds:
+        description: "Hard timeout (seconds) for the migrate inside the container"
+        required: false
+        default: "300"
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    name: Trace medusa db:migrate on staging host
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: staging
+    steps:
+      - name: SSH diagnose
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.ORACLE_HOST }}
+          username: ${{ secrets.ORACLE_USER }}
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          command_timeout: 20m
+          envs: "NODE_DEBUG_CH,MIGRATE_TIMEOUT,GHCR_USER,GHCR_TOKEN"
+          script: |
+            # Intentionally NOT using `set -e`: a migrate failure/timeout must
+            # be captured and reported, not abort the diagnostic early.
+            set -uo pipefail
+            cd /opt/hopsandglory-staging
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+            COMPOSE="docker compose -f docker-compose.prod.yml -f docker-compose.staging.yml --env-file .env.staging"
+
+            echo "::group::Ensure datastores are up"
+            $COMPOSE up -d --remove-orphans postgres redis meilisearch
+            echo "::endgroup::"
+
+            echo "::group::Postgres baseline"
+            $COMPOSE exec -T postgres sh -lc 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SHOW max_connections;"'
+            echo "::endgroup::"
+
+            echo "::group::Start pg_stat_activity sampler (background)"
+            (
+              for i in $(seq 1 40); do
+                echo "----- pg sample $i ($(date -u +%H:%M:%S)) -----"
+                $COMPOSE exec -T postgres sh -lc 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT count(*) AS conns, state, wait_event_type, wait_event FROM pg_stat_activity GROUP BY state, wait_event_type, wait_event ORDER BY conns DESC;"' 2>&1 || echo "(sample failed)"
+                sleep 5
+              done
+            ) > /tmp/pg_samples.log 2>&1 &
+            SAMPLER=$!
+            echo "sampler pid=$SAMPLER"
+            echo "::endgroup::"
+
+            echo "::group::Run traced medusa db:migrate (skip-scripts, skip-links)"
+            # Use the binary directly (not npx) to avoid the registry.npmjs.org
+            # lookup that itself hangs on restricted egress. timeout lives in the
+            # alpine image (busybox); use a bare integer (seconds) for portability.
+            # Capture medusa's REAL exit code (124 = timed out / hung) before the
+            # grep pipeline, then filter the NODE_DEBUG firehose to the lines that
+            # reveal external endpoints and migration progress.
+            $COMPOSE run --rm --no-deps \
+              -e NODE_DEBUG="$NODE_DEBUG_CH" \
+              -e MEDUSA_TELEMETRY_VERBOSE=true \
+              backend sh -lc "timeout ${MIGRATE_TIMEOUT} ./node_modules/.bin/medusa db:migrate --skip-scripts --skip-links > /tmp/m.log 2>&1; rc=\$?; echo \"===== filtered trace =====\"; grep -iE 'lookup|getaddrinfo|onlookup|connect|tls|handshake|Running migrations|Migrations completed|MODULE:|Completed successfully|Skipped|error|warn' /tmp/m.log | grep -ivE '127\.0\.0\.1|::1|localhost' | tail -120; echo \"===== last 30 raw lines =====\"; tail -30 /tmp/m.log; echo \"MEDUSA_EXIT=\$rc\""
+            echo "::endgroup::"
+
+            echo "::group::Stop sampler + dump pg samples"
+            kill "$SAMPLER" 2>/dev/null || true
+            cat /tmp/pg_samples.log || true
+            rm -f /tmp/pg_samples.log || true
+            echo "::endgroup::"
+        env:
+          NODE_DEBUG_CH: ${{ github.event.inputs.node_debug }}
+          MIGRATE_TIMEOUT: ${{ github.event.inputs.migrate_timeout_seconds }}
+          GHCR_USER: ${{ github.repository_owner }}
+          GHCR_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
