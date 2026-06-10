@@ -65,11 +65,12 @@ jobs:
             $COMPOSE up -d --remove-orphans --force-recreate caddy
             $COMPOSE up -d --remove-orphans postgres redis meilisearch
             # Run DB migrations in a one-off container BEFORE starting the backend.
-            # We use scripts/run-migrations.cjs instead of `medusa db:migrate`:
-            # on this OCI host the official migrator hangs in MedusaApp_ module
-            # bootstrap and never applies migrations. The direct-SQL runner applies
-            # each module's migration SQL straight to postgres and is idempotent.
-            $COMPOSE run --rm --no-deps backend node scripts/run-migrations.cjs
+            # Verified (diagnose-staging-migrate run 27245055317) that the standard
+            # migrator completes on this OCI host with exit 0 and no external calls
+            # when invoked via the binary (not npx) with --skip-scripts --skip-links.
+            # The historical hang was the npx registry lookup / migrate:scripts fork,
+            # not the core migrator. Links are synced by the explicit step below.
+            $COMPOSE run --rm --no-deps backend ./node_modules/.bin/medusa db:migrate --skip-scripts --skip-links
             # Sync cross-module link tables (pivot tables between modules). Must
             # run after module migrations. Uses the binary directly (not npx) to
             # avoid the registry.npmjs.org lookup that hangs on restricted-egress hosts.

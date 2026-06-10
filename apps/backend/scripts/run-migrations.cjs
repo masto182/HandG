@@ -1,14 +1,17 @@
-// Direct-SQL Medusa migration runner.
+// Direct-SQL Medusa migration runner. DEPRECATED FALLBACK — no longer used by
+// the deploy workflows.
 //
-// WHY THIS EXISTS: `medusa db:migrate` hangs indefinitely on this OCI host.
-// After "Migrations table created successfully" the MedusaApp_ bootstrap
-// (loadModules for ~30 modules) stalls on an unresolved promise while churning
-// hundreds of short-lived postgres connections, and never runs a single module
-// migration. Root cause is environment-specific (restricted egress + bootstrap
-// behaviour) and not fixable via config. This runner bypasses the module
-// bootstrap entirely: it loads each module's MikroORM migration class, captures
-// the SQL its up() emits, and applies it directly. Tracked in mikro_orm_migrations
-// so it stays compatible with Medusa's own migrator if it ever works here.
+// HISTORY: this was written because `medusa db:migrate` was believed to hang on
+// the OCI host during MedusaApp_ bootstrap. The diagnose-staging-migrate
+// workflow (run 27245055317, 2026-06-10) disproved that: the standard migrator
+// completes on this host with exit 0 and no external network calls when invoked
+// via the binary (not npx) with --skip-scripts --skip-links. The real culprit
+// was the npx registry lookup and/or the link-sync / migrate:scripts fork
+// (a second app bootstrap), not the core migrator. Deploys now use the standard
+// `medusa db:migrate --skip-scripts --skip-links` + `db:sync-links`.
+//
+// Kept for one release cycle as an emergency fallback; safe to delete once a
+// staging+prod deploy on the standard command is confirmed green.
 //
 // Idempotent: already-applied migrations (recorded in mikro_orm_migrations) are
 // skipped, so re-running is safe. On a clean DB it applies everything in order.

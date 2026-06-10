@@ -44,5 +44,5 @@ EXPOSE 9000
 # "Could not find index.html in the admin build directory". Calling the medusa
 # binary directly (not npx) avoids a registry.npmjs.org lookup that hangs on
 # restricted-egress hosts. WORKDIR stays /app/apps/backend so the deploy's
-# migration step (node scripts/run-migrations.cjs) still resolves.
+# migration step (./node_modules/.bin/medusa db:migrate) still resolves.
 CMD ["sh", "-c", "cd /app/apps/backend/.medusa/server && exec /app/apps/backend/node_modules/.bin/medusa start"]
