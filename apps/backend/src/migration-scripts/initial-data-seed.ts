@@ -1,5 +1,5 @@
 import { MedusaContainer } from "@medusajs/framework"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import {
   createApiKeysWorkflow,
   createSalesChannelsWorkflow,
@@ -23,6 +23,13 @@ import {
  */
 export default async function initial_data_seed({ container }: { container: MedusaContainer }) {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
+
+  const storeModule = container.resolve(Modules.STORE)
+  const stores = await (storeModule as any).listStores({}, { take: 1 })
+  if (Array.isArray(stores) && stores.length > 0) {
+    logger.info("Bootstrap: store already exists, skipping initial-data-seed.")
+    return
+  }
 
   const BRAND_NAME = process.env.BRAND_NAME || "Hops & Glory"
   const COUNTRY = (process.env.DEFAULT_COUNTRY || "au").toLowerCase()

@@ -1,6 +1,6 @@
 import { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys, Modules, ProductStatus } from "@medusajs/framework/utils"
-import { createProductsWorkflow } from "@medusajs/medusa/core-flows"
+import { createInventoryLevelsWorkflow, createProductsWorkflow } from "@medusajs/medusa/core-flows"
 import { HOP_MODULE } from "../../../modules/hop"
 import { BEER_STYLE_MODULE } from "../../../modules/beer-style"
 import { createBreweryWorkflow } from "../../../workflows/manage-brewery"
@@ -618,6 +618,20 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
           }
         }
 
+        // Ensure SC link on existing products
+        if (defaultChannel) {
+          try {
+            await link.create({
+              [Modules.PRODUCT]: { product_id: existing.id },
+              [Modules.SALES_CHANNEL]: { sales_channel_id: defaultChannel.id },
+            })
+          } catch (err: any) {
+            if (!err.message?.includes("already exists") && !err.message?.includes("duplicate")) {
+              logger.warn(`[CSV Import] SC link on update: ${err.message}`)
+            }
+          }
+        }
+
         // Stock update
         if (!isNaN(stockQty) && stockQty >= 0 && variant) {
           await applyStock(variant.id, stockQty)
@@ -670,6 +684,8 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
           ],
           sales_channels: defaultChannel ? [{ id: defaultChannel.id }] : [],
         }
+        // Note: createProductsWorkflow ignores sales_channels input (Medusa v2 limitation).
+        // SC link is created explicitly after the workflow completes.
         if (row.images.length > 0) {
           productInput.images = images
           productInput.thumbnail = thumbnail
@@ -687,6 +703,20 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
             brewery: { brewery_id: brewery.id },
             [Modules.PRODUCT]: { product_id: productId },
           })
+
+          // SC link (explicit — createProductsWorkflow ignores sales_channels input)
+          if (defaultChannel) {
+            try {
+              await link.create({
+                [Modules.PRODUCT]: { product_id: productId },
+                [Modules.SALES_CHANNEL]: { sales_channel_id: defaultChannel.id },
+              })
+            } catch (err: any) {
+              if (!err.message?.includes("already exists")) {
+                logger.warn(`[CSV Import] SC link: ${err.message}`)
+              }
+            }
+          }
 
           // Collab brewery links
           if (collabBreweries.length > 0) {

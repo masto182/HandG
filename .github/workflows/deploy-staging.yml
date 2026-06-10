@@ -75,6 +75,14 @@ jobs:
             # run after module migrations. Uses the binary directly (not npx) to
             # avoid the registry.npmjs.org lookup that hangs on restricted-egress hosts.
             $COMPOSE run --rm --no-deps backend ./node_modules/.bin/medusa db:sync-links
+            MEDUSA="./node_modules/.bin/medusa exec"
+            $COMPOSE run --rm --no-deps backend $MEDUSA ./src/migration-scripts/initial-data-seed.ts
+            $COMPOSE run --rm --no-deps backend $MEDUSA ./src/scripts/seed.ts
+            $COMPOSE run --rm --no-deps backend $MEDUSA ./src/scripts/seed-beer-styles.ts
+            $COMPOSE run --rm --no-deps backend $MEDUSA ./src/scripts/seed-hops.ts
+            $COMPOSE run --rm --no-deps backend $MEDUSA ./src/scripts/seed-vip-config.ts
+            $COMPOSE run --rm --no-deps backend $MEDUSA ./src/scripts/link-locations-to-sales-channel.ts
+            $COMPOSE run --rm --no-deps backend $MEDUSA ./src/scripts/link-products-to-channel.ts
             $COMPOSE up -d --remove-orphans
             docker image prune -af
             docker builder prune -af || true
