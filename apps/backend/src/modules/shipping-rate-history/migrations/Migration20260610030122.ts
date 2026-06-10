@@ -1,6 +1,6 @@
 import { Migration } from "@medusajs/framework/mikro-orm/migrations"
 
-export class Migration20260610024500 extends Migration {
+export class Migration20260610030122 extends Migration {
   override async up(): Promise<void> {
     this.addSql(
       `create table if not exists "shipping_rate_history" ("id" text not null, "sampled_at" timestamptz not null, "sample_label" text not null, "weight_g" integer not null, "destination_postcode" text not null, "destination_state" text not null, "destination_country" text not null default 'AU', "carrier_results" jsonb not null, "cheapest_carrier_code" text null, "cheapest_amount_cents" integer null, "baseline_carrier_code" text null, "baseline_amount_cents" integer null, "created_at" timestamptz not null default now(), "updated_at" timestamptz not null default now(), "deleted_at" timestamptz null, constraint "shipping_rate_history_pkey" primary key ("id"));`

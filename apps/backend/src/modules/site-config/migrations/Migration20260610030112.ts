@@ -1,6 +1,6 @@
 import { Migration } from "@medusajs/framework/mikro-orm/migrations"
 
-export class Migration20260610024450 extends Migration {
+export class Migration20260610030112 extends Migration {
   override async up(): Promise<void> {
     this.addSql(
       `alter table if exists "site_config" drop constraint if exists "site_config_key_unique";`
