@@ -59,6 +59,10 @@ jobs:
             docker system df
             $COMPOSE pull
             # Bring up datastores first so migrations have something to connect to.
+            # Caddy uses file bind-mounts. After git reset --hard the Caddyfile
+            # inode changes; Caddy's container still holds the old inode unless
+            # we force-recreate it so Docker re-binds to the current inode.
+            $COMPOSE up -d --remove-orphans --force-recreate caddy
             $COMPOSE up -d --remove-orphans postgres redis meilisearch
             # Run DB migrations in a one-off container BEFORE starting the backend.
             # We use scripts/run-migrations.cjs instead of `medusa db:migrate`:
