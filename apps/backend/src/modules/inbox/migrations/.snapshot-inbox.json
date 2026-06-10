@@ -20,8 +20,8 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "name": {
-          "name": "name",
+        "customer_id": {
+          "name": "customer_id",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -36,8 +36,8 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "slug": {
-          "name": "slug",
+        "type": {
+          "name": "type",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -52,13 +52,13 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "origin": {
-          "name": "origin",
+        "title": {
+          "name": "title",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
-          "nullable": true,
+          "nullable": false,
           "unique": false,
           "length": null,
           "precision": null,
@@ -68,13 +68,13 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "country_code": {
-          "name": "country_code",
+        "body": {
+          "name": "body",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
-          "nullable": true,
+          "nullable": false,
           "unique": false,
           "length": null,
           "precision": null,
@@ -84,24 +84,24 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "breeder": {
-          "name": "breeder",
-          "type": "text",
+        "read": {
+          "name": "read",
+          "type": "boolean",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
-          "nullable": true,
+          "nullable": false,
           "unique": false,
           "length": null,
           "precision": null,
           "scale": null,
-          "default": null,
+          "default": "false",
           "comment": null,
           "enumItems": [],
-          "mappedType": "text"
+          "mappedType": "boolean"
         },
-        "available_forms": {
-          "name": "available_forms",
+        "metadata": {
+          "name": "metadata",
           "type": "jsonb",
           "unsigned": false,
           "autoincrement": false,
@@ -115,86 +115,6 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "json"
-        },
-        "farm_notes": {
-          "name": "farm_notes",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "text"
-        },
-        "flavor_profile": {
-          "name": "flavor_profile",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "text"
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "text"
-        },
-        "image_url": {
-          "name": "image_url",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "text"
-        },
-        "is_active": {
-          "name": "is_active",
-          "type": "boolean",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": "true",
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "boolean"
         },
         "created_at": {
           "name": "created_at",
@@ -245,29 +165,20 @@
           "mappedType": "datetime"
         }
       },
-      "name": "hop",
+      "name": "inbox_notification",
       "schema": "public",
       "indexes": [
         {
-          "keyName": "IDX_hop_slug_unique",
+          "keyName": "IDX_inbox_notification_deleted_at",
           "columnNames": [],
           "composite": false,
           "constraint": false,
           "primary": false,
           "unique": false,
-          "expression": "CREATE UNIQUE INDEX IF NOT EXISTS \"IDX_hop_slug_unique\" ON \"hop\" (\"slug\") WHERE deleted_at IS NULL"
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_inbox_notification_deleted_at\" ON \"inbox_notification\" (\"deleted_at\") WHERE deleted_at IS NULL"
         },
         {
-          "keyName": "IDX_hop_deleted_at",
-          "columnNames": [],
-          "composite": false,
-          "constraint": false,
-          "primary": false,
-          "unique": false,
-          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_hop_deleted_at\" ON \"hop\" (\"deleted_at\") WHERE deleted_at IS NULL"
-        },
-        {
-          "keyName": "hop_pkey",
+          "keyName": "inbox_notification_pkey",
           "columnNames": ["id"],
           "composite": false,
           "constraint": true,

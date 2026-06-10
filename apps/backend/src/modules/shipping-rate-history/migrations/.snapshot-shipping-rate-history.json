@@ -20,8 +20,24 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "name": {
-          "name": "name",
+        "sampled_at": {
+          "name": "sampled_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "sample_label": {
+          "name": "sample_label",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -36,8 +52,24 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "slug": {
-          "name": "slug",
+        "weight_g": {
+          "name": "weight_g",
+          "type": "integer",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "destination_postcode": {
+          "name": "destination_postcode",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -52,13 +84,13 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "origin": {
-          "name": "origin",
+        "destination_state": {
+          "name": "destination_state",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
-          "nullable": true,
+          "nullable": false,
           "unique": false,
           "length": null,
           "precision": null,
@@ -68,45 +100,29 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "country_code": {
-          "name": "country_code",
+        "destination_country": {
+          "name": "destination_country",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
-          "nullable": true,
+          "nullable": false,
           "unique": false,
           "length": null,
           "precision": null,
           "scale": null,
-          "default": null,
+          "default": "'AU'",
           "comment": null,
           "enumItems": [],
           "mappedType": "text"
         },
-        "breeder": {
-          "name": "breeder",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "text"
-        },
-        "available_forms": {
-          "name": "available_forms",
+        "carrier_results": {
+          "name": "carrier_results",
           "type": "jsonb",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
-          "nullable": true,
+          "nullable": false,
           "unique": false,
           "length": null,
           "precision": null,
@@ -116,8 +132,8 @@
           "enumItems": [],
           "mappedType": "json"
         },
-        "farm_notes": {
-          "name": "farm_notes",
+        "cheapest_carrier_code": {
+          "name": "cheapest_carrier_code",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -132,8 +148,24 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "flavor_profile": {
-          "name": "flavor_profile",
+        "cheapest_amount_cents": {
+          "name": "cheapest_amount_cents",
+          "type": "integer",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "baseline_carrier_code": {
+          "name": "baseline_carrier_code",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -148,9 +180,9 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "description": {
-          "name": "description",
-          "type": "text",
+        "baseline_amount_cents": {
+          "name": "baseline_amount_cents",
+          "type": "integer",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
@@ -162,39 +194,7 @@
           "default": null,
           "comment": null,
           "enumItems": [],
-          "mappedType": "text"
-        },
-        "image_url": {
-          "name": "image_url",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "text"
-        },
-        "is_active": {
-          "name": "is_active",
-          "type": "boolean",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": "true",
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "boolean"
+          "mappedType": "integer"
         },
         "created_at": {
           "name": "created_at",
@@ -245,29 +245,20 @@
           "mappedType": "datetime"
         }
       },
-      "name": "hop",
+      "name": "shipping_rate_history",
       "schema": "public",
       "indexes": [
         {
-          "keyName": "IDX_hop_slug_unique",
+          "keyName": "IDX_shipping_rate_history_deleted_at",
           "columnNames": [],
           "composite": false,
           "constraint": false,
           "primary": false,
           "unique": false,
-          "expression": "CREATE UNIQUE INDEX IF NOT EXISTS \"IDX_hop_slug_unique\" ON \"hop\" (\"slug\") WHERE deleted_at IS NULL"
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_shipping_rate_history_deleted_at\" ON \"shipping_rate_history\" (\"deleted_at\") WHERE deleted_at IS NULL"
         },
         {
-          "keyName": "IDX_hop_deleted_at",
-          "columnNames": [],
-          "composite": false,
-          "constraint": false,
-          "primary": false,
-          "unique": false,
-          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_hop_deleted_at\" ON \"hop\" (\"deleted_at\") WHERE deleted_at IS NULL"
-        },
-        {
-          "keyName": "hop_pkey",
+          "keyName": "shipping_rate_history_pkey",
           "columnNames": ["id"],
           "composite": false,
           "constraint": true,

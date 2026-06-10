@@ -36,8 +36,8 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "beer_name": {
-          "name": "beer_name",
+        "brewery_id": {
+          "name": "brewery_id",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -52,9 +52,9 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "brewery_name": {
-          "name": "brewery_name",
-          "type": "text",
+        "channel_email": {
+          "name": "channel_email",
+          "type": "boolean",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
@@ -63,74 +63,26 @@
           "length": null,
           "precision": null,
           "scale": null,
-          "default": null,
+          "default": "true",
           "comment": null,
           "enumItems": [],
-          "mappedType": "text"
+          "mappedType": "boolean"
         },
-        "product_id": {
-          "name": "product_id",
-          "type": "text",
+        "channel_inapp": {
+          "name": "channel_inapp",
+          "type": "boolean",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
-          "nullable": true,
+          "nullable": false,
           "unique": false,
           "length": null,
           "precision": null,
           "scale": null,
-          "default": null,
+          "default": "true",
           "comment": null,
           "enumItems": [],
-          "mappedType": "text"
-        },
-        "notified_at": {
-          "name": "notified_at",
-          "type": "timestamptz",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": 6,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "datetime"
-        },
-        "restock_detected_at": {
-          "name": "restock_detected_at",
-          "type": "timestamptz",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": 6,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "datetime"
-        },
-        "tier_at_notification": {
-          "name": "tier_at_notification",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "text"
+          "mappedType": "boolean"
         },
         "created_at": {
           "name": "created_at",
@@ -181,20 +133,20 @@
           "mappedType": "datetime"
         }
       },
-      "name": "restock_alert",
+      "name": "brewery_follow",
       "schema": "public",
       "indexes": [
         {
-          "keyName": "IDX_restock_alert_deleted_at",
+          "keyName": "IDX_brewery_follow_deleted_at",
           "columnNames": [],
           "composite": false,
           "constraint": false,
           "primary": false,
           "unique": false,
-          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_restock_alert_deleted_at\" ON \"restock_alert\" (\"deleted_at\") WHERE deleted_at IS NULL"
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_brewery_follow_deleted_at\" ON \"brewery_follow\" (\"deleted_at\") WHERE deleted_at IS NULL"
         },
         {
-          "keyName": "restock_alert_pkey",
+          "keyName": "brewery_follow_pkey",
           "columnNames": ["id"],
           "composite": false,
           "constraint": true,

@@ -1,7 +1,5 @@
 {
-  "namespaces": [
-    "public"
-  ],
+  "namespaces": ["public"],
   "name": "public",
   "tables": [
     {
@@ -54,8 +52,24 @@
           "enumItems": [],
           "mappedType": "float"
         },
-        "network_spend_12mo": {
-          "name": "network_spend_12mo",
+        "direct_spend_12mo": {
+          "name": "direct_spend_12mo",
+          "type": "real",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "0",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "float"
+        },
+        "indirect_spend_12mo": {
+          "name": "indirect_spend_12mo",
           "type": "real",
           "unsigned": false,
           "autoincrement": false,
@@ -245,9 +259,7 @@
         },
         {
           "keyName": "vip_score_pkey",
-          "columnNames": [
-            "id"
-          ],
+          "columnNames": ["id"],
           "composite": false,
           "constraint": true,
           "primary": true,

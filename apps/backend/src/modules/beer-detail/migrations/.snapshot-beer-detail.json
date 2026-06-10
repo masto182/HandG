@@ -1,7 +1,5 @@
 {
-  "namespaces": [
-    "public"
-  ],
+  "namespaces": ["public"],
   "name": "public",
   "tables": [
     {
@@ -118,22 +116,6 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "collab_brewery_ids": {
-          "name": "collab_brewery_ids",
-          "type": "jsonb",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "json"
-        },
         "batch_group_id": {
           "name": "batch_group_id",
           "type": "text",
@@ -213,9 +195,7 @@
         },
         {
           "keyName": "beer_detail_pkey",
-          "columnNames": [
-            "id"
-          ],
+          "columnNames": ["id"],
           "composite": false,
           "constraint": true,
           "primary": true,
