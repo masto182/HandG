@@ -25,6 +25,7 @@
     "shipengine:list-carriers": "medusa exec ./src/scripts/shipengine-list-carriers.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.1038.0",
     "@medusajs/admin-sdk": "2.15.2",
     "@medusajs/admin-shared": "2.15.2",
     "@medusajs/caching": "2.15.2",

@@ -39,7 +39,7 @@ www.{$DOMAIN} {
 	}
 
 	# Medusa REST API + Auth + webhooks
-	@backendApi path /store/* /admin* /auth* /webhooks*
+	@backendApi path /store/* /admin* /auth* /webhooks* /files/*
 	handle @backendApi {
 		reverse_proxy backend:9000
 	}
@@ -70,7 +70,7 @@ www.{$DOMAIN} {
 		reverse_proxy backend:9000
 	}
 
-	@backendApi path /store/* /admin* /auth* /webhooks*
+	@backendApi path /store/* /admin* /auth* /webhooks* /files/*
 	handle @backendApi {
 		reverse_proxy backend:9000
 	}

@@ -7,7 +7,8 @@ type Brewery = {
   slug: string
   location: string | null
   description: string | null
-  image_url?: string | null
+  logo_url?: string | null
+  hero_image_url?: string | null
 }
 
 type FeaturedBreweriesProps = {
@@ -22,7 +23,10 @@ const PLACEHOLDER_IMAGES = [
   "/images/brewery-3.jpg",
 ]
 
-const FeaturedBreweries = ({ breweries, isApproved = false }: FeaturedBreweriesProps) => {
+const FeaturedBreweries = ({
+  breweries,
+  isApproved = false,
+}: FeaturedBreweriesProps) => {
   if (!breweries?.length) return null
 
   return (
@@ -47,18 +51,17 @@ const FeaturedBreweries = ({ breweries, isApproved = false }: FeaturedBreweriesP
               <div
                 className="absolute inset-0 w-full h-full bg-[var(--color-surface-2)] transition-transform duration-700 group-hover:scale-110"
                 style={{
-                  backgroundImage: brewery.image_url
-                    ? `url(${brewery.image_url})`
-                    : `url(${PLACEHOLDER_IMAGES[idx % 3]})`,
+                  backgroundImage:
+                    brewery.hero_image_url || brewery.logo_url
+                      ? `url(${brewery.hero_image_url || brewery.logo_url})`
+                      : `url(${PLACEHOLDER_IMAGES[idx % 3]})`,
                   backgroundSize: "cover",
                   backgroundPosition: "center",
                 }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
               <div className="absolute bottom-0 left-0 p-6 w-full">
-                <h3 className="text-h2 text-white mb-1">
-                  {brewery.name}
-                </h3>
+                <h3 className="text-h2 text-white mb-1">{brewery.name}</h3>
                 {brewery.description && (
                   <p className="text-sm text-white/60 mb-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 line-clamp-2">
                     {brewery.description}
@@ -66,7 +69,16 @@ const FeaturedBreweries = ({ breweries, isApproved = false }: FeaturedBreweriesP
                 )}
                 <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.15em] text-hg-gold group-hover:gap-2 transition-all">
                   View Collection
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                  </svg>
                 </span>
               </div>
             </LocalizedClientLink>

@@ -24,7 +24,7 @@
 	# Backend API, auth, webhooks, and admin UI paths.
 	# /troon* covers the Medusa admin UI bundle (MEDUSA_ADMIN_PATH=/troon/admin
 	# baked into the backend image at build time) and its /troon/admin/assets/*.
-	@backendApi path /store/* /admin* /troon* /auth* /webhooks*
+	@backendApi path /store/* /admin* /troon* /auth* /webhooks* /files/*
 	handle @backendApi {
 		reverse_proxy backend:9000
 	}
