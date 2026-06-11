@@ -23,6 +23,19 @@ const imageHostnames = (process.env.STOREFRONT_IMAGE_HOSTS || "")
   .map((h) => h.trim())
   .filter(Boolean)
 
+// Same-origin image proxy hosts. Product/brewery images are stored as absolute
+// URLs like https://<domain>/files/<key> and served by the backend streaming
+// proxy. next/image treats absolute URLs as "remote" even when same-origin, so
+// the site's own domains must be in remotePatterns. These are not secret and
+// are stable, so we bake them as defaults (one image is promoted staging->prod).
+const SELF_IMAGE_HOSTS = [
+  "hopsandglory.au",
+  "www.hopsandglory.au",
+  "staging.hopsandglory.au",
+]
+
+const allImageHostnames = [...new Set([...imageHostnames, ...SELF_IMAGE_HOSTS])]
+
 /**
  * @type {import('next').NextConfig}
  */
@@ -39,7 +52,7 @@ const nextConfig = {
     // hard-erroring on quality={50} used by Thumbnail for card images.
     qualities: [50, 75, 90],
     remotePatterns: [
-      ...imageHostnames.map((hostname) => ({
+      ...allImageHostnames.map((hostname) => ({
         protocol: "https",
         hostname,
       })),
