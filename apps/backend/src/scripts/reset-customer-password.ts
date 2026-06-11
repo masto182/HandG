@@ -7,8 +7,8 @@ export default async function resetCustomerPassword({ container }: ExecArgs) {
   const authModule = container.resolve("auth") as any
 
   // --- EDIT THESE ---
-  const email = ""
-  const newPassword = ""
+  const email: string = ""
+  const newPassword: string = ""
   // ------------------
 
   if (!email || !newPassword) {
@@ -16,7 +16,7 @@ export default async function resetCustomerPassword({ container }: ExecArgs) {
     return
   }
 
-  if (newPassword.length < 12) {
+  if ((newPassword as string).length < 12) {
     logger.error("newPassword must be at least 12 characters.")
     return
   }
