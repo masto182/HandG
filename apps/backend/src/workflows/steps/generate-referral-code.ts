@@ -39,9 +39,12 @@ export const generateReferralCodeStep = createStep(
       customer_id: input.customer_id,
       code,
     })
-    // Mirror onto customer.metadata for display (readers unchanged).
+    // Mirror onto customer.metadata for display — explicit merge to avoid
+    // overwriting other metadata fields (Medusa v2 updateCustomers replaces).
+    const [existing] = await (customerModule as any).listCustomers({ id: input.customer_id })
+    const prev = existing?.metadata || {}
     await customerModule.updateCustomers(input.customer_id, {
-      metadata: { referral_code: code },
+      metadata: { ...prev, referral_code: code },
     })
 
     return new StepResponse(
@@ -53,8 +56,12 @@ export const generateReferralCodeStep = createStep(
     if (!compensationInput) return
     const customerModule = container.resolve(Modules.CUSTOMER)
     const referralService = container.resolve(REFERRAL_MODULE) as any
+    const [existingC] = await (customerModule as any).listCustomers({
+      id: compensationInput.customer_id,
+    })
+    const prevC = existingC?.metadata || {}
     await customerModule.updateCustomers(compensationInput.customer_id, {
-      metadata: { referral_code: null },
+      metadata: { ...prevC, referral_code: null },
     })
     const [row] = await referralService.listReferralCodes({
       customer_id: compensationInput.customer_id,

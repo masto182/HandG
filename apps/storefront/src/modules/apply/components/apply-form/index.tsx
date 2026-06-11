@@ -23,6 +23,13 @@ export default function ApplyForm() {
     const form = new FormData(e.currentTarget)
     const email = form.get("email") as string
     const password = form.get("password") as string
+    const confirmPassword = form.get("confirm_password") as string
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.")
+      setLoading(false)
+      return
+    }
     const profile = {
       email,
       first_name: form.get("first_name") as string,
@@ -145,6 +152,23 @@ export default function ApplyForm() {
         <input
           id="apply-password"
           name="password"
+          type="password"
+          required
+          minLength={8}
+          className="bg-hg-surface border border-hg-border rounded-lg px-4 py-2.5 text-sm text-hg-text focus:border-hg-gold focus:outline-none"
+        />
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label
+          htmlFor="apply-confirm-password"
+          className="text-xs text-hg-text-secondary"
+        >
+          Confirm password
+        </label>
+        <input
+          id="apply-confirm-password"
+          name="confirm_password"
           type="password"
           required
           minLength={8}
