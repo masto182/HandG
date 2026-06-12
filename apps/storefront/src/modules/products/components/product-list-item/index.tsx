@@ -99,6 +99,25 @@ export default async function ProductListItem({
             alt={product.title}
             className="w-full h-full object-cover grayscale-[0.2]"
           />
+          {!canSeePricing && (
+            <div className="absolute inset-0 bg-hg-surface/60 backdrop-blur-[4px] z-10 flex flex-col items-center justify-center gap-1">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="text-hg-text-secondary"
+              >
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              <span className="text-[8px] font-bold uppercase tracking-wider text-hg-text-secondary">
+                Members Only
+              </span>
+            </div>
+          )}
           {canSeePricing && !hasEarlyAccess && (
             <div className="absolute inset-0 bg-hg-overlay-bg backdrop-blur-[4px] flex items-center justify-center">
               <svg

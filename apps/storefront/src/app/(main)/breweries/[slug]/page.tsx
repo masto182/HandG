@@ -336,6 +336,32 @@ export default async function BreweryDetailPage(props: Props) {
                           size="full"
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
+                        {!canSeePricing && (
+                          <div className="absolute inset-0 bg-hg-surface/60 backdrop-blur-[4px] z-10 flex flex-col items-center justify-center gap-2">
+                            <svg
+                              width="24"
+                              height="24"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              className="text-hg-text-secondary"
+                            >
+                              <rect
+                                x="3"
+                                y="11"
+                                width="18"
+                                height="11"
+                                rx="2"
+                                ry="2"
+                              />
+                              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                            </svg>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-hg-text-secondary">
+                              Members Only
+                            </span>
+                          </div>
+                        )}
                         <ProductPill product={product} />
                       </div>
                     </Link>
@@ -418,6 +444,32 @@ export default async function BreweryDetailPage(props: Props) {
                             size="full"
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           />
+                          {!canSeePricing && (
+                            <div className="absolute inset-0 bg-hg-surface/60 backdrop-blur-[4px] z-10 flex flex-col items-center justify-center gap-2">
+                              <svg
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                className="text-hg-text-secondary"
+                              >
+                                <rect
+                                  x="3"
+                                  y="11"
+                                  width="18"
+                                  height="11"
+                                  rx="2"
+                                  ry="2"
+                                />
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                              </svg>
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-hg-text-secondary">
+                                Members Only
+                              </span>
+                            </div>
+                          )}
                           <ProductPill product={product} />
                         </div>
                       </Link>

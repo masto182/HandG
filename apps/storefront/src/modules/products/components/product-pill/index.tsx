@@ -17,13 +17,28 @@ type PillConfig = {
 const PILL_STYLES: Record<PillType, PillConfig> = {
   "EARLY ACCESS": {
     label: "Early Access",
-    className: "bg-violet-600 text-white",
+    className: "bg-pill-early-access-bg text-pill-early-access-text",
   },
-  ANNIVERSARY: { label: "Anniversary", className: "bg-pink-600 text-white" },
-  COLLAB: { label: "Collab", className: "bg-hg-gold text-hg-on-primary" },
-  NEW: { label: "New", className: "bg-emerald-600 text-white" },
-  SPECIAL: { label: "Special", className: "bg-red-600 text-white" },
-  "VIP DEAL": { label: "VIP Deal", className: "bg-purple-600 text-white" },
+  ANNIVERSARY: {
+    label: "Anniversary",
+    className: "bg-pill-anniversary-bg text-pill-anniversary-text",
+  },
+  COLLAB: {
+    label: "Collab",
+    className: "bg-pill-collab-bg text-pill-collab-text",
+  },
+  NEW: {
+    label: "New",
+    className: "bg-pill-new-bg text-pill-new-text",
+  },
+  SPECIAL: {
+    label: "Special",
+    className: "bg-pill-special-bg text-pill-special-text",
+  },
+  "VIP DEAL": {
+    label: "VIP Deal",
+    className: "bg-pill-vip-deal-bg text-pill-vip-deal-text",
+  },
 }
 
 const NEW_THRESHOLD_MS = 7 * 24 * 60 * 60 * 1000

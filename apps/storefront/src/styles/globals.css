@@ -90,6 +90,18 @@
     --color-price: #244C3D;
     --color-overlay-bg: rgba(255, 255, 255, 0.88);
     --color-overlay-text: rgba(0, 0, 0, 0.82);
+    --pill-new-bg: #F0F7D3;
+    --pill-new-text: #4A6200;
+    --pill-collab-bg: #E1EEE7;
+    --pill-collab-text: #226A4D;
+    --pill-anniversary-bg: #FEF3C7;
+    --pill-anniversary-text: #92400E;
+    --pill-early-access-bg: #EDE9FE;
+    --pill-early-access-text: #5B21B6;
+    --pill-special-bg: #FEE2E2;
+    --pill-special-text: #991B1B;
+    --pill-vip-deal-bg: #FFF7ED;
+    --pill-vip-deal-text: #9A3412;
   }
 
   [data-theme="dark"] {
@@ -117,6 +129,18 @@
     --color-price: #8FD0B0;
     --color-overlay-bg: rgba(0, 0, 0, 0.85);
     --color-overlay-text: rgba(255, 255, 255, 0.9);
+    --pill-new-bg: #313C1E;
+    --pill-new-text: #CBE85A;
+    --pill-collab-bg: #1A3328;
+    --pill-collab-text: #63A987;
+    --pill-anniversary-bg: #2C2000;
+    --pill-anniversary-text: #D4A435;
+    --pill-early-access-bg: #221A33;
+    --pill-early-access-text: #A78BFA;
+    --pill-special-bg: #2C0C0E;
+    --pill-special-text: #E07A8B;
+    --pill-vip-deal-bg: #2A1800;
+    --pill-vip-deal-text: #F97316;
   }
 
   body {

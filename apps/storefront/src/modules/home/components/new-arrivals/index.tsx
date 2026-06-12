@@ -3,6 +3,7 @@ import LocalizedClientLink from "@modules/common/components/localized-client-lin
 import Thumbnail from "@modules/products/components/thumbnail"
 import AddToCartButton from "@modules/products/components/product-list-item/add-to-cart-button"
 import EarlyAccessOverlay from "@modules/products/components/early-access-overlay"
+import ProductPill from "@modules/products/components/product-pill"
 import { getProductPrice } from "@lib/util/get-product-price"
 import {
   canCustomerAccessProduct,
@@ -42,18 +43,6 @@ function getAbv(product: HttpTypes.StoreProduct): string {
   return meta?.abv ? `${meta.abv}%` : ""
 }
 
-function isCollab(product: HttpTypes.StoreProduct): boolean {
-  const breweries = (product as any).breweries
-  return Array.isArray(breweries) && breweries.length > 1
-}
-
-function isAnniversary(product: HttpTypes.StoreProduct): boolean {
-  const tagValues = (product.tags || []).map((t) =>
-    (t.value || "").toLowerCase(),
-  )
-  return tagValues.includes("anniversary")
-}
-
 function getStock(product: HttpTypes.StoreProduct): number {
   if (!product.variants) return 0
   return product.variants.reduce(
@@ -91,8 +80,6 @@ const NewArrivals = ({
           const beerName = getBeerName(product)
           const style = getStyle(product)
           const abv = getAbv(product)
-          const collab = isCollab(product)
-          const anniversary = isAnniversary(product)
           const stock = getStock(product)
           const soldOut = stock === 0
           const { cheapestPrice } = getProductPrice({ product })
@@ -135,16 +122,33 @@ const NewArrivals = ({
                       size="full"
                     />
                   </div>
-                  {anniversary && (
-                    <div className="absolute top-2 right-2 bg-hg-gold text-white px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ring-2 ring-[var(--color-bg)]">
-                      Anniversary
+                  {!canSeePricing && (
+                    <div className="absolute inset-0 bg-hg-surface/60 backdrop-blur-[4px] z-10 flex flex-col items-center justify-center gap-2">
+                      <svg
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        className="text-hg-text-secondary"
+                      >
+                        <rect
+                          x="3"
+                          y="11"
+                          width="18"
+                          height="11"
+                          rx="2"
+                          ry="2"
+                        />
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                      </svg>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-hg-text-secondary">
+                        Members Only
+                      </span>
                     </div>
                   )}
-                  {collab && !anniversary && (
-                    <div className="absolute top-2 right-2 bg-amber-500 text-black px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ring-2 ring-[var(--color-bg)]">
-                      Collab
-                    </div>
-                  )}
+                  <ProductPill product={product} />
                   {canSeePricing &&
                     ((product.metadata as any)?.release_at ||
                       (product.metadata as any)?.early_access_until) && (
