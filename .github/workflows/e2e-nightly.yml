@@ -11,6 +11,7 @@ permissions:
 env:
   NODE_VERSION: "20.20.2"
   PNPM_VERSION: "10.33.2"
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   e2e-full:
@@ -68,6 +69,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Build shared packages
+        run: pnpm --filter @retail-example/shared-types build
       - name: Build backend
         run: pnpm --filter ./apps/backend build
       - name: Migrate + seed
