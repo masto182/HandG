@@ -49,7 +49,7 @@ export default async function Nav({
         }}
       >
         <div className="mx-auto flex h-full max-w-[1440px] items-center justify-between px-6 lg:px-10">
-          <div className="flex items-center gap-12">
+          <div className="flex items-center gap-3 small:gap-12">
             <div className="small:hidden">
               <SideMenu
                 regions={regions}
@@ -102,16 +102,20 @@ export default async function Nav({
           </div>
 
           <div className="flex items-center gap-6">
-            <SearchBar />
+            <div className="hidden small:block">
+              <SearchBar />
+            </div>
 
-            <ThemeToggle />
+            <div className="hidden small:block">
+              <ThemeToggle />
+            </div>
 
             <div className="flex items-center gap-4 border-l border-hg-border pl-6">
               {isApproved && (
                 <>
                   <LocalizedClientLink
                     href="/account/referrals"
-                    className="flex items-center gap-1.5 text-sm font-semibold text-hg-gold tracking-tight transition-opacity hover:opacity-80 mr-2"
+                    className="hidden small:flex items-center gap-1.5 text-sm font-semibold text-hg-gold tracking-tight transition-opacity hover:opacity-80 mr-2"
                   >
                     <svg
                       className="h-4 w-4"
@@ -128,7 +132,9 @@ export default async function Nav({
                     </svg>
                     <span className="hidden sm:inline">Referrals</span>
                   </LocalizedClientLink>
-                  <VipBadge tier={membershipStatus} />
+                  <span className="hidden small:block">
+                    <VipBadge tier={membershipStatus} />
+                  </span>
                 </>
               )}
 
@@ -170,7 +176,11 @@ export default async function Nav({
                 </>
               )}
 
-              {isApproved && <NotificationDropdown />}
+              {isApproved && (
+                <span className="hidden small:block">
+                  <NotificationDropdown />
+                </span>
+              )}
 
               {isApproved && (
                 <Suspense

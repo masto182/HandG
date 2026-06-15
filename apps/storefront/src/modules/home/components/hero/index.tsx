@@ -37,7 +37,7 @@ const Hero = ({
                 {lowStockCount > 0 && ` · ${lowStockCount} beers running low`}
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 small:gap-3">
               <a
                 href="/store?sortBy=created_at"
                 className="px-4 py-2 text-sm font-medium bg-hg-gold/10 border border-hg-gold/30 text-hg-gold rounded-lg hover:bg-hg-gold/20 transition-colors"

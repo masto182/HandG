@@ -135,7 +135,7 @@ export default async function ProductPreview({
       </LocalizedClientLink>
       <div className="space-y-1.5 px-0.5">
         <div className="flex justify-between items-baseline">
-          <span className="font-semibold text-[11px] text-hg-gold uppercase tracking-wider">
+          <span className="font-semibold text-xs text-hg-gold uppercase tracking-wider">
             {brewery}
           </span>
           {canSeePricing && cheapestPrice && (
@@ -148,7 +148,7 @@ export default async function ProductPreview({
           {beerName}
         </h2>
         {canSeePricing && (
-          <div className="hidden lg:flex items-center gap-1.5 text-[10px] font-medium text-hg-text-secondary uppercase tracking-wider">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-hg-text-secondary uppercase tracking-wider">
             {style && <span>{style}</span>}
             {style && abv && <span className="text-hg-border">·</span>}
             {abv && <span>{abv}</span>}
@@ -158,7 +158,7 @@ export default async function ProductPreview({
           <div className="flex justify-between items-center pt-3">
             <div className="flex items-center gap-1.5">
               <span className={`w-2 h-2 rounded-full ${stock.dotClass}`} />
-              <span className="text-[10px] font-bold text-hg-text-secondary uppercase tracking-widest">
+              <span className="text-xs font-bold text-hg-text-secondary uppercase tracking-widest">
                 {stock.label}
               </span>
             </div>

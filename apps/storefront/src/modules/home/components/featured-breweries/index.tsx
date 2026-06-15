@@ -46,7 +46,7 @@ const FeaturedBreweries = ({
             <LocalizedClientLink
               key={brewery.id}
               href={`/breweries/${brewery.slug}`}
-              className="relative group h-[480px] rounded-xl overflow-hidden border border-hg-border block"
+              className="relative group h-[260px] small:h-[480px] rounded-xl overflow-hidden border border-hg-border block"
             >
               <div
                 className="absolute inset-0 w-full h-full bg-[var(--color-surface-2)] transition-transform duration-700 group-hover:scale-110"
@@ -63,7 +63,7 @@ const FeaturedBreweries = ({
               <div className="absolute bottom-0 left-0 p-6 w-full">
                 <h3 className="text-h2 text-white mb-1">{brewery.name}</h3>
                 {brewery.description && (
-                  <p className="text-sm text-white/60 mb-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 line-clamp-2">
+                  <p className="text-sm text-white/60 mb-4 opacity-100 small:opacity-0 small:group-hover:opacity-100 transition-opacity duration-300 line-clamp-2">
                     {brewery.description}
                   </p>
                 )}

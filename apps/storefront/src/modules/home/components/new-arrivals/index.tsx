@@ -167,7 +167,7 @@ const NewArrivals = ({
               </LocalizedClientLink>
               <div className="p-4 flex flex-col flex-grow">
                 {brewery && (
-                  <span className="text-[10px] font-semibold text-hg-gold uppercase tracking-[0.12em] mb-1">
+                  <span className="text-xs font-semibold text-hg-gold uppercase tracking-[0.12em] mb-1">
                     {brewery}
                   </span>
                 )}
@@ -177,7 +177,7 @@ const NewArrivals = ({
                   </h3>
                 </LocalizedClientLink>
                 {(style || abv) && (
-                  <span className="text-[11px] text-hg-text-secondary mb-3">
+                  <span className="text-xs text-hg-text-secondary mb-3">
                     {style}
                     {style && abv ? " · " : ""}
                     {abv}
@@ -194,7 +194,7 @@ const NewArrivals = ({
                     </span>
                   )}
                   {soldOut ? (
-                    <span className="px-4 py-2 bg-hg-surface-dim text-hg-text-secondary text-[11px] font-bold rounded-lg uppercase tracking-wider">
+                    <span className="px-4 py-2 bg-hg-surface-dim text-hg-text-secondary text-xs font-bold rounded-lg uppercase tracking-wider">
                       Sold Out
                     </span>
                   ) : hasEarlyAccess && variantId ? (
@@ -202,7 +202,7 @@ const NewArrivals = ({
                   ) : hasEarlyAccess ? (
                     <LocalizedClientLink
                       href={`/products/${product.handle}`}
-                      className="px-4 py-2 border border-hg-border text-hg-text text-[11px] font-bold uppercase tracking-wider rounded-lg text-center hover:bg-hg-gold hover:text-white hover:border-hg-gold transition-all"
+                      className="px-4 py-2 border border-hg-border text-hg-text text-xs font-bold uppercase tracking-wider rounded-lg text-center hover:bg-hg-gold hover:text-white hover:border-hg-gold transition-all"
                     >
                       View
                     </LocalizedClientLink>
