@@ -47,6 +47,24 @@ const nextConfig = {
       fullUrl: true,
     },
   },
+  // When NEXT_REWRITES_BACKEND is set (e.g. in CI where the Medusa backend runs
+  // on a different port than the storefront), proxy auth/store/admin requests
+  // through the Next.js server so that session cookies are set on the same
+  // origin as the storefront. In production, Caddy handles this routing and the
+  // env var is left unset.
+  ...(process.env.NEXT_REWRITES_BACKEND
+    ? {
+        async rewrites() {
+          const backend = process.env.NEXT_REWRITES_BACKEND
+          return [
+            { source: "/auth/:path*", destination: `${backend}/auth/:path*` },
+            { source: "/store/:path*", destination: `${backend}/store/:path*` },
+            { source: "/admin/:path*", destination: `${backend}/admin/:path*` },
+            { source: "/hooks/:path*", destination: `${backend}/hooks/:path*` },
+          ]
+        },
+      }
+    : {}),
   images: {
     // Explicit quality allowlist. Avoids Next 16 narrowing the default set and
     // hard-erroring on quality={50} used by Thumbnail for card images.

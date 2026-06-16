@@ -1,15 +1,16 @@
 import { getLocaleHeader } from "@lib/util/get-locale-header"
 import Medusa, { FetchArgs, FetchInput } from "@medusajs/js-sdk"
 
-// If NEXT_PUBLIC_MEDUSA_BACKEND_URL is explicitly configured, use it for both
-// server-side and client-side calls so the SDK always targets the real backend.
-// In same-origin deployments (Caddy proxy) where the env var is not set, fall
-// back to window.location.origin on the client as a same-origin proxy.
+// Server-side: use the explicit backend URL so RSC data fetching hits the real
+// Medusa backend directly.
+// Client-side: use window.location.origin (same-origin) — in production Caddy
+// routes /auth/* /store/* /admin/* to the backend; in CI, next.config.js
+// rewrites via NEXT_REWRITES_BACKEND achieve the same. Same-origin ensures
+// session cookies are set and readable by both browser and SSR.
 const MEDUSA_BACKEND_URL =
-  process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL ||
-  (typeof window !== "undefined"
+  typeof window !== "undefined"
     ? window.location.origin
-    : "http://localhost:9000")
+    : process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "http://localhost:9000"
 
 export const sdk = new Medusa({
   baseUrl: MEDUSA_BACKEND_URL,

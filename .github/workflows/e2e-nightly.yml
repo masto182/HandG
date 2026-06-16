@@ -78,6 +78,9 @@ jobs:
       NEXT_PUBLIC_PAYID_ALIAS: payments@example.test
       STOREFRONT_IMAGE_HOSTS: localhost
       PLAYWRIGHT_PROD_URL: http://localhost:8000
+      # Proxy auth/store/admin through Next.js so session cookies are same-origin.
+      # In production Caddy handles this; in CI we need Next.js rewrites instead.
+      NEXT_REWRITES_BACKEND: http://localhost:9000
     steps:
       - uses: actions/checkout@v4
 
