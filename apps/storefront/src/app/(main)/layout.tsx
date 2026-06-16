@@ -30,7 +30,7 @@ export default async function MainLayout({
   }
 
   return (
-    <div className="pb-14 small:pb-0">
+    <div className="pb-[calc(3.5rem+env(safe-area-inset-bottom))] small:pb-0">
       {/* Skip navigation — WCAG 2.4.1 Level A */}
       <a
         href="#main-content"

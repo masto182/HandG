@@ -128,6 +128,11 @@ export default function MobileBottomNav({
 }: MobileBottomNavProps) {
   const pathname = usePathname()
 
+  // Hide on PDPs — MobileActions fixed bar handles bottom CTA there
+  if (pathname.includes("/products/")) {
+    return null
+  }
+
   const tabs: { label: string; href: string; iconKey: string }[] = [
     { label: "Collection", href: "/store", iconKey: "store" },
     {

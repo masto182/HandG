@@ -86,7 +86,7 @@ const StepPayment: React.FC<Props> = ({ cart, paymentMethods, isPickup }) => {
       {error && <p className="text-sm text-hl-error mb-4">{error}</p>}
 
       {filteredMethods.length > 1 && (
-        <div className="flex gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row gap-4 mb-8">
           {filteredMethods.map((pm) => {
             const isPayid = isPayId(pm.id)
             const isActive = selected === pm.id
@@ -217,7 +217,7 @@ const StepPayment: React.FC<Props> = ({ cart, paymentMethods, isPickup }) => {
               </div>
               <button
                 onClick={() => copyToClipboard(payidEmail, "email")}
-                className="text-hg-text-secondary hover:text-hg-gold transition-colors"
+                className="text-hg-text-secondary hover:text-hg-gold transition-colors p-2"
               >
                 {copied === "email" ? (
                   <svg
@@ -258,7 +258,7 @@ const StepPayment: React.FC<Props> = ({ cart, paymentMethods, isPickup }) => {
               </div>
               <button
                 onClick={() => copyToClipboard(referenceCode, "ref")}
-                className="text-hg-text-secondary hover:text-hg-gold transition-colors"
+                className="text-hg-text-secondary hover:text-hg-gold transition-colors p-2"
               >
                 {copied === "ref" ? (
                   <svg
@@ -289,7 +289,7 @@ const StepPayment: React.FC<Props> = ({ cart, paymentMethods, isPickup }) => {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4 mt-8">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
             <div className="text-center">
               <span className="text-2xl font-bold text-hg-text-muted">01</span>
               <p className="text-xs text-hg-text-secondary mt-2">
@@ -378,7 +378,7 @@ const StepPayment: React.FC<Props> = ({ cart, paymentMethods, isPickup }) => {
         </div>
       )}
 
-      <div className="flex items-center justify-between pt-4">
+      <div className="flex flex-wrap items-center justify-between gap-y-3 pt-4">
         <a
           href={backHref}
           className="flex items-center gap-2 text-sm text-hg-text-secondary hover:text-hg-text transition-colors"
@@ -398,7 +398,7 @@ const StepPayment: React.FC<Props> = ({ cart, paymentMethods, isPickup }) => {
         <button
           onClick={handleContinue}
           disabled={!selected || isLoading}
-          className="px-10 py-4 bg-hg-gold text-hg-on-primary font-semibold text-[12px] uppercase tracking-[0.1em] rounded-lg transition-transform hover:scale-105 active:scale-95 shadow-lg disabled:opacity-50"
+          className="px-8 sm:px-10 py-4 bg-hg-gold text-hg-on-primary font-semibold text-[12px] uppercase tracking-[0.1em] rounded-lg transition-transform hover:scale-105 active:scale-95 shadow-lg disabled:opacity-50"
         >
           {isLoading ? "Processing..." : "I Understand Payment Terms"}
         </button>

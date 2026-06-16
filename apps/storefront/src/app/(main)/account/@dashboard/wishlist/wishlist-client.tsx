@@ -114,7 +114,7 @@ function WishlistCard({
 
   return (
     <div
-      className={`bg-[#171E1B] ${borderClass} rounded-xl overflow-clip group flex flex-col h-[620px] relative ${isOOS ? "opacity-90" : ""}`}
+      className={`bg-[#171E1B] ${borderClass} rounded-xl overflow-clip group flex flex-col min-h-[620px] h-auto relative ${isOOS ? "opacity-90" : ""}`}
     >
       {bannerText && (
         <div
@@ -672,7 +672,7 @@ export default function WishlistPage() {
   return (
     <div className="w-full" data-testid="wishlist-page-wrapper">
       <div className="mb-10 flex flex-col gap-y-2">
-        <h1 className="text-[48px] font-bold tracking-[-0.04em] leading-[1.1] text-[#e0e3df]">
+        <h1 className="text-[32px] small:text-[48px] font-bold tracking-[-0.04em] leading-[1.1] text-[#e0e3df]">
           Wishlist
         </h1>
         <p className="text-[18px] leading-[1.6] text-[#bfc9c1] max-w-[600px]">
@@ -681,7 +681,7 @@ export default function WishlistPage() {
         </p>
       </div>
 
-      <div className="flex mb-6 w-full md:w-fit">
+      <div className="flex mb-6 w-full sm:w-fit">
         <div className="flex items-center p-1 bg-[#171E1B] border border-white/5 rounded-xl w-full md:w-auto overflow-x-auto">
           {TABS.map((tab) => {
             const count = getTabCount(tab.key)
@@ -738,7 +738,7 @@ export default function WishlistPage() {
           </LocalizedClientLink>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 small:grid-cols-3 gap-6">
           {filteredItems.map((item) => (
             <WishlistCard
               key={item.id}

@@ -10,7 +10,6 @@ import {
   HOURS_BEFORE_PUBLIC_BY_TIER,
   type Tier,
 } from "@retail-example/shared-types"
-import CarouselNav from "./carousel-nav"
 
 type NewArrivalsProps = {
   products: HttpTypes.StoreProduct[]
@@ -62,19 +61,13 @@ const NewArrivals = ({
 
   return (
     <section className="py-16 bg-[var(--color-bg)]">
-      <div className="max-w-[1440px] mx-auto px-6 mb-6 flex justify-between items-end">
-        <div>
-          <span className="text-hg-gold text-xs font-semibold uppercase tracking-[0.15em] mb-1 block">
-            Current Selection
-          </span>
-          <h2 className="text-h2 text-hg-text">New Arrivals</h2>
-        </div>
-        <CarouselNav containerId="new-arrivals-carousel" />
+      <div className="max-w-[1440px] mx-auto px-6 mb-6">
+        <span className="text-hg-gold text-xs font-semibold uppercase tracking-[0.15em] mb-1 block">
+          Fresh In
+        </span>
+        <h2 className="text-h2 text-hg-text">New Arrivals</h2>
       </div>
-      <div
-        id="new-arrivals-carousel"
-        className="flex gap-6 overflow-x-auto no-scrollbar px-6 pb-6 max-w-[1440px] mx-auto"
-      >
+      <ul className="grid grid-cols-2 small:grid-cols-3 medium:grid-cols-4 gap-x-3 gap-y-8 small:gap-x-6 small:gap-y-10 max-w-[1440px] mx-auto px-6">
         {products.slice(0, 8).map((product) => {
           const brewery = getBreweryName(product)
           const beerName = getBeerName(product)
@@ -109,110 +102,109 @@ const NewArrivals = ({
           })()
 
           return (
-            <div
-              key={product.id}
-              className="min-w-[280px] max-w-[300px] bg-[var(--color-surface)] border border-hg-border rounded-xl overflow-hidden group flex flex-col"
-            >
-              <LocalizedClientLink href={`/products/${product.handle}`}>
-                <div className="aspect-square bg-[var(--color-surface-2)] flex items-center justify-center relative overflow-hidden">
-                  <div className="h-full w-full group-hover:scale-110 transition-transform duration-500">
+            <li key={product.id}>
+              <article className="flex flex-col gap-3 group">
+                <LocalizedClientLink href={`/products/${product.handle}`}>
+                  <div className="aspect-[4/5] w-full bg-hg-surface-dim rounded-lg overflow-hidden relative">
                     <Thumbnail
                       thumbnail={product.thumbnail}
                       images={product.images}
                       size="full"
+                      className="w-full h-full object-contain p-3 grayscale-[0.1] group-hover:grayscale-0 group-hover:scale-[1.03] transition-all duration-500"
                     />
-                  </div>
-                  {!canSeePricing && (
-                    <div className="absolute inset-0 bg-hg-surface/60 backdrop-blur-[4px] z-10 flex flex-col items-center justify-center gap-2">
-                      <svg
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        className="text-hg-text-secondary"
-                      >
-                        <rect
-                          x="3"
-                          y="11"
-                          width="18"
-                          height="11"
-                          rx="2"
-                          ry="2"
-                        />
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                      </svg>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-hg-text-secondary">
-                        Members Only
-                      </span>
-                    </div>
-                  )}
-                  <ProductPill product={product} />
-                  {canSeePricing &&
-                    ((product.metadata as any)?.release_at ||
-                      (product.metadata as any)?.early_access_until) && (
-                      <EarlyAccessOverlay
-                        releaseAt={
-                          (product.metadata as any)?.release_at ?? null
-                        }
-                        earlyAccessUntil={
-                          (product.metadata as any)?.early_access_until ?? null
-                        }
-                        offsets={earlyAccessOffsets}
-                        viewerTier={viewerTier}
-                      />
+                    {!canSeePricing && (
+                      <div className="absolute inset-0 bg-hg-surface/60 backdrop-blur-[4px] z-10 flex flex-col items-center justify-center gap-2">
+                        <svg
+                          width="24"
+                          height="24"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          className="text-hg-text-secondary"
+                        >
+                          <rect
+                            x="3"
+                            y="11"
+                            width="18"
+                            height="11"
+                            rx="2"
+                            ry="2"
+                          />
+                          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-hg-text-secondary">
+                          Members Only
+                        </span>
+                      </div>
                     )}
-                </div>
-              </LocalizedClientLink>
-              <div className="p-4 flex flex-col flex-grow">
-                {brewery && (
-                  <span className="text-xs font-semibold text-hg-gold uppercase tracking-[0.12em] mb-1">
-                    {brewery}
-                  </span>
-                )}
-                <LocalizedClientLink href={`/products/${product.handle}`}>
-                  <h3 className="text-base font-semibold text-hg-text leading-tight capitalize mb-1">
-                    {beerName}
-                  </h3>
+                    <ProductPill product={product} />
+                    {canSeePricing &&
+                      ((product.metadata as any)?.release_at ||
+                        (product.metadata as any)?.early_access_until) && (
+                        <EarlyAccessOverlay
+                          releaseAt={
+                            (product.metadata as any)?.release_at ?? null
+                          }
+                          earlyAccessUntil={
+                            (product.metadata as any)?.early_access_until ??
+                            null
+                          }
+                          offsets={earlyAccessOffsets}
+                          viewerTier={viewerTier}
+                        />
+                      )}
+                  </div>
                 </LocalizedClientLink>
-                {(style || abv) && (
-                  <span className="text-xs text-hg-text-secondary mb-3">
-                    {style}
-                    {style && abv ? " · " : ""}
-                    {abv}
-                  </span>
-                )}
-                <div className="mt-auto flex items-center justify-between pt-3 border-t border-hg-border/30">
-                  {canSeePricing && cheapestPrice ? (
-                    <span className="text-lg font-bold text-hg-text">
-                      {cheapestPrice.calculated_price}
-                    </span>
-                  ) : (
-                    <span className="text-xs text-hg-text-secondary uppercase tracking-wider">
-                      {canSeePricing ? "" : "Members Only"}
+                <div className="flex flex-col">
+                  {brewery && (
+                    <span className="text-[11px] font-semibold text-hg-gold uppercase tracking-[0.12em]">
+                      {brewery}
                     </span>
                   )}
-                  {soldOut ? (
-                    <span className="px-4 py-2 bg-hg-surface-dim text-hg-text-secondary text-xs font-bold rounded-lg uppercase tracking-wider">
-                      Sold Out
+                  <LocalizedClientLink href={`/products/${product.handle}`}>
+                    <h3 className="text-[15px] font-bold text-hg-text leading-snug capitalize line-clamp-2">
+                      {beerName}
+                    </h3>
+                  </LocalizedClientLink>
+                  {canSeePricing && (style || abv) && (
+                    <span className="text-[11px] text-hg-text-secondary mt-0.5">
+                      {style}
+                      {style && abv ? " · " : ""}
+                      {abv}
                     </span>
-                  ) : hasEarlyAccess && variantId ? (
-                    <AddToCartButton variantId={variantId} />
-                  ) : hasEarlyAccess ? (
-                    <LocalizedClientLink
-                      href={`/products/${product.handle}`}
-                      className="px-4 py-2 border border-hg-border text-hg-text text-xs font-bold uppercase tracking-wider rounded-lg text-center hover:bg-hg-gold hover:text-white hover:border-hg-gold transition-all"
-                    >
-                      View
-                    </LocalizedClientLink>
-                  ) : null}
+                  )}
+                  <div className="flex items-center justify-between pt-2">
+                    {canSeePricing && cheapestPrice ? (
+                      <span className="text-lg font-bold text-hg-text">
+                        {cheapestPrice.calculated_price}
+                      </span>
+                    ) : (
+                      <span className="text-[11px] text-hg-text-secondary uppercase tracking-wider">
+                        {canSeePricing ? "" : "Members Only"}
+                      </span>
+                    )}
+                    {soldOut ? (
+                      <span className="text-[11px] font-bold text-hg-text-secondary uppercase tracking-wider">
+                        Sold Out
+                      </span>
+                    ) : hasEarlyAccess && variantId ? (
+                      <AddToCartButton variantId={variantId} compact />
+                    ) : hasEarlyAccess ? (
+                      <LocalizedClientLink
+                        href={`/products/${product.handle}`}
+                        className="text-[11px] font-bold uppercase tracking-wider text-hg-text hover:text-hg-gold transition-colors"
+                      >
+                        View
+                      </LocalizedClientLink>
+                    ) : null}
+                  </div>
                 </div>
-              </div>
-            </div>
+              </article>
+            </li>
           )
         })}
-      </div>
+      </ul>
     </section>
   )
 }

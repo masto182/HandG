@@ -48,7 +48,7 @@ export default async function Nav({
             "color-mix(in srgb, var(--color-bg) 90%, transparent)",
         }}
       >
-        <div className="mx-auto flex h-full max-w-[1440px] items-center justify-between px-6 lg:px-10">
+        <div className="mx-auto flex h-full max-w-[1440px] items-center justify-between px-6 small:px-10">
           <div className="flex items-center gap-3 small:gap-12">
             <div className="small:hidden">
               <SideMenu
@@ -69,7 +69,7 @@ export default async function Nav({
               </span>
             </LocalizedClientLink>
             <nav
-              className="hidden items-center gap-8 lg:flex"
+              className="hidden items-center gap-8 small:flex"
               aria-label="Main navigation"
             >
               <LocalizedClientLink
@@ -141,21 +141,23 @@ export default async function Nav({
               {isApproved ? (
                 <LocalizedClientLink
                   href="/account"
-                  className="h-8 w-8 rounded-full overflow-hidden border border-hg-border hover:border-hg-gold transition-colors"
+                  className="flex items-center justify-center min-h-[44px] min-w-[44px]"
                 >
-                  {avatarUrl ? (
-                    <img
-                      src={avatarUrl}
-                      alt="Profile"
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="h-full w-full bg-hg-surface flex items-center justify-center">
-                      <span className="text-xs font-bold text-hg-text-secondary">
-                        {initial}
-                      </span>
-                    </div>
-                  )}
+                  <span className="h-8 w-8 rounded-full overflow-hidden border border-hg-border hover:border-hg-gold transition-colors flex items-center justify-center">
+                    {avatarUrl ? (
+                      <img
+                        src={avatarUrl}
+                        alt="Profile"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="h-full w-full bg-hg-surface flex items-center justify-center">
+                        <span className="text-xs font-bold text-hg-text-secondary">
+                          {initial}
+                        </span>
+                      </div>
+                    )}
+                  </span>
                 </LocalizedClientLink>
               ) : (
                 <>
@@ -169,7 +171,7 @@ export default async function Nav({
                   )}
                   <LocalizedClientLink
                     href="/apply"
-                    className="text-[11px] font-bold uppercase tracking-widest px-4 py-2 border border-hg-gold text-hg-gold rounded-sm hover:bg-hg-gold hover:text-hg-on-primary transition-colors"
+                    className="text-[11px] font-bold uppercase tracking-widest px-4 py-3 border border-hg-gold text-hg-gold rounded-sm hover:bg-hg-gold hover:text-hg-on-primary transition-colors"
                   >
                     Apply
                   </LocalizedClientLink>

@@ -29,3 +29,7 @@ apps/storefront/800
 # Playwright artifacts
 apps/storefront/playwright-report/
 apps/storefront/test-results/
+
+# Untappd scraper session (contains auth cookies)
+apps/backend/data/untappd-session.json
+apps/backend/data/chrome-profile/

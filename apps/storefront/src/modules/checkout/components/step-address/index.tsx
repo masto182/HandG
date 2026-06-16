@@ -286,7 +286,7 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
               <label className="font-semibold text-[12px] text-hg-text-secondary uppercase tracking-widest">
                 Full Name
               </label>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <input
                   name="shipping_address.first_name"
                   autoComplete="given-name"
@@ -340,7 +340,7 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
                 className="w-full bg-hg-surface border-0 ring-1 ring-hg-border focus:ring-2 focus:ring-hg-gold rounded-xl px-4 py-4 text-hg-text placeholder:text-hg-text-muted transition-all outline-none"
               />
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <label className="font-semibold text-[12px] text-hg-text-secondary uppercase tracking-widest">
                   City
@@ -422,7 +422,7 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
 
         <ErrorMessage error={message} />
 
-        <div className="flex items-center justify-between pt-6 border-t border-hg-border/30">
+        <div className="flex flex-wrap items-center justify-between gap-y-3 pt-6 border-t border-hg-border/30">
           <a
             href="/checkout?step=fulfilment"
             className="flex items-center gap-2 text-sm text-hg-text-secondary hover:text-hg-text transition-colors"
@@ -439,7 +439,7 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
             </svg>
             Return to Fulfilment
           </a>
-          <SubmitButton className="px-8 py-3.5 bg-hg-gold text-hg-bg font-bold text-sm rounded-full transition-all hover:brightness-110 active:scale-95">
+          <SubmitButton className="px-8 py-3.5 min-h-[44px] bg-hg-gold text-hg-bg font-bold text-sm rounded-full transition-all hover:brightness-110 active:scale-95">
             Continue to Shipping Method →
           </SubmitButton>
         </div>

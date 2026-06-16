@@ -32,6 +32,8 @@ async function fetchFilteredProductIds(
   if (filterParams.collab) params.set("collab", filterParams.collab)
   if (filterParams.tags) params.set("tags", filterParams.tags)
   if (filterParams.abv) params.set("abv", filterParams.abv)
+  if (filterParams.hop_country)
+    params.set("hop_country", filterParams.hop_country)
   params.set("limit", "200")
 
   try {
@@ -183,7 +185,8 @@ function hasActiveFilters(filterParams?: FilterParams): boolean {
     filterParams.collab ||
     filterParams.tags ||
     filterParams.abv ||
-    filterParams.on_sale
+    filterParams.on_sale ||
+    filterParams.hop_country
   )
 }
 
@@ -373,7 +376,7 @@ export default async function PaginatedProducts({
           >
             <div className={canSeePricing ? "col-span-5" : "col-span-10"}>
               <span className="font-semibold text-[10px] text-hg-text-secondary uppercase tracking-widest">
-                Archive Details
+                Collection Details
               </span>
             </div>
             {canSeePricing && (
@@ -416,10 +419,7 @@ export default async function PaginatedProducts({
         </div>
       ) : (
         <ul
-          className="grid gap-x-6 gap-y-10 w-full"
-          style={{
-            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-          }}
+          className="grid grid-cols-2 small:grid-cols-3 medium:grid-cols-4 gap-x-3 gap-y-8 small:gap-x-6 small:gap-y-10 w-full"
           data-testid="products-list"
         >
           {products.map((p) => (

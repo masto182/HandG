@@ -26,6 +26,7 @@ type Params = {
     abv?: string
     on_sale?: string
     available?: string
+    hop_country?: string
   }>
 }
 

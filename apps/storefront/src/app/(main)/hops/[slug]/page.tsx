@@ -124,8 +124,8 @@ export default async function HopDetailPage(props: Props) {
   const approved = isApprovedMember(membership)
 
   return (
-    <div className="content-container py-12">
-      <div className="mb-12">
+    <div className="content-container py-8 small:py-12">
+      <div className="mb-6 small:mb-12">
         <Link
           href="/store"
           className="text-sm text-hg-text-secondary hover:text-hg-accent transition-colors"
@@ -134,7 +134,7 @@ export default async function HopDetailPage(props: Props) {
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-16">
+      <div className="grid grid-cols-1 small:grid-cols-3 gap-8 small:gap-12 mb-8 small:mb-16">
         <div className="md:col-span-2">
           <h1 className="text-h1 text-hg-text mb-4">{hop.name}</h1>
 
@@ -230,7 +230,7 @@ export default async function HopDetailPage(props: Props) {
         )}
       </div>
 
-      <div className="border-t border-hg-border pt-12">
+      <div className="border-t border-hg-border pt-8 small:pt-12">
         <h2 className="text-h2 text-hg-text mb-8">
           Releases featuring {hop.name}
           <span className="text-hg-text-secondary text-lg ml-3">

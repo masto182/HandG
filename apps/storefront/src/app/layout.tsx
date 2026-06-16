@@ -1,5 +1,5 @@
 import { getBaseURL } from "@lib/util/env"
-import { Metadata } from "next"
+import { Metadata, Viewport } from "next"
 import { headers } from "next/headers"
 import "styles/globals.css"
 import {
@@ -16,6 +16,12 @@ export const metadata: Metadata = {
   title: "Hops & Glory | Private Collection",
   description:
     "A private collection of the most coveted, limited-release cans in existence. Membership by application or referral only.",
+}
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 }
 
 export default async function RootLayout(props: { children: React.ReactNode }) {
@@ -43,7 +49,7 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
           nonce={nonce}
           suppressHydrationWarning
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('hl-theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t)}else if(window.matchMedia('(prefers-color-scheme:light)').matches){document.documentElement.setAttribute('data-theme','light')}}catch(e){}})()`,
+            __html: `(function(){try{var t=localStorage.getItem('hl-theme');if(t==='light'){document.documentElement.setAttribute('data-theme','light')}}catch(e){}})()`,
           }}
         />
         {process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN && (

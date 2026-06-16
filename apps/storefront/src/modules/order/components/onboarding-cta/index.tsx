@@ -6,7 +6,7 @@ import { Button, Container, Text } from "@modules/common/components/ui"
 const OnboardingCta = ({ orderId }: { orderId: string }) => {
   return (
     <Container className="max-w-4xl h-full bg-hg-bg w-full">
-      <div className="flex flex-col gap-y-4 center p-4 md:items-center">
+      <div className="flex flex-col gap-y-4 center p-4 small:items-center">
         <Text className="text-hg-text text-xl">
           Your test order was successfully created! 🎉
         </Text>

@@ -26,9 +26,9 @@ const ShippingDetails = ({ order }: ShippingDetailsProps) => {
       </Heading>
 
       {pickup ? (
-        <div className="flex items-start gap-x-8">
+        <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-x-8">
           <div
-            className="flex flex-col w-1/2"
+            className="flex flex-col sm:w-1/2"
             data-testid="pickup-location-summary"
           >
             <Text className="txt-medium-plus text-hg-text mb-1">
@@ -40,7 +40,7 @@ const ShippingDetails = ({ order }: ShippingDetailsProps) => {
           </div>
 
           <div
-            className="flex flex-col w-1/2"
+            className="flex flex-col sm:w-1/2"
             data-testid="pickup-contact-summary"
           >
             <Text className="txt-medium-plus text-hg-text mb-1">
@@ -55,9 +55,9 @@ const ShippingDetails = ({ order }: ShippingDetailsProps) => {
           </div>
         </div>
       ) : (
-        <div className="flex items-start gap-x-8">
+        <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-x-8">
           <div
-            className="flex flex-col w-1/3"
+            className="flex flex-col sm:w-1/3"
             data-testid="shipping-address-summary"
           >
             <Text className="txt-medium-plus text-hg-text mb-1">
@@ -82,7 +82,7 @@ const ShippingDetails = ({ order }: ShippingDetailsProps) => {
           </div>
 
           <div
-            className="flex flex-col w-1/3"
+            className="flex flex-col sm:w-1/3"
             data-testid="shipping-contact-summary"
           >
             <Text className="txt-medium-plus text-hg-text mb-1">Contact</Text>
@@ -95,7 +95,7 @@ const ShippingDetails = ({ order }: ShippingDetailsProps) => {
           </div>
 
           <div
-            className="flex flex-col w-1/3"
+            className="flex flex-col sm:w-1/3"
             data-testid="shipping-method-summary"
           >
             <Text className="txt-medium-plus text-hg-text mb-1">Method</Text>

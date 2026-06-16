@@ -116,7 +116,7 @@ export default async function Checkout({
   const isConfirm = step === "confirm"
 
   return (
-    <main className="min-h-screen flex max-w-[1440px] mx-auto px-8">
+    <main className="min-h-screen flex max-w-[1440px] mx-auto px-4 sm:px-8">
       <section className={`flex-1 ${isConfirm ? "" : "lg:pr-[420px]"} py-12`}>
         <div className="max-w-[720px] mx-auto">
           {!isConfirm && (

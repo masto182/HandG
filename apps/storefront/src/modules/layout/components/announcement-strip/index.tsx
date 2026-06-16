@@ -20,7 +20,7 @@ const AnnouncementStrip = () => {
       try {
         const data = await sdk.client.fetch<{ announcements: any[] }>(
           "/store/announcements",
-          { method: "GET" }
+          { method: "GET" },
         )
         if (data.announcements?.length > 0) {
           const latest = data.announcements[0]
@@ -72,7 +72,7 @@ const AnnouncementStrip = () => {
       )}
       <button
         onClick={dismiss}
-        className="absolute right-3 top-1/2 -translate-y-1/2 opacity-60 hover:opacity-100 transition-opacity"
+        className="absolute right-1 top-1/2 -translate-y-1/2 p-3 -m-3 opacity-60 hover:opacity-100 transition-opacity"
         aria-label="Dismiss announcement"
       >
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none">

@@ -10,6 +10,6 @@
  */
 
 export const DEFAULT_REFERRAL_BODY =
-  "Joining the Hops Archive. Allocation access + a $25 credit when you sign up with my code."
+  "Joining Hops & Glory. Allocation access + a $25 credit when you sign up with my code."
 
-export const DEFAULT_REFERRAL_EMAIL_SUBJECT = "An invite to Hops Archive"
+export const DEFAULT_REFERRAL_EMAIL_SUBJECT = "An invite to Hops & Glory"

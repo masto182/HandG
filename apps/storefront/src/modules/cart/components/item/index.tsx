@@ -38,13 +38,20 @@ const Item = ({ item, type = "full", currencyCode, maxStock }: ItemProps) => {
       })
   }
 
-  const inventoryQuantity = maxStock ?? (item.variant as any)?.inventory_quantity ?? (item.variant as any)?.inventory?.quantity
-  const maxQuantity = inventoryQuantity != null && inventoryQuantity > 0
-    ? inventoryQuantity
-    : 99
+  const inventoryQuantity =
+    maxStock ??
+    (item.variant as any)?.inventory_quantity ??
+    (item.variant as any)?.inventory?.quantity
+  const maxQuantity =
+    inventoryQuantity != null && inventoryQuantity > 0 ? inventoryQuantity : 99
 
-  const productMeta = (item as any).product?.metadata || (item.variant?.product as any)?.metadata
-  const brewery = productMeta?.brewery_name || productMeta?.brewery || item.product_collection || item.product_subtitle
+  const productMeta =
+    (item as any).product?.metadata || (item.variant?.product as any)?.metadata
+  const brewery =
+    productMeta?.brewery_name ||
+    productMeta?.brewery ||
+    item.product_collection ||
+    item.product_subtitle
 
   return (
     <div
@@ -70,12 +77,19 @@ const Item = ({ item, type = "full", currencyCode, maxStock }: ItemProps) => {
                 {brewery}
               </p>
             )}
-            <h3 className="text-body-md font-semibold text-on-surface truncate" data-testid="product-title">
+            <h3
+              className="text-body-md font-semibold text-on-surface truncate"
+              data-testid="product-title"
+            >
               {item.product_title}
             </h3>
           </div>
           <span className="text-price text-hg-gold flex-shrink-0">
-            <LineItemPrice item={item} style="tight" currencyCode={currencyCode} />
+            <LineItemPrice
+              item={item}
+              style="tight"
+              currencyCode={currencyCode}
+            />
           </span>
         </div>
 
@@ -86,20 +100,28 @@ const Item = ({ item, type = "full", currencyCode, maxStock }: ItemProps) => {
             <div className="flex items-center bg-surface-container-low rounded-lg border border-outline-variant overflow-hidden">
               <button
                 type="button"
-                onClick={() => item.quantity > 1 && changeQuantity(item.quantity - 1)}
+                onClick={() =>
+                  item.quantity > 1 && changeQuantity(item.quantity - 1)
+                }
                 disabled={updating || item.quantity <= 1}
-                className="px-2.5 py-1.5 hover:bg-hg-surface-hover transition-colors disabled:opacity-40"
+                className="px-3 py-3 min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-hg-surface-hover transition-colors disabled:opacity-40"
               >
                 <Icon name="remove" size={16} />
               </button>
-              <span className="px-3 text-sm font-bold text-on-surface min-w-[32px] text-center" data-testid="product-select-button">
+              <span
+                className="px-3 text-sm font-bold text-on-surface min-w-[32px] text-center"
+                data-testid="product-select-button"
+              >
                 {item.quantity}
               </span>
               <button
                 type="button"
-                onClick={() => item.quantity < maxQuantity && changeQuantity(item.quantity + 1)}
+                onClick={() =>
+                  item.quantity < maxQuantity &&
+                  changeQuantity(item.quantity + 1)
+                }
                 disabled={updating || item.quantity >= maxQuantity}
-                className="px-2.5 py-1.5 hover:bg-hg-surface-hover transition-colors disabled:opacity-40"
+                className="px-3 py-3 min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-hg-surface-hover transition-colors disabled:opacity-40"
               >
                 <Icon name="add" size={16} />
               </button>
@@ -113,7 +135,9 @@ const Item = ({ item, type = "full", currencyCode, maxStock }: ItemProps) => {
         )}
 
         {type === "preview" && (
-          <span className="text-sm text-on-surface-variant">Qty: {item.quantity}</span>
+          <span className="text-sm text-on-surface-variant">
+            Qty: {item.quantity}
+          </span>
         )}
 
         <ErrorMessage error={error} data-testid="product-error-message" />

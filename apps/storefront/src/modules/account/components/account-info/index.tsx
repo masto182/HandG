@@ -14,7 +14,7 @@ type AccountInfoProps = {
   errorMessage?: string
   clearState: () => void
   children?: React.ReactNode
-  'data-testid'?: string
+  "data-testid"?: string
 }
 
 const AccountInfo = ({
@@ -25,7 +25,7 @@ const AccountInfo = ({
   clearState,
   errorMessage = "An error occurred, please try again",
   children,
-  'data-testid': dataTestid
+  "data-testid": dataTestid,
 }: AccountInfoProps) => {
   const { state, close, toggle } = useToggleState()
 
@@ -44,12 +44,16 @@ const AccountInfo = ({
 
   return (
     <div className="text-sm px-6" data-testid={dataTestid}>
-      <div className="flex items-center justify-between py-4">
-        <div className="flex flex-col gap-1">
-          <span className="text-label-caps uppercase tracking-[0.05em] text-on-surface-variant">{label}</span>
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 py-4">
+        <div className="flex flex-col gap-1 min-w-0 flex-1">
+          <span className="text-label-caps uppercase tracking-[0.05em] text-on-surface-variant">
+            {label}
+          </span>
           <div className="flex items-center">
             {typeof currentInfo === "string" ? (
-              <span className="text-on-surface" data-testid="current-info">{currentInfo === "null" ? "—" : currentInfo}</span>
+              <span className="text-on-surface" data-testid="current-info">
+                {currentInfo === "null" ? "—" : currentInfo}
+              </span>
             ) : (
               currentInfo
             )}
@@ -72,7 +76,7 @@ const AccountInfo = ({
           {
             "max-h-[200px] opacity-100": isSuccess,
             "max-h-0 opacity-0": !isSuccess,
-          }
+          },
         )}
         data-testid="success-message"
       >
@@ -87,7 +91,7 @@ const AccountInfo = ({
           {
             "max-h-[200px] opacity-100": isError,
             "max-h-0 opacity-0": !isError,
-          }
+          },
         )}
         data-testid="error-message"
       >
@@ -102,7 +106,7 @@ const AccountInfo = ({
           {
             "max-h-[1000px] opacity-100 overflow-visible": state,
             "max-h-0 opacity-0 overflow-hidden pointer-events-none": !state,
-          }
+          },
         )}
       >
         <div className="flex flex-col gap-y-3 py-4">

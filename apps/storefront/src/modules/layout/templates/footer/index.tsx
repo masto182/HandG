@@ -9,7 +9,7 @@ export default async function Footer({
   return (
     <footer className="bg-hg-surface-low pt-16 pb-10 border-t border-hg-border/30">
       <div className="max-w-[1440px] mx-auto px-6">
-        <div className="grid grid-cols-1 small:grid-cols-4 gap-16 mb-16">
+        <div className="grid grid-cols-1 small:grid-cols-4 gap-8 small:gap-16 mb-8 small:mb-16">
           <div>
             <span className="text-xl font-black tracking-tighter text-hg-gold mb-4 block">
               HOPS &amp; GLORY
@@ -71,7 +71,7 @@ export default async function Footer({
                   href="mailto:hello@example.com"
                   className="text-sm text-hg-text-secondary hover:text-hg-gold transition-colors"
                 >
-                  Contact Concierge
+                  Contact Us
                 </a>
               </li>
             </ul>

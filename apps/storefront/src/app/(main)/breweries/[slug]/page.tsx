@@ -78,7 +78,7 @@ export default async function BreweryDetailPage(props: Props) {
   return (
     <div className="w-full">
       {/* Hero Section */}
-      <section className="relative h-[614px] min-h-[500px] w-full flex items-end pb-16 overflow-hidden">
+      <section className="relative h-[360px] sm:h-[500px] small:h-[614px] w-full flex items-end pb-10 small:pb-16 overflow-hidden">
         <div className="absolute inset-0 z-0">
           {brewery.hero_image_url ? (
             <img
@@ -103,7 +103,7 @@ export default async function BreweryDetailPage(props: Props) {
             }}
           />
         </div>
-        <div className="relative z-10 max-w-[1440px] mx-auto px-8 w-full">
+        <div className="relative z-10 max-w-[1440px] mx-auto px-4 small:px-8 w-full">
           <div className="flex flex-col gap-2">
             {brewery.location && (
               <span className="text-xs font-semibold text-hl-primary tracking-[0.2em] uppercase">
@@ -118,7 +118,7 @@ export default async function BreweryDetailPage(props: Props) {
               />
               <Link
                 href={`/store?brewery=${encodeURIComponent(brewery.name)}`}
-                className="px-8 py-3 bg-transparent border border-hg-border text-hg-text font-bold rounded-xl hover:bg-hg-surface active:scale-95 transition-transform"
+                className="px-5 py-3 small:px-8 bg-transparent border border-hg-border text-hg-text font-bold rounded-xl hover:bg-hg-surface active:scale-95 transition-transform"
               >
                 View Releases
               </Link>
@@ -128,9 +128,9 @@ export default async function BreweryDetailPage(props: Props) {
       </section>
 
       {/* Main Content Layout */}
-      <div className="max-w-[1440px] mx-auto px-8 py-20 grid grid-cols-1 lg:grid-cols-12 gap-16">
+      <div className="max-w-[1440px] mx-auto px-4 small:px-8 py-10 small:py-20 grid grid-cols-1 small:grid-cols-12 gap-8 small:gap-16">
         {/* Left Column: Story & Specs */}
-        <aside className="lg:col-span-4 flex flex-col gap-12">
+        <aside className="small:col-span-4 flex flex-col gap-12">
           <div className="flex flex-col gap-6">
             <h2 className="text-h3 text-hg-text border-b border-hg-border pb-4">
               Our Heritage
@@ -143,7 +143,7 @@ export default async function BreweryDetailPage(props: Props) {
           </div>
 
           {/* Brewery Specs */}
-          <div className="p-8 bg-hg-surface border border-hg-border rounded-xl">
+          <div className="p-4 small:p-8 bg-hg-surface border border-hg-border rounded-xl">
             <h3 className="text-xs font-semibold text-hl-primary mb-8 uppercase tracking-widest">
               {breweryLabel(canSeePricing, false)} Specs
             </h3>
@@ -276,7 +276,7 @@ export default async function BreweryDetailPage(props: Props) {
         </aside>
 
         {/* Right Column: Current Releases */}
-        <section className="lg:col-span-8">
+        <section className="small:col-span-8">
           <div className="flex justify-between items-end mb-10">
             <div>
               <h2 className="text-h2 text-hg-text">Current Releases</h2>
@@ -304,7 +304,7 @@ export default async function BreweryDetailPage(props: Props) {
           </div>
 
           {products.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-y-12 gap-x-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 small:grid-cols-3 gap-y-12 gap-x-6">
               {products.slice(0, 6).map((product: any) => {
                 const { cheapestPrice } = getProductPrice({ product })
                 const pMeta = product.metadata as any
@@ -428,7 +428,7 @@ export default async function BreweryDetailPage(props: Props) {
                   </p>
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-y-12 gap-x-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 small:grid-cols-3 gap-y-12 gap-x-6">
                 {collabs.map((product: any) => {
                   const { cheapestPrice } = getProductPrice({ product })
                   return (

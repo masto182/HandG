@@ -7,17 +7,9 @@ const ThemeToggle = () => {
 
   useEffect(() => {
     const stored = localStorage.getItem("hl-theme")
-    if (stored === "light" || stored === "dark") {
-      setTheme(stored)
-      document.documentElement.setAttribute("data-theme", stored)
-    } else {
-      const prefersDark = window.matchMedia(
-        "(prefers-color-scheme: dark)",
-      ).matches
-      const initial = prefersDark ? "dark" : "light"
-      setTheme(initial)
-      document.documentElement.setAttribute("data-theme", initial)
-    }
+    const initial = stored === "light" ? "light" : "dark"
+    setTheme(initial)
+    document.documentElement.setAttribute("data-theme", initial)
   }, [])
 
   const toggle = () => {

@@ -38,6 +38,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     hops,
     hopsMode = "or",
     hop_country,
+    abv,
     freshness,
     collab,
     sort = "created_at_ts:desc",
@@ -76,6 +77,29 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       .filter(Boolean)
     const cf = countries.map((c) => `hop_countries = "${sanitizeFilterValue(c)}"`)
     filters.push(`(${cf.join(" OR ")})`)
+  }
+
+  if (abv) {
+    const ranges = (abv as string)
+      .split(",")
+      .map((r) => r.trim())
+      .filter(Boolean)
+    const abvFilters = ranges
+      .map((r) => {
+        if (r.endsWith("+")) {
+          const min = parseFloat(r)
+          return Number.isFinite(min) ? `abv >= ${min}` : null
+        }
+        const [min, max] = r.split("-").map(Number)
+        if (Number.isFinite(min) && Number.isFinite(max)) {
+          return `(abv >= ${min} AND abv < ${max})`
+        }
+        return null
+      })
+      .filter(Boolean) as string[]
+    if (abvFilters.length) {
+      filters.push(`(${abvFilters.join(" OR ")})`)
+    }
   }
 
   if (freshness) {

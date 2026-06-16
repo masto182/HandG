@@ -106,7 +106,7 @@ const Hero = ({
             href="/store"
             className="border border-white/30 text-white px-10 py-4 rounded-lg font-semibold text-lg hover:bg-white/5 transition-all backdrop-blur-md"
           >
-            Explore Archive
+            Explore The Collection
           </a>
         </div>
       </div>

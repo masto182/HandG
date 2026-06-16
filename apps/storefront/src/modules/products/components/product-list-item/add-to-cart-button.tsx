@@ -4,7 +4,13 @@ import { useState } from "react"
 import { toast } from "sonner"
 import { addToCart } from "@lib/data/cart"
 
-export default function AddToCartButton({ variantId }: { variantId: string }) {
+export default function AddToCartButton({
+  variantId,
+  compact = false,
+}: {
+  variantId: string
+  compact?: boolean
+}) {
   const [adding, setAdding] = useState(false)
   const [added, setAdded] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -41,9 +47,11 @@ export default function AddToCartButton({ variantId }: { variantId: string }) {
     <button
       onClick={handleAdd}
       disabled={adding}
-      className={`px-5 py-2.5 rounded-sm font-bold text-[13px] uppercase tracking-widest transition-all shadow-sm border disabled:opacity-50 text-nowrap ${errorMsg ? "bg-red-900/30 text-red-300 border-red-500/30" : "bg-hl-surface3 text-hg-text border-hg-border hover:bg-hg-gold hover:text-hg-on-primary"}`}
+      className={`${compact ? "px-3 py-2 text-[11px] tracking-wider" : "px-5 py-2.5 text-[13px] tracking-widest"} rounded-sm font-bold uppercase transition-all shadow-sm border disabled:opacity-50 text-nowrap ${errorMsg ? "bg-red-900/30 text-red-300 border-red-500/30" : "bg-hl-surface3 text-hg-text border-hg-border hover:bg-hg-gold hover:text-hg-on-primary"}`}
     >
-      {errorMsg ?? (added ? "ADDED" : adding ? "..." : "ADD TO CART")}
+      {compact
+        ? (errorMsg ?? (added ? "Added" : adding ? "..." : "Add"))
+        : (errorMsg ?? (added ? "ADDED" : adding ? "..." : "ADD TO CART"))}
     </button>
   )
 }

@@ -45,15 +45,19 @@ function Toggle({
     <button
       onClick={() => onToggle(!enabled)}
       aria-label={`${label} ${enabled ? "on" : "off"}`}
-      className={`relative inline-flex w-9 h-5 rounded-full transition-colors ${
-        enabled ? "bg-hl-primary" : "bg-hg-border"
-      }`}
+      className={`relative inline-flex min-h-[44px] min-w-[44px] items-center justify-center`}
     >
       <span
-        className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
-          enabled ? "translate-x-4" : "translate-x-0"
+        className={`relative inline-flex w-9 h-5 rounded-full transition-colors ${
+          enabled ? "bg-hl-primary" : "bg-hg-border"
         }`}
-      />
+      >
+        <span
+          className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
+            enabled ? "translate-x-4" : "translate-x-0"
+          }`}
+        />
+      </span>
     </button>
   )
 }
@@ -258,7 +262,7 @@ export default function AlertsClient({
                     {breweryName(bf.brewery_id)}
                   </p>
                 </div>
-                <div className="flex items-center gap-4 shrink-0">
+                <div className="flex flex-wrap items-center gap-3 shrink-0">
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs text-hg-text-muted">Email</span>
                     <Toggle
@@ -281,9 +285,23 @@ export default function AlertsClient({
                   </div>
                   <button
                     onClick={() => removeBreweryFollow(bf.brewery_id)}
-                    className="text-xs text-hg-text-muted hover:text-red-400 transition-colors"
+                    className="flex items-center justify-center min-h-[44px] min-w-[44px] text-hg-text-muted hover:text-red-400 transition-colors"
+                    aria-label="Remove brewery alert"
                   >
-                    Remove
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
                   </button>
                 </div>
               </li>
@@ -331,7 +349,7 @@ export default function AlertsClient({
                     {hopName(ha.hop_id)}
                   </p>
                 </div>
-                <div className="flex items-center gap-4 shrink-0">
+                <div className="flex flex-wrap items-center gap-3 shrink-0">
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs text-hg-text-muted">Email</span>
                     <Toggle
@@ -354,9 +372,23 @@ export default function AlertsClient({
                   </div>
                   <button
                     onClick={() => removeHopAlert(ha.hop_id)}
-                    className="text-xs text-hg-text-muted hover:text-red-400 transition-colors"
+                    className="flex items-center justify-center min-h-[44px] min-w-[44px] text-hg-text-muted hover:text-red-400 transition-colors"
+                    aria-label="Remove hop alert"
                   >
-                    Remove
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
                   </button>
                 </div>
               </li>

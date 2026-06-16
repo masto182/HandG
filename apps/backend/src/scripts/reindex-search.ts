@@ -41,11 +41,12 @@ export default async function reindexSearch({ container }: ExecArgs) {
 
   const styleMap = new Map<string, { name: string; family: string }>()
   const hopMap = new Map<string, string[]>()
+  const hopCountryMap = new Map<string, string[]>()
   const breweryCountMap = new Map<string, number>()
   try {
     const { data: linked } = await query.graph({
       entity: "product",
-      fields: ["id", "beer_style.*", "hops.*", "breweries.id"],
+      fields: ["id", "beer_style.*", "hops.*", "hops.country_code", "breweries.id"],
       filters: { id: products.map((p: any) => p.id) },
     })
     for (const item of linked || []) {
@@ -60,6 +61,13 @@ export default async function reindexSearch({ container }: ExecArgs) {
         hopMap.set(
           (item as any).id,
           linkedHops.map((h: any) => h.name)
+        )
+        hopCountryMap.set(
+          (item as any).id,
+          linkedHops
+            .map((h: any) => h.country_code)
+            .filter(Boolean)
+            .filter((v: string, i: number, a: string[]) => a.indexOf(v) === i)
         )
       }
       const linkedBreweries = (item as any).breweries || []
@@ -88,6 +96,7 @@ export default async function reindexSearch({ container }: ExecArgs) {
       style: linkedStyle?.name || meta.style || "",
       style_family: linkedStyle?.family || "",
       hops,
+      hop_countries: hopCountryMap.get(p.id) || [],
       abv: parseFloat(meta.abv) || 0,
       untappd_score: parseFloat(meta.untappd_score) || 0,
       packaged_at_ts: packagedAtTs,

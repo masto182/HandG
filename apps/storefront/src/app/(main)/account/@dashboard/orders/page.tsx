@@ -19,8 +19,10 @@ export default async function Orders() {
   return (
     <div className="w-full" data-testid="orders-page-wrapper">
       <header className="mb-10">
-        <h1 className="text-h1 text-on-surface mb-2">Orders</h1>
-        <p className="text-body-lg text-on-surface-variant">Every drop you&apos;ve secured.</p>
+        <h1 className="text-h2 small:text-h1 text-on-surface mb-2">Orders</h1>
+        <p className="text-body-lg text-on-surface-variant">
+          Every drop you&apos;ve secured.
+        </p>
       </header>
       <OrderOverview orders={orders} />
     </div>

@@ -50,7 +50,7 @@ function buildTiers(
       key: "approved",
       label: "Approved",
       points: "Entry",
-      perk: "Standard Archives",
+      perk: "Back Catalogue",
     },
     {
       key: "vip1",
@@ -181,8 +181,8 @@ export default async function VipPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-8 space-y-6">
+      <div className="grid grid-cols-1 small:grid-cols-12 gap-8">
+        <div className="small:col-span-8 space-y-6">
           <div className="bg-surface-container border border-outline-variant/30 rounded-2xl p-6 relative overflow-hidden">
             <div className="relative z-10">
               <div className="flex justify-between items-end mb-4">
@@ -280,7 +280,7 @@ export default async function VipPage() {
           </div>
         </div>
 
-        <div className="lg:col-span-4">
+        <div className="small:col-span-4">
           <div className="relative pl-8" data-testid="vip-tier-ladder">
             <div className="absolute left-[15px] top-4 bottom-4 w-[2px] bg-outline-variant/30" />
             <div className="space-y-6">

@@ -175,7 +175,7 @@ export default async function BreweriesPage() {
       )}
 
       <div className="mt-20 flex justify-center">
-        <button className="border border-hg-border text-hg-text hover:border-hl-primary hover:text-hl-primary transition-all duration-300 px-12 py-4 rounded-full text-xs font-semibold uppercase tracking-widest flex items-center gap-3">
+        <button className="border border-hg-border text-hg-text hover:border-hl-primary hover:text-hl-primary transition-all duration-300 px-8 small:px-12 py-4 rounded-full text-xs font-semibold uppercase tracking-widest flex items-center gap-3">
           View All Partners
           <svg
             width="16"

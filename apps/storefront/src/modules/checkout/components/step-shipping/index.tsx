@@ -548,7 +548,7 @@ const StepShipping: React.FC<Props> = ({ cart, shippingOptions }) => {
       )}
 
       {/* Footer */}
-      <footer className="mt-10 flex items-center justify-between border-t border-white/5 pt-6">
+      <footer className="mt-10 flex flex-wrap items-center justify-between gap-y-3 border-t border-white/5 pt-6">
         <a
           href="/checkout?step=address"
           className="flex items-center gap-2 text-[12px] uppercase tracking-widest text-hg-text-secondary hover:text-hg-gold transition-colors group"
@@ -569,7 +569,7 @@ const StepShipping: React.FC<Props> = ({ cart, shippingOptions }) => {
         <button
           onClick={handleContinue}
           disabled={!selected || isLoading || isLoadingRates}
-          className="bg-hg-gold text-hg-bg uppercase px-12 py-4 rounded-full text-[12px] font-black tracking-[0.2em] shadow-xl shadow-hg-gold/10 hover:shadow-hg-gold/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100"
+          className="bg-hg-gold text-hg-bg uppercase px-8 sm:px-12 py-4 rounded-full text-[12px] font-black tracking-[0.2em] shadow-xl shadow-hg-gold/10 hover:shadow-hg-gold/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100"
         >
           {isLoading ? "Processing…" : "Proceed to Payment"}
         </button>

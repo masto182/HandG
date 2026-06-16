@@ -97,19 +97,19 @@ export default async function ProductPreview({
   })()
 
   return (
-    <article className="flex flex-col gap-4">
+    <article className="flex flex-col gap-3">
       <LocalizedClientLink
         href={`/products/${product.handle}`}
         className="group"
       >
-        <div className="aspect-[4/5] w-full bg-hg-surface-dim rounded-md overflow-hidden border border-hg-border/40 relative">
+        <div className="aspect-[4/5] w-full bg-hg-surface-dim rounded-lg overflow-hidden relative">
           <Thumbnail
             thumbnail={product.thumbnail}
             images={product.images}
             size="full"
             isFeatured={isFeatured}
             alt={product.title}
-            className="w-full h-full object-cover grayscale-[0.15] group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700"
+            className="w-full h-full object-contain p-3 grayscale-[0.1] group-hover:grayscale-0 group-hover:scale-[1.03] transition-all duration-500"
           />
           <ProductPill product={product} activeSpecial={activeSpecial} />
           {activeSpecial?.ends_at && (
@@ -133,44 +133,46 @@ export default async function ProductPreview({
           )}
         </div>
       </LocalizedClientLink>
-      <div className="space-y-1.5 px-0.5">
-        <div className="flex justify-between items-baseline">
-          <span className="font-semibold text-xs text-hg-gold uppercase tracking-wider">
-            {brewery}
-          </span>
-          {canSeePricing && cheapestPrice && (
-            <span className="font-bold text-xl text-hg-text">
-              <PreviewPrice price={cheapestPrice} />
-            </span>
-          )}
-        </div>
-        <h2 className="text-[15px] text-hg-text font-bold leading-tight capitalize">
+      <div className="space-y-1 px-0.5">
+        <span className="block font-semibold text-[11px] text-hg-gold uppercase tracking-wider">
+          {brewery}
+        </span>
+        <h2 className="text-[15px] text-hg-text font-bold leading-snug capitalize line-clamp-2">
           {beerName}
         </h2>
-        {canSeePricing && (
-          <div className="flex items-center gap-1.5 text-xs font-medium text-hg-text-secondary uppercase tracking-wider">
+        {canSeePricing && (style || abv) && (
+          <div className="flex items-center gap-1.5 text-[11px] font-medium text-hg-text-secondary uppercase tracking-wider">
             {style && <span>{style}</span>}
             {style && abv && <span className="text-hg-border">·</span>}
             {abv && <span>{abv}</span>}
           </div>
         )}
         {canSeePricing && (
-          <div className="flex justify-between items-center pt-3">
-            <div className="flex items-center gap-1.5">
-              <span className={`w-2 h-2 rounded-full ${stock.dotClass}`} />
-              <span className="text-xs font-bold text-hg-text-secondary uppercase tracking-widest">
-                {stock.label}
-              </span>
+          <div className="flex items-end justify-between gap-2 pt-2">
+            <div className="flex flex-col gap-1 min-w-0">
+              {cheapestPrice && (
+                <span className="font-bold text-lg text-hg-text leading-none">
+                  <PreviewPrice price={cheapestPrice} />
+                </span>
+              )}
+              <div className="flex items-center gap-1.5">
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${stock.dotClass}`}
+                />
+                <span className="text-[10px] font-bold text-hg-text-secondary uppercase tracking-widest truncate">
+                  {stock.label}
+                </span>
+              </div>
             </div>
             {hasEarlyAccess ? (
               variantId ? (
-                <AddToCartButton variantId={variantId} />
+                <AddToCartButton variantId={variantId} compact />
               ) : (
                 <LocalizedClientLink
                   href={`/products/${product.handle}`}
-                  className="bg-hg-surface border border-hg-border/60 text-hg-text px-5 py-2.5 rounded-sm font-bold text-[13px] hover:bg-hg-gold hover:text-hg-bg hover:border-hg-gold transition-colors text-nowrap"
+                  className="bg-hg-surface border border-hg-border/60 text-hg-text px-3 py-2 rounded-sm font-bold text-[11px] uppercase tracking-wider hover:bg-hg-gold hover:text-hg-bg hover:border-hg-gold transition-colors text-nowrap"
                 >
-                  View Options
+                  View
                 </LocalizedClientLink>
               )
             ) : null}

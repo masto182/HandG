@@ -25,6 +25,7 @@ export type FilterParams = {
   abv?: string
   available?: string
   on_sale?: string
+  hop_country?: string
 }
 
 const StoreTemplate = ({
@@ -51,16 +52,41 @@ const StoreTemplate = ({
 
   return (
     <main className="max-w-[1440px] mx-auto flex flex-col md:flex-row min-h-screen">
+      {/* Desktop sidebar */}
       <aside className="hidden md:block w-[280px] flex-shrink-0 border-r border-hg-border bg-hg-surface-low">
         <div className="p-6 space-y-2">
           <FilterPanel canSeePricing={canSeePricing} />
         </div>
       </aside>
-      <div className="md:hidden">
-        <FilterPanel canSeePricing={canSeePricing} />
-      </div>
-      <section className="flex-1 p-6 md:p-8 bg-hg-bg">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+
+      <section className="flex-1 bg-hg-bg">
+        {/* Mobile sticky controls bar */}
+        <div className="sticky top-0 z-20 md:hidden bg-hg-bg/95 backdrop-blur-sm border-b border-hg-border">
+          <div className="flex items-center gap-2 px-4 py-3">
+            {/* Title */}
+            <div className="flex-1 min-w-0">
+              {filterParams?.q ? (
+                <p className="text-xs font-bold text-hg-text truncate">
+                  &ldquo;{filterParams.q}&rdquo;
+                </p>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-hl-accent animate-pulse shrink-0" />
+                  <h1 className="text-xs font-bold text-hg-text uppercase tracking-wide truncate">
+                    The Collection
+                  </h1>
+                </div>
+              )}
+            </div>
+            {/* Controls */}
+            <FilterPanel canSeePricing={canSeePricing} />
+            <RefinementList sortBy={sort} canSeePricing={canSeePricing} />
+            <ViewToggle />
+          </div>
+        </div>
+
+        {/* Desktop header */}
+        <div className="hidden md:flex flex-col md:flex-row md:items-end justify-between gap-6 p-8 mb-10">
           <div>
             {filterParams?.q ? (
               <>
@@ -88,19 +114,23 @@ const StoreTemplate = ({
             <RefinementList sortBy={sort} canSeePricing={canSeePricing} />
           </div>
         </div>
-        <FilterChips />
-        <Suspense fallback={<SkeletonProductGrid />}>
-          <PaginatedProducts
-            sortBy={sort}
-            page={pageNumber}
-            countryCode={countryCode}
-            canSeePricing={canSeePricing}
-            filterParams={filterParams}
-            view={view}
-            viewerTier={viewerTier}
-            earlyAccessOffsets={earlyAccessOffsets}
-          />
-        </Suspense>
+
+        {/* Chips + products */}
+        <div className="px-4 pb-4 pt-4 md:px-8 md:pb-8 md:pt-0">
+          <FilterChips />
+          <Suspense fallback={<SkeletonProductGrid />}>
+            <PaginatedProducts
+              sortBy={sort}
+              page={pageNumber}
+              countryCode={countryCode}
+              canSeePricing={canSeePricing}
+              filterParams={filterParams}
+              view={view}
+              viewerTier={viewerTier}
+              earlyAccessOffsets={earlyAccessOffsets}
+            />
+          </Suspense>
+        </div>
       </section>
     </main>
   )

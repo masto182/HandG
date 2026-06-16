@@ -15,7 +15,6 @@ type OrderCompletedTemplateProps = {
   order: HttpTypes.StoreOrder
 }
 
-
 export default async function OrderCompletedTemplate({
   order,
 }: OrderCompletedTemplateProps) {
@@ -32,12 +31,12 @@ export default async function OrderCompletedTemplate({
       <div className="content-container flex flex-col justify-center items-center gap-y-10 max-w-4xl h-full w-full">
         {isOnboarding && <OnboardingCta orderId={order.id} />}
         <div
-          className="flex flex-col gap-4 max-w-4xl h-full bg-hg-surface border border-hg-border rounded-xl w-full py-10 px-8"
+          className="flex flex-col gap-4 max-w-4xl h-full bg-hg-surface border border-hg-border rounded-xl w-full py-8 px-4 sm:px-8"
           data-testid="order-complete-container"
         >
           <Heading
             level="h1"
-            className="flex flex-col gap-y-3 text-hg-text text-3xl mb-4"
+            className="flex flex-col gap-y-3 text-hg-text text-xl sm:text-3xl mb-4"
           >
             <span>Thank you!</span>
             <span>Your order was placed successfully.</span>

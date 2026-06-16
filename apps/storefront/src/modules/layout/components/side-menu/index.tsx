@@ -89,7 +89,7 @@ const SideMenu = ({
                         <button
                           data-testid="close-menu-button"
                           onClick={close}
-                          className="text-hg-text-secondary hover:text-hg-text p-1"
+                          className="text-hg-text-secondary hover:text-hg-text p-2.5"
                         >
                           <XMark />
                         </button>

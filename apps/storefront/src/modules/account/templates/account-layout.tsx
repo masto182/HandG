@@ -25,11 +25,15 @@ const AccountLayout: React.FC<AccountLayoutProps> = ({
                 <AccountNav customer={customer} />
               </div>
             </aside>
-            <main className="flex-1 min-w-0 px-10 py-8 max-w-5xl mx-auto">{children}</main>
+            <main className="flex-1 min-w-0 px-4 py-6 small:px-10 small:py-8 max-w-5xl mx-auto">
+              {children}
+            </main>
           </div>
         </>
       ) : (
-        <div className="content-container max-w-6xl mx-auto py-12">{children}</div>
+        <div className="content-container max-w-6xl mx-auto py-12">
+          {children}
+        </div>
       )}
     </div>
   )

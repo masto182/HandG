@@ -54,34 +54,38 @@ const AccountNav = ({
 
   if (mobile) {
     return (
-      <div className="overflow-x-auto no-scrollbar -mx-4 px-4">
-        <div className="flex items-center gap-2 min-w-max">
-          {navLinks.map((link) => (
-            <LocalizedClientLink
-              key={link.href}
-              href={link.href}
-              className={clx(
-                "px-3 py-1.5 text-sm rounded-lg whitespace-nowrap transition-colors border flex items-center gap-1.5",
-                {
-                  "bg-hl-primary text-white font-medium border-hl-primary":
-                    isActive(link.href),
-                  "border-outline-variant text-on-surface-variant hover:text-on-surface hover:border-outline":
-                    !isActive(link.href),
-                },
-              )}
+      <div className="relative -mx-4">
+        <div className="overflow-x-auto no-scrollbar px-4">
+          <div className="flex items-center gap-2 min-w-max pb-1">
+            {navLinks.map((link) => (
+              <LocalizedClientLink
+                key={link.href}
+                href={link.href}
+                className={clx(
+                  "px-3 py-1.5 text-sm rounded-lg whitespace-nowrap transition-colors border flex items-center gap-1.5",
+                  {
+                    "bg-hl-primary text-white font-medium border-hl-primary":
+                      isActive(link.href),
+                    "border-outline-variant text-on-surface-variant hover:text-on-surface hover:border-outline":
+                      !isActive(link.href),
+                  },
+                )}
+              >
+                <Icon name={link.icon} size={16} filled={isActive(link.href)} />
+                {link.label}
+              </LocalizedClientLink>
+            ))}
+            <button
+              onClick={handleLogout}
+              className="px-3 py-1.5 text-sm rounded-lg whitespace-nowrap border border-outline-variant text-on-surface-variant hover:text-red-400 hover:border-red-400/30 transition-colors flex items-center gap-1.5"
             >
-              <Icon name={link.icon} size={16} filled={isActive(link.href)} />
-              {link.label}
-            </LocalizedClientLink>
-          ))}
-          <button
-            onClick={handleLogout}
-            className="px-3 py-1.5 text-sm rounded-lg whitespace-nowrap border border-outline-variant text-on-surface-variant hover:text-red-400 hover:border-red-400/30 transition-colors flex items-center gap-1.5"
-          >
-            <Icon name="logout" size={16} />
-            Log out
-          </button>
+              <Icon name="logout" size={16} />
+              Log out
+            </button>
+          </div>
         </div>
+        {/* right-edge fade to hint at more tabs */}
+        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#0f1513] to-transparent" />
       </div>
     )
   }

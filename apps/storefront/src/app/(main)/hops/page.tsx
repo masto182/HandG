@@ -39,7 +39,7 @@ export default async function HopsPage({ searchParams }: Props) {
 
   return (
     <div className="max-w-[1440px] mx-auto px-6 pt-24 pb-20 min-h-screen">
-      <header className="py-16">
+      <header className="py-8 small:py-16">
         <div className="max-w-3xl">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-hg-text-muted mb-3">
             Explore by
@@ -78,7 +78,7 @@ export default async function HopsPage({ searchParams }: Props) {
       </div>
 
       {filteredHops.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 small:grid-cols-3 gap-6">
           {filteredHops.map((hop) => {
             const flavors: string[] = hop.flavor_profile
               ? hop.flavor_profile

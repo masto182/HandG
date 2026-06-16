@@ -30,13 +30,13 @@ const Summary = ({ cart }: SummaryProps) => {
           Have a promo code?
         </button>
       ) : (
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <input
             type="text"
             placeholder="Enter code"
-            className="flex-1 px-3 py-2 text-sm bg-surface-container-low border border-outline-variant rounded-lg text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            className="flex-1 min-w-[140px] px-3 py-2 text-sm bg-surface-container-low border border-outline-variant rounded-lg text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           />
-          <button className="px-4 py-2 text-sm font-bold bg-surface-container border border-outline-variant rounded-lg text-on-surface hover:border-outline transition-colors">
+          <button className="px-4 py-2 text-sm font-bold bg-surface-container border border-outline-variant rounded-lg text-on-surface hover:border-outline transition-colors whitespace-nowrap">
             Apply
           </button>
         </div>

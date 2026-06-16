@@ -56,6 +56,18 @@ export default function FilterPanel({
     setMobileOpen(false)
   }, [searchParams])
 
+  // Lock body scroll when sheet is open
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = "hidden"
+    } else {
+      document.body.style.overflow = ""
+    }
+    return () => {
+      document.body.style.overflow = ""
+    }
+  }, [mobileOpen])
+
   useEffect(() => {
     sdk.client
       .fetch<{ families: string[] }>("/store/beer-styles", { method: "GET" })
@@ -155,7 +167,22 @@ export default function FilterPanel({
   const selectedHops = getParam("hops")
   const selectedHopCountry = getParam("hop_country")
   const selectedAbv = getParam("abv")
+  const selectedTags = getParam("tags")
   const hopsMode = searchParams.get("hopsMode") || "or"
+  const selectedCollab = searchParams.get("collab") === "true"
+  const selectedOnSale = searchParams.get("on_sale") === "true"
+  const selectedAvailable = searchParams.get("available") !== "false"
+
+  const activeCount =
+    selectedBreweries.length +
+    selectedStyles.length +
+    selectedAbv.length +
+    selectedFreshness.length +
+    selectedHops.length +
+    selectedHopCountry.length +
+    selectedTags.length +
+    (selectedCollab ? 1 : 0) +
+    (selectedOnSale ? 1 : 0)
 
   const updateParams = useCallback(
     (key: string, value: string | null) => {
@@ -204,11 +231,6 @@ export default function FilterPanel({
     .sort((a, b) => b[1] - a[1])
 
   const sortedHops = Object.entries(baseHopsFacets).sort((a, b) => b[1] - a[1])
-
-  const selectedCollab = searchParams.get("collab") === "true"
-  const selectedTags = getParam("tags")
-  const selectedOnSale = searchParams.get("on_sale") === "true"
-  const selectedAvailable = searchParams.get("available") !== "false"
 
   const [breweryExpanded, setBreweryExpanded] = useState(false)
   const visibleBreweries = breweryExpanded
@@ -644,13 +666,14 @@ export default function FilterPanel({
 
   return (
     <>
+      {/* Mobile trigger button */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="md:hidden flex items-center gap-2 px-4 py-2 border border-hg-border rounded-lg text-sm text-hg-text-muted mb-4"
+        className="md:hidden flex items-center gap-1.5 px-3 py-2 border border-hg-border rounded-lg text-xs text-hg-text-muted shrink-0"
       >
         <svg
-          width="16"
-          height="16"
+          width="14"
+          height="14"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -663,23 +686,48 @@ export default function FilterPanel({
           <line x1="20" y1="21" x2="20" y2="16" />
           <line x1="20" y1="12" x2="20" y2="3" />
         </svg>
-        Filters
+        <span>Filters</span>
+        {activeCount > 0 && (
+          <span className="flex items-center justify-center w-4 h-4 bg-hg-gold text-hg-on-primary text-[9px] font-bold rounded-full leading-none">
+            {activeCount}
+          </span>
+        )}
       </button>
 
+      {/* Desktop sidebar content */}
       <div className="hidden md:block">{filterContent}</div>
 
-      {mobileOpen && (
-        <div className="fixed inset-0 z-[90] md:hidden">
-          <div
-            className="fixed inset-0 bg-black/50"
-            onClick={() => setMobileOpen(false)}
-          />
-          <div className="fixed inset-y-0 left-0 w-[300px] bg-hg-surface-low border-r border-hg-border p-6 overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-hg-text">Filters</h2>
+      {/* Mobile bottom sheet */}
+      <div
+        className={`fixed inset-0 z-[90] md:hidden transition-opacity duration-300 ${mobileOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+      >
+        {/* Backdrop */}
+        <div
+          className="fixed inset-0 bg-black/60"
+          onClick={() => setMobileOpen(false)}
+        />
+        {/* Sheet */}
+        <div
+          className={`fixed inset-x-0 bottom-0 bg-hg-surface-low rounded-t-2xl max-h-[85vh] overflow-y-auto transition-transform duration-300 ${mobileOpen ? "translate-y-0" : "translate-y-full"}`}
+        >
+          {/* Drag handle */}
+          <div className="flex justify-center pt-3 pb-1">
+            <div className="w-10 h-1 bg-hg-border rounded-full" />
+          </div>
+          <div className="px-6 pb-6">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-base font-bold text-hg-text">
+                Filters
+                {activeCount > 0 && (
+                  <span className="ml-2 text-xs font-normal text-hg-text-secondary">
+                    ({activeCount} active)
+                  </span>
+                )}
+              </h2>
               <button
                 onClick={() => setMobileOpen(false)}
-                className="text-hg-text-muted"
+                className="text-hg-text-muted hover:text-hg-text transition-colors p-1"
+                aria-label="Close filters"
               >
                 <svg
                   width="20"
@@ -697,7 +745,7 @@ export default function FilterPanel({
             {filterContent}
           </div>
         </div>
-      )}
+      </div>
     </>
   )
 }

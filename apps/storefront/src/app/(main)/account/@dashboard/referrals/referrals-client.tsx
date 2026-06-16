@@ -101,7 +101,7 @@ export default function ReferralsPage() {
   return (
     <div className="w-full" data-testid="referrals-page-wrapper">
       <div className="space-y-6">
-        <section className="relative overflow-hidden rounded-xl border border-outline-variant/30 min-h-[280px] flex flex-col justify-end p-6 md:p-10 group">
+        <section className="relative overflow-hidden rounded-xl border border-outline-variant/30 min-h-[280px] flex flex-col justify-end p-6 small:p-10 group">
           <div className="absolute inset-0 z-0">
             <div className="w-full h-full bg-gradient-to-br from-primary/20 via-surface-container to-surface-container" />
             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
@@ -110,17 +110,17 @@ export default function ReferralsPage() {
             <span className="text-label-caps text-primary tracking-widest mb-2 block">
               REFERRAL PROGRAM
             </span>
-            <h1 className="text-h2 md:text-h1 mb-4">
+            <h1 className="text-h2 small:text-h1 mb-4">
               Bring the right people in.
             </h1>
             <p className="text-body-lg text-on-surface-variant max-w-[500px]">
               Your referrals earn you 20% of their spend toward your VIP score.
-              Expand the archive with fellow collectors.
+              Expand the circle of fellow collectors.
             </p>
           </div>
         </section>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 small:grid-cols-3 gap-6">
           <div className="lg:col-span-2 bg-surface-container/60 backdrop-blur-sm rounded-xl p-6 space-y-4 border border-outline-variant/20">
             <div className="flex items-center justify-between">
               <span className="text-label-caps text-on-surface-variant tracking-wider">
@@ -140,7 +140,7 @@ export default function ReferralsPage() {
                 />
               </svg>
             </div>
-            <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
               <div className="flex-1 bg-surface-container-highest/20 border border-outline-variant/30 rounded-lg px-6 py-4 font-mono text-h3 tracking-widest text-center select-all">
                 {data.referral_code}
               </div>
@@ -192,7 +192,7 @@ export default function ReferralsPage() {
                 </button>
               </div>
             ) : (
-              <div className="flex items-center justify-center md:justify-start gap-6 pt-2">
+              <div className="flex items-center sm:justify-start gap-6 pt-2">
                 <ShareButton
                   icon="twitter"
                   label="X / Twitter"
@@ -316,19 +316,19 @@ export default function ReferralsPage() {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-surface-container-high/50 border-b border-outline-variant/30">
-                      <th className="px-6 py-4 text-label-caps text-on-surface-variant tracking-wider">
+                      <th className="px-3 py-3 small:px-6 small:py-4 text-label-caps text-on-surface-variant tracking-wider">
                         Person
                       </th>
-                      <th className="px-6 py-4 text-label-caps text-on-surface-variant tracking-wider">
+                      <th className="px-3 py-3 small:px-6 small:py-4 text-label-caps text-on-surface-variant tracking-wider">
                         Signed up
                       </th>
-                      <th className="px-6 py-4 text-label-caps text-on-surface-variant tracking-wider">
+                      <th className="px-3 py-3 small:px-6 small:py-4 text-label-caps text-on-surface-variant tracking-wider">
                         First order
                       </th>
-                      <th className="px-6 py-4 text-label-caps text-on-surface-variant tracking-wider text-right">
+                      <th className="px-3 py-3 small:px-6 small:py-4 text-label-caps text-on-surface-variant tracking-wider text-right">
                         Contribution
                       </th>
-                      <th className="px-6 py-4 text-label-caps text-on-surface-variant tracking-wider text-center">
+                      <th className="px-3 py-3 small:px-6 small:py-4 text-label-caps text-on-surface-variant tracking-wider text-center">
                         Status
                       </th>
                     </tr>
@@ -339,7 +339,7 @@ export default function ReferralsPage() {
                         key={entry.id}
                         className="hover:bg-surface-elevated/50 transition-colors"
                       >
-                        <td className="px-6 py-4 flex items-center gap-3">
+                        <td className="px-3 py-3 small:px-6 small:py-4 flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-xs font-bold border border-outline-variant/30">
                             {entry.initials}
                           </div>
@@ -347,18 +347,18 @@ export default function ReferralsPage() {
                             {entry.name}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-body-sm text-on-surface-variant">
+                        <td className="px-3 py-3 small:px-6 small:py-4 text-body-sm text-on-surface-variant">
                           {entry.signed_up}
                         </td>
-                        <td className="px-6 py-4 text-body-sm text-on-surface-variant">
+                        <td className="px-3 py-3 small:px-6 small:py-4 text-body-sm text-on-surface-variant">
                           {entry.first_order || "—"}
                         </td>
                         <td
-                          className={`px-6 py-4 text-body-sm font-mono text-right ${entry.contribution > 0 ? "text-primary" : "text-on-surface-variant"}`}
+                          className={`px-3 py-3 small:px-6 small:py-4 text-body-sm font-mono text-right ${entry.contribution > 0 ? "text-primary" : "text-on-surface-variant"}`}
                         >
                           {entry.contribution} pts
                         </td>
-                        <td className="px-6 py-4 text-center">
+                        <td className="px-3 py-3 small:px-6 small:py-4 text-center">
                           <span
                             className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-tight border ${STATUS_STYLES[entry.status]}`}
                           >
@@ -386,9 +386,9 @@ export default function ReferralsPage() {
         </section>
 
         <footer className="pt-6 border-t border-outline-variant/20">
-          <div className="bg-surface-elevated p-6 rounded-xl flex items-center justify-between border border-outline-variant/10">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-background flex items-center justify-center text-on-surface-variant">
+          <div className="bg-surface-elevated p-6 rounded-xl flex items-center justify-between gap-4 border border-outline-variant/10">
+            <div className="flex items-center gap-4 min-w-0">
+              <div className="w-12 h-12 rounded-full bg-background flex items-center justify-center text-on-surface-variant flex-shrink-0">
                 <svg
                   className="w-6 h-6"
                   fill="none"
@@ -403,7 +403,7 @@ export default function ReferralsPage() {
                   />
                 </svg>
               </div>
-              <div>
+              <div className="min-w-0">
                 <div className="font-bold text-body-md">Stealth Mode</div>
                 <div className="text-body-sm text-on-surface-variant">
                   Hide your name from your referree&apos;s network contribution
@@ -411,7 +411,7 @@ export default function ReferralsPage() {
                 </div>
               </div>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
+            <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
               <input
                 type="checkbox"
                 className="sr-only peer"
@@ -431,20 +431,20 @@ function EmptyState() {
   return (
     <div className="w-full" data-testid="referrals-page-wrapper">
       <div className="space-y-6">
-        <section className="relative overflow-hidden rounded-xl border border-outline-variant/30 p-6 md:p-10">
+        <section className="relative overflow-hidden rounded-xl border border-outline-variant/30 p-6 small:p-10">
           <div className="absolute top-[-100px] right-[-100px] w-80 h-80 bg-primary/5 blur-[120px] rounded-full" />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 relative z-10">
             <div>
               <span className="inline-block text-label-caps text-primary border border-primary/30 px-3 py-1 rounded-full mb-4">
                 MEMBER PRIVILEGE
               </span>
-              <h1 className="text-h2 md:text-h1 mb-4">
+              <h1 className="text-h2 small:text-h1 mb-4">
                 Expand the Inner Circle
               </h1>
               <p className="text-body-lg text-on-surface-variant mb-6">
                 Share the craft. For every collector who joins via your
                 invitation, you both receive exclusive allocation access and a
-                $25 credit toward your next archive bottle.
+                $25 credit toward your next order.
               </p>
               <div>
                 <span className="text-label-caps text-on-surface-variant tracking-wider block mb-2">
@@ -462,13 +462,13 @@ function EmptyState() {
                 </a>
               </div>
             </div>
-            <div className="hidden md:block">
+            <div className="hidden small:block">
               <div className="aspect-square relative rounded-xl overflow-hidden border border-outline-variant/30 bg-surface-container" />
             </div>
           </div>
         </section>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           <div className="bg-surface-elevated border border-outline-variant/20 p-6 rounded-xl flex flex-col justify-between">
             <div className="flex justify-between items-start mb-4">
               <svg
@@ -533,14 +533,14 @@ function EmptyState() {
                 />
               </svg>
               <span className="text-label-caps text-on-surface-variant">
-                VAULT STATUS
+                MEMBER STATUS
               </span>
             </div>
             <div className="text-h2 font-bold text-on-surface-variant">
               LOCKED
             </div>
             <div className="text-body-sm text-on-surface-variant italic">
-              3 more for VIP Vault
+              3 more for VIP access
             </div>
           </div>
         </div>
@@ -601,7 +601,7 @@ function EmptyState() {
           </div>
         </div>
 
-        <div className="flex flex-col md:flex-row gap-6 justify-between border-t border-outline-variant/20 pt-8">
+        <div className="flex flex-col sm:flex-row gap-6 justify-between border-t border-outline-variant/20 pt-8">
           <div className="flex-1">
             <h5 className="text-body-md font-bold mb-1">Program Guidelines</h5>
             <p className="text-body-sm text-on-surface-variant">

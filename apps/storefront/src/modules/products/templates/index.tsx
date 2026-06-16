@@ -94,9 +94,9 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
 
   return (
     <>
-      <main className="max-w-[1440px] mx-auto px-6 py-6 lg:py-8">
+      <main className="max-w-[1440px] mx-auto px-6 py-6 lg:py-8 pb-24 lg:pb-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          <div className="lg:col-span-7 sticky top-32">
+          <div className="lg:col-span-7 lg:sticky lg:top-8">
             <div className="relative">
               <ImageGallery images={images} thumbnail={thumbnail} />
               <ProductPill product={product} />
