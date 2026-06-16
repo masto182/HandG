@@ -59,6 +59,10 @@ jobs:
       S3_SECRET_KEY: medusa_dev_password
       S3_BUCKET: medusa
       MEILI_MASTER_KEY: dev-meili-master-key
+      NEXT_PUBLIC_MEDUSA_BACKEND_URL: http://localhost:9000
+      NEXT_PUBLIC_BASE_URL: http://localhost:8000
+      NEXT_PUBLIC_STORE_URL: http://localhost:8000
+      STOREFRONT_IMAGE_HOSTS: localhost
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -80,6 +84,12 @@ jobs:
           pnpm --filter ./apps/backend exec medusa db:migrate
           pnpm --filter ./apps/backend exec medusa exec ./src/scripts/seed.ts
           pnpm --filter ./apps/backend exec medusa user --email "${E2E_ADMIN_EMAIL}" --password "${E2E_ADMIN_PASSWORD}" || true
+      - name: Create CI publishable key
+        run: |
+          pnpm --filter ./apps/backend exec medusa exec ./src/scripts/create-ci-publishable-key.ts 2>/tmp/pubkey.log \
+            | grep '^NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=' >> "$GITHUB_ENV"
+          grep -q 'NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=' "$GITHUB_ENV" \
+            || { echo "--- pubkey script log ---"; cat /tmp/pubkey.log; exit 1; }
       - name: Start backend
         # Must run from .medusa/server/ so the admin loader resolves
         # public/admin/index.html correctly — mirrors the Dockerfile CMD.
@@ -93,7 +103,7 @@ jobs:
         run: |
           ok=0
           for i in $(seq 1 60); do
-            if curl -sf http://localhost:9000/health && curl -sf http://localhost:8000/ > /dev/null; then ok=1; break; fi
+            if curl -sf http://localhost:9000/health && curl -s -o /dev/null http://localhost:8000/; then ok=1; break; fi
             sleep 2
           done
           [ "$ok" = 1 ] || { echo "--- backend log ---"; cat /tmp/backend.log; echo "servers never became ready"; exit 1; }
