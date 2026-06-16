@@ -52,6 +52,7 @@ test.describe.serial("New flows — PR 3 / 4 / 5", () => {
     await page.fill('input[name="last_name"]', "Tester")
     await page.fill('input[name="email"]', unique)
     await page.fill('input[name="password"]', "TestApply123!")
+    await page.fill('input[name="confirm_password"]', "TestApply123!")
     await page.fill('input[name="date_of_birth"]', "1990-01-15")
     await page.fill('[name="why_join"]', "UAT smoke test")
     await page.fill('[name="favourite_brewery"]', "Hop & Glory")

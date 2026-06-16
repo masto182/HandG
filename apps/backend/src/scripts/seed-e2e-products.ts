@@ -524,6 +524,14 @@ export default async function seedE2eProducts({ container }: ExecArgs) {
       logger.info(`  Updated product ${sp.handle} (${existing.id})`)
     }
 
+    // Explicitly link to the sales channel on every run. createProductsWorkflow
+    // should handle this, but the Admin API does not process sales_channels on
+    // creation, so we always ensure the link exists as a defensive measure.
+    await safeLink({
+      [Modules.PRODUCT]: { product_id: existing.id },
+      [Modules.SALES_CHANNEL]: { sales_channel_id: salesChannel.id },
+    })
+
     // Tags (anniversary + any others) — find-or-create, attach
     if (sp.tags?.length) {
       const tagRows: any[] = []

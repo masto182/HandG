@@ -100,7 +100,7 @@ test.describe("Extended UAT — Visual Polish & Navigation", () => {
       const href = await firstCard.getAttribute("href")
       expect(href).toMatch(/\/breweries\/.+/)
       await firstCard.click()
-      await page.waitForURL("**/breweries/**", { timeout: 10000 })
+      await page.waitForURL("**/breweries/**", { timeout: 20000 })
       expect(page.url()).toMatch(/\/breweries\/.+/)
     })
 

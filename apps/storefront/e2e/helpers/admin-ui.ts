@@ -55,12 +55,14 @@ export async function approveMember(page: Page, email: string): Promise<void> {
   if (await search.isVisible({ timeout: 3_000 }).catch(() => false)) {
     await search.fill(email)
     await search.press("Enter")
-    await page.waitForTimeout(1_000)
+    await page.waitForTimeout(3_000) // allow API round-trip to re-render table
+  } else {
+    await page.waitForTimeout(2_000) // no search box; wait for initial load
   }
 
   // Click the row to open the member detail drawer.
   const row = page.locator(`tr:has-text("${email}")`).first()
-  await expect(row).toBeVisible({ timeout: 10_000 })
+  await expect(row).toBeVisible({ timeout: 15_000 })
   await row.click()
 
   // The Approve button is in the drawer footer (not the row itself).

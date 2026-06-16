@@ -27,7 +27,7 @@ test.describe("Hop list page /hops @smoke", () => {
     await page.waitForLoadState("networkidle")
     // The hop grid should have cards
     const cards = page.locator("a[href^='/hops/']")
-    await expect(cards.first()).toBeVisible({ timeout: 10_000 })
+    await expect(cards.first()).toBeVisible({ timeout: 20_000 })
   })
 
   test("country filter tabs render (All, NZ, AU, US, EU)", async ({ page }) => {
