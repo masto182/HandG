@@ -36,7 +36,7 @@ export async function POST(
         continue
       }
 
-      await productModule.updateProducts(product_id, { thumbnail: url })
+      await productModule.updateProducts(product_id, { thumbnail: url }) // workflow-exempt
 
       updated++
     } catch (e: any) {

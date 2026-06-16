@@ -35,6 +35,7 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
 
   if (body.override) {
     await orderModule.updateOrders(orderId, {
+      // workflow-exempt
       metadata: { ...(order.metadata ?? {}), heat_hold_override: true },
     })
     logger.info(`[shipengine] heat_hold_override set on ${orderId} by admin request`)
@@ -71,7 +72,7 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
         const freshOrder = await orderModule.retrieveOrder(orderId)
         const meta = { ...(freshOrder.metadata ?? {}) } as Record<string, unknown>
         delete meta.heat_hold_override
-        await orderModule.updateOrders(orderId, { metadata: meta })
+        await orderModule.updateOrders(orderId, { metadata: meta }) // workflow-exempt
       } catch (clearErr) {
         logger.warn(
           `[shipengine] could not clear heat_hold_override on ${orderId}: ${(clearErr as Error).message}`

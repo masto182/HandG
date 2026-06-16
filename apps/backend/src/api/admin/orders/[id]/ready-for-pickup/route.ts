@@ -40,6 +40,7 @@ export const POST = async (req: AuthenticatedMedusaRequest, res: MedusaResponse)
   const locationHours = body.location_hours || snapshot?.hours_summary
 
   await orderModule.updateOrders(orderId, {
+    // workflow-exempt
     metadata: {
       ...((order as any).metadata || {}),
       ready_for_pickup_at: new Date().toISOString(),

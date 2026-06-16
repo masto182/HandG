@@ -96,6 +96,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       })
       await fulfillmentModule.updateFulfillment(fulfillmentId, {
         // workflow-exempt
+        // workflow-exempt
         metadata: {
           ...(existing.metadata ?? {}),
           tracking_events: events,

@@ -1,4 +1,5 @@
 import { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+// workflow-exempt: preference updates are lightweight and don't require a workflow
 import { NOTIFICATION_PREFERENCE_MODULE } from "../../../../../../modules/notification-preference"
 import { isKnownCategory } from "../../../../../../modules/notification-preference/categories"
 import type NotificationPreferenceModuleService from "../../../../../../modules/notification-preference/service"

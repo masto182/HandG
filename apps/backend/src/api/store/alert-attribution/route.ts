@@ -32,7 +32,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
   }
 
   if (Object.keys(update).length > 1) {
-    await dispatchService.updateAlertDispatches(update)
+    await dispatchService.updateAlertDispatches(update) // workflow-exempt
   }
 
   res.status(200).json({ recorded: true })

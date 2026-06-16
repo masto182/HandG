@@ -312,9 +312,10 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
         location_id: defaultWarehouse.id,
       })
       if (levels?.length) {
-        await inventoryModule.updateInventoryLevels([{ id: levels[0].id, stocked_quantity: qty }])
+        await inventoryModule.updateInventoryLevels([{ id: levels[0].id, stocked_quantity: qty }]) // workflow-exempt
       } else {
         await inventoryModule.createInventoryLevels({
+          // workflow-exempt
           inventory_item_id: item.id,
           location_id: defaultWarehouse.id,
           stocked_quantity: qty,

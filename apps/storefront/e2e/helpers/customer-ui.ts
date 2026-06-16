@@ -26,6 +26,7 @@ export async function apply(page: Page, i: ApplyInput): Promise<void> {
   await page.fill('input[name="last_name"]', i.lastName ?? "Tester")
   await page.fill('input[name="email"]', i.email)
   await page.fill('input[name="password"]', i.password)
+  await page.fill('input[name="confirm_password"]', i.password)
   await page.fill('input[name="date_of_birth"]', i.dateOfBirth ?? "1990-01-15")
   await page.fill(
     'input[name="why_join"], [name="why_join"]',

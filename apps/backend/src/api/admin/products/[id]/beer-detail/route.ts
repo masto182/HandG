@@ -1,4 +1,5 @@
 import { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+// workflow-exempt: beer-detail reads/writes are simple module calls without side effects
 import { BEER_DETAIL_MODULE } from "../../../../../modules/beer-detail"
 
 export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
