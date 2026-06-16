@@ -1,10 +1,15 @@
 import { getLocaleHeader } from "@lib/util/get-locale-header"
 import Medusa, { FetchArgs, FetchInput } from "@medusajs/js-sdk"
 
+// If NEXT_PUBLIC_MEDUSA_BACKEND_URL is explicitly configured, use it for both
+// server-side and client-side calls so the SDK always targets the real backend.
+// In same-origin deployments (Caddy proxy) where the env var is not set, fall
+// back to window.location.origin on the client as a same-origin proxy.
 const MEDUSA_BACKEND_URL =
-  typeof window !== "undefined"
+  process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL ||
+  (typeof window !== "undefined"
     ? window.location.origin
-    : process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "http://localhost:9000"
+    : "http://localhost:9000")
 
 export const sdk = new Medusa({
   baseUrl: MEDUSA_BACKEND_URL,
