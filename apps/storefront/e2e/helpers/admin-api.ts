@@ -86,10 +86,10 @@ export async function deleteWishlistEntriesForCustomer(
 
 export async function approveCustomerByEmail(email: string): Promise<void> {
   let id: string | null = null
-  for (let attempt = 0; attempt < 10; attempt++) {
+  for (let attempt = 0; attempt < 30; attempt++) {
     id = await findCustomerIdByEmail(email)
     if (id) break
-    await new Promise((r) => setTimeout(r, 1000))
+    await new Promise((r) => setTimeout(r, 2000))
   }
   if (!id)
     throw new Error(`Customer not found for approval after retries: ${email}`)

@@ -41,6 +41,18 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      meilisearch:
+        image: getmeili/meilisearch:v1.12
+        env:
+          MEILI_MASTER_KEY: dev-meili-master-key
+          MEILI_ENV: development
+        ports:
+          - 7700:7700
+        options: >-
+          --health-cmd "wget -qO- http://localhost:7700/health"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
     env:
       DATABASE_URL: postgres://medusa:medusa@localhost:5432/medusa_db
       REDIS_URL: redis://localhost:6379
@@ -52,19 +64,55 @@ jobs:
       MEDUSA_ADMIN_PATH: /app
       E2E_ADMIN_EMAIL: admin@example.test
       E2E_ADMIN_PASSWORD: ChangeMe123!
+      # CORS — must be set or Medusa serves no Access-Control-Allow-Origin headers
+      # and all browser-side auth/store requests are blocked.
+      STORE_CORS: http://localhost:8000
+      ADMIN_CORS: http://localhost:9000
+      AUTH_CORS: http://localhost:8000,http://localhost:9000
       PLAYWRIGHT_BACKEND_URL: http://localhost:9000
       PLAYWRIGHT_STOREFRONT_URL: http://localhost:8000
+      # MinIO / S3
+      S3_ENDPOINT: http://localhost:9100
       S3_FILE_URL: http://localhost:9100/medusa
       S3_ACCESS_KEY: medusa
       S3_SECRET_KEY: medusa_dev_password
       S3_BUCKET: medusa
+      # MeiliSearch
+      MEILI_HOST: http://localhost:7700
+      MEILI_URL: http://localhost:7700
       MEILI_MASTER_KEY: dev-meili-master-key
+      MEDUSA_FF_INDEX_ENGINE: "true"
+      # Storefront public vars
       NEXT_PUBLIC_MEDUSA_BACKEND_URL: http://localhost:9000
       NEXT_PUBLIC_BASE_URL: http://localhost:8000
       NEXT_PUBLIC_STORE_URL: http://localhost:8000
+      NEXT_PUBLIC_PAYID_ALIAS: payments@example.test
       STOREFRONT_IMAGE_HOSTS: localhost
     steps:
       - uses: actions/checkout@v4
+
+      - name: Start MinIO
+        run: |
+          docker run -d --name minio \
+            -p 9100:9000 \
+            -e MINIO_ROOT_USER=medusa \
+            -e MINIO_ROOT_PASSWORD=medusa_dev_password \
+            minio/minio:RELEASE.2024-10-13T13-34-11Z server /data
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:9100/minio/health/live && break || sleep 1
+          done
+
+      - name: Init MinIO bucket
+        run: |
+          docker run --rm --network=host \
+            -e MC_HOST_minio=http://medusa:medusa_dev_password@localhost:9100 \
+            minio/mc:RELEASE.2024-10-08T09-37-26Z \
+            mb minio/medusa --ignore-existing
+          docker run --rm --network=host \
+            -e MC_HOST_minio=http://medusa:medusa_dev_password@localhost:9100 \
+            minio/mc:RELEASE.2024-10-08T09-37-26Z \
+            anonymous set none minio/medusa
+
       - uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
@@ -91,23 +139,36 @@ jobs:
             || { echo "--- medusa exec stderr ---"; cat /tmp/pubkey-stderr.txt; exit 1; }
           grep '^NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=' /tmp/pubkey-stdout.txt >> "$GITHUB_ENV" \
             || { echo "--- stdout ---"; cat /tmp/pubkey-stdout.txt; echo "--- stderr ---"; cat /tmp/pubkey-stderr.txt; exit 1; }
+      - name: Build storefront (production)
+        run: pnpm --filter ./apps/storefront build
       - name: Start backend
         # Must run from .medusa/server/ so the admin loader resolves
         # public/admin/index.html correctly — mirrors the Dockerfile CMD.
         working-directory: apps/backend/.medusa/server
         run: ../../node_modules/.bin/medusa start > /tmp/backend.log 2>&1 &
-      - name: Start storefront
+      - name: Start storefront dev (port 8000)
         run: pnpm --filter ./apps/storefront dev &
+      - name: Start storefront production (port 8001)
+        working-directory: apps/storefront
+        run: pnpm exec next start -p 8001 > /tmp/storefront-prod.log 2>&1 &
       - name: Install Playwright browsers
         run: pnpm --filter ./apps/storefront exec playwright install --with-deps chromium
       - name: Wait for servers
         run: |
           ok=0
-          for i in $(seq 1 60); do
-            if curl -sf http://localhost:9000/health && curl -s -o /dev/null http://localhost:8000/; then ok=1; break; fi
+          for i in $(seq 1 90); do
+            if curl -sf http://localhost:9000/health \
+                && curl -s -o /dev/null http://localhost:8000/ \
+                && curl -s -o /dev/null http://localhost:8001/; then ok=1; break; fi
             sleep 2
           done
-          [ "$ok" = 1 ] || { echo "--- backend log ---"; cat /tmp/backend.log; echo "servers never became ready"; exit 1; }
+          [ "$ok" = 1 ] || {
+            echo "--- backend log ---"; cat /tmp/backend.log
+            echo "--- storefront-prod log ---"; cat /tmp/storefront-prod.log
+            echo "servers never became ready"; exit 1
+          }
+      - name: Configure MeiliSearch index
+        run: pnpm --filter ./apps/backend exec medusa exec ./src/scripts/reindex-search.ts
       - name: Run full Playwright suite
         run: pnpm --filter ./apps/storefront exec playwright test
       - uses: actions/upload-artifact@v4

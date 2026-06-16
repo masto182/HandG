@@ -58,6 +58,11 @@ export async function login(
     await emailInput.fill(email)
     await page.locator('input[name="password"]').first().fill(password)
     await page.locator('button[type="submit"]').first().click()
+    // Wait for the post-login redirect before proceeding; CI is slower than
+    // local dev and networkidle + 1500ms can resolve before the redirect fires.
+    await page
+      .waitForURL(/\/account(?!.*login)/, { timeout: 30_000 })
+      .catch(() => {})
     await page.waitForLoadState("networkidle")
     await page.waitForTimeout(1500)
   }

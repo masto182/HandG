@@ -1,8 +1,10 @@
 import { test, expect } from "@playwright/test"
 import * as fs from "fs"
+import * as path from "path"
 
 const EVIDENCE_DIR =
-  "/Users/cmasterson/projects/HandG/docs/qa/evidence/viewport"
+  process.env.VIEWPORT_EVIDENCE_DIR ||
+  path.join(process.cwd(), "docs/qa/evidence/viewport")
 
 const PAGES = [
   { path: "/", name: "homepage" },
