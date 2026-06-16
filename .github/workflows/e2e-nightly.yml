@@ -77,7 +77,7 @@ jobs:
       NEXT_PUBLIC_STORE_URL: http://localhost:8000
       NEXT_PUBLIC_PAYID_ALIAS: payments@example.test
       STOREFRONT_IMAGE_HOSTS: localhost
-      PLAYWRIGHT_PROD_URL: http://localhost:8001
+      PLAYWRIGHT_PROD_URL: http://localhost:8000
     steps:
       - uses: actions/checkout@v4
 
@@ -154,11 +154,12 @@ jobs:
           done
       - name: Build storefront (production)
         run: pnpm --filter ./apps/storefront build
-      - name: Start storefront dev (port 8000)
-        run: pnpm --filter ./apps/storefront dev &
-      - name: Start storefront production (port 8001)
+      - name: Start storefront (port 8000)
+        # Use next start (production server) in CI — more reliable than next dev
+        # in a runner with no display. Both prod-smoke and regular tests run
+        # against the same production build on :8000.
         working-directory: apps/storefront
-        run: pnpm exec next start -p 8001 > /tmp/storefront-prod.log 2>&1 &
+        run: pnpm exec next start -p 8000 > /tmp/storefront.log 2>&1 &
       - name: Install Playwright browsers
         run: pnpm --filter ./apps/storefront exec playwright install --with-deps chromium
       - name: Wait for servers
@@ -166,13 +167,12 @@ jobs:
           ok=0
           for i in $(seq 1 90); do
             if curl -sf http://localhost:9000/health \
-                && curl -s -o /dev/null http://localhost:8000/ \
-                && curl -s -o /dev/null http://localhost:8001/; then ok=1; break; fi
+                && curl -s -o /dev/null http://localhost:8000/; then ok=1; break; fi
             sleep 2
           done
           [ "$ok" = 1 ] || {
             echo "--- backend log ---"; cat /tmp/backend.log
-            echo "--- storefront-prod log ---"; cat /tmp/storefront-prod.log
+            echo "--- storefront log ---"; cat /tmp/storefront.log
             echo "servers never became ready"; exit 1
           }
       - name: Configure MeiliSearch index
