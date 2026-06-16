@@ -708,14 +708,14 @@ export default function FilterPanel({
         />
         {/* Sheet */}
         <div
-          className={`fixed inset-x-0 bottom-0 bg-hg-surface-low rounded-t-2xl max-h-[85vh] overflow-y-auto transition-transform duration-300 ${mobileOpen ? "translate-y-0" : "translate-y-full"}`}
+          className={`fixed inset-x-0 bottom-0 bg-hg-surface-low rounded-t-2xl max-h-[85vh] flex flex-col transition-transform duration-300 ${mobileOpen ? "translate-y-0" : "translate-y-full"}`}
         >
-          {/* Drag handle */}
-          <div className="flex justify-center pt-3 pb-1">
-            <div className="w-10 h-1 bg-hg-border rounded-full" />
-          </div>
-          <div className="px-6 pb-6">
-            <div className="flex items-center justify-between mb-5">
+          {/* Sticky header — always visible */}
+          <div className="flex-shrink-0">
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 bg-hg-border rounded-full" />
+            </div>
+            <div className="px-6 pt-2 pb-4 flex items-center justify-between border-b border-hg-border/40">
               <h2 className="text-base font-bold text-hg-text">
                 Filters
                 {activeCount > 0 && (
@@ -726,7 +726,7 @@ export default function FilterPanel({
               </h2>
               <button
                 onClick={() => setMobileOpen(false)}
-                className="text-hg-text-muted hover:text-hg-text transition-colors p-1"
+                className="text-hg-text-muted hover:text-hg-text transition-colors p-2.5 -mr-1"
                 aria-label="Close filters"
               >
                 <svg
@@ -742,6 +742,9 @@ export default function FilterPanel({
                 </svg>
               </button>
             </div>
+          </div>
+          {/* Scrollable filter content */}
+          <div className="overflow-y-scroll overscroll-contain flex-1 min-h-0 px-6 pb-8">
             {filterContent}
           </div>
         </div>
