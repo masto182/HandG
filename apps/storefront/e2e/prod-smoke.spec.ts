@@ -1,6 +1,6 @@
 import { test, expect, chromium } from "@playwright/test"
 
-const PROD_URL = "http://localhost:8001"
+const PROD_URL = process.env.PLAYWRIGHT_PROD_URL || "http://localhost:8001"
 
 test.describe("Production smoke", () => {
   for (const pg of [
