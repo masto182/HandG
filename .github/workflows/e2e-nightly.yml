@@ -41,18 +41,7 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-      meilisearch:
-        image: getmeili/meilisearch:v1.12
-        env:
-          MEILI_MASTER_KEY: dev-meili-master-key
-          MEILI_ENV: development
-        ports:
-          - 7700:7700
-        options: >-
-          --health-cmd "wget -qO- http://localhost:7700/health"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 10
+
     env:
       DATABASE_URL: postgres://medusa:medusa@localhost:5432/medusa_db
       REDIS_URL: redis://localhost:6379
@@ -90,6 +79,19 @@ jobs:
       STOREFRONT_IMAGE_HOSTS: localhost
     steps:
       - uses: actions/checkout@v4
+
+      - name: Start MeiliSearch
+        # MeiliSearch's debian:12-slim image has no wget/curl, so we can't use a
+        # services: health check. Run it as a docker step and poll from the host.
+        run: |
+          docker run -d --name meilisearch \
+            -p 7700:7700 \
+            -e MEILI_MASTER_KEY=dev-meili-master-key \
+            -e MEILI_ENV=development \
+            getmeili/meilisearch:v1.12
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:7700/health && break || sleep 1
+          done
 
       - name: Start MinIO
         run: |
