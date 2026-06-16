@@ -29,7 +29,7 @@ export default async function createCiPublishableKey({ container }: ExecArgs) {
   const apiKey = await apiKeyModule.createApiKeys({
     title: "CI E2E",
     type: "publishable",
-    created_by: null,
+    created_by: "ci-seed",
   })
 
   try {
