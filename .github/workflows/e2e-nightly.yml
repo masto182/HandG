@@ -81,7 +81,10 @@ jobs:
           pnpm --filter ./apps/backend exec medusa exec ./src/scripts/seed.ts
           pnpm --filter ./apps/backend exec medusa user --email "${E2E_ADMIN_EMAIL}" --password "${E2E_ADMIN_PASSWORD}" || true
       - name: Start backend
-        run: pnpm --filter ./apps/backend start > /tmp/backend.log 2>&1 &
+        # Must run from .medusa/server/ so the admin loader resolves
+        # public/admin/index.html correctly — mirrors the Dockerfile CMD.
+        working-directory: apps/backend/.medusa/server
+        run: ../../node_modules/.bin/medusa start > /tmp/backend.log 2>&1 &
       - name: Start storefront
         run: pnpm --filter ./apps/storefront dev &
       - name: Install Playwright browsers
