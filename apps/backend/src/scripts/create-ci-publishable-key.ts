@@ -17,7 +17,7 @@ const SALES_CHANNEL_NAME = `${process.env.BRAND_NAME || "Hops & Glory"} Store`
 export default async function createCiPublishableKey({ container }: ExecArgs) {
   const apiKeyModule = container.resolve(Modules.API_KEY)
   const salesChannelModule = container.resolve(Modules.SALES_CHANNEL)
-  const remoteLink = container.resolve(ContainerRegistrationKeys.REMOTE_LINK)
+  const link = container.resolve(ContainerRegistrationKeys.LINK)
 
   const [salesChannel] = await salesChannelModule.listSalesChannels({
     name: SALES_CHANNEL_NAME,
@@ -33,9 +33,9 @@ export default async function createCiPublishableKey({ container }: ExecArgs) {
   })
 
   try {
-    await remoteLink.create({
-      [Modules.SALES_CHANNEL]: { sales_channel_id: salesChannel.id },
+    await link.create({
       [Modules.API_KEY]: { publishable_key_id: apiKey.id },
+      [Modules.SALES_CHANNEL]: { sales_channel_id: salesChannel.id },
     })
   } catch (e: any) {
     if (!e.message?.includes("already exists")) throw e
