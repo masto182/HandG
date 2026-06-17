@@ -241,6 +241,13 @@ jobs:
           echo "--- ALL sales channels ---"
           PGPASSWORD=medusa psql -h localhost -U medusa -d medusa_db \
             -c "SELECT id, name, created_at FROM sales_channel ORDER BY created_at;" || true
+          echo "--- publishable key → channel ---"
+          PGPASSWORD=medusa psql -h localhost -U medusa -d medusa_db \
+            -c "SELECT ak.token, paksc.sales_channel_id FROM api_key ak JOIN publishable_api_key_sales_channel paksc ON paksc.publishable_key_id = ak.id WHERE ak.deleted_at IS NULL;" || true
+          echo "--- store products handles ---"
+          curl -sf "http://localhost:9000/store/products?limit=20" \
+            -H "x-publishable-api-key: ${NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY}" \
+            | python3 -c "import json,sys; d=json.load(sys.stdin); print('count:', d.get('count',0)); [print(' -', p['handle']) for p in d.get('products',[])]" || echo "store query failed"
       - name: Run full Playwright suite
         run: pnpm --filter ./apps/storefront exec playwright test
       - uses: actions/upload-artifact@v4
