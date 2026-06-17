@@ -223,9 +223,12 @@ jobs:
           echo "Store product count: $STORE_COUNT"
 
           # Direct DB diagnostic — show sales channel rows
-          echo "--- product_sales_channel rows ---"
+          echo "--- ACTIVE (non-deleted) product_sales_channel rows ---"
           PGPASSWORD=medusa psql -h localhost -U medusa -d medusa_db \
-            -c "SELECT COUNT(*) AS channel_links FROM product_sales_channel;" || true
+            -c "SELECT COUNT(*) AS active_links FROM product_sales_channel WHERE deleted_at IS NULL;" || true
+          echo "--- SOFT-DELETED product_sales_channel rows ---"
+          PGPASSWORD=medusa psql -h localhost -U medusa -d medusa_db \
+            -c "SELECT COUNT(*) AS deleted_links FROM product_sales_channel WHERE deleted_at IS NOT NULL;" || true
           echo "--- published products count ---"
           PGPASSWORD=medusa psql -h localhost -U medusa -d medusa_db \
             -c "SELECT COUNT(*) AS published FROM product WHERE status='published';" || true
