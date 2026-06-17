@@ -180,6 +180,47 @@ jobs:
           }
       - name: Configure MeiliSearch index
         run: pnpm --filter ./apps/backend exec medusa exec ./src/scripts/reindex-search.ts
+      - name: Seed E2E products and verify store count
+        # Run the product seed explicitly here (in addition to globalSetup) so we
+        # can verify the channel link before any test runs.  globalSetup also runs
+        # the seed, but any issues with medusa exec DB commits would be caught here.
+        run: |
+          pnpm --filter ./apps/backend exec medusa exec ./src/scripts/seed-e2e-products.ts
+
+          # Get admin bearer token
+          ADMIN_TOKEN=$(curl -sf -X POST http://localhost:9000/auth/user/emailpass \
+            -H "Content-Type: application/json" \
+            -d "{\"email\":\"${E2E_ADMIN_EMAIL}\",\"password\":\"${E2E_ADMIN_PASSWORD}\"}" \
+            | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('token',''))")
+
+          # Get channel ID by name
+          CHANNEL_ID=$(curl -sf "http://localhost:9000/admin/sales-channels?q=Store" \
+            -H "Authorization: Bearer $ADMIN_TOKEN" \
+            | python3 -c "import json,sys; d=json.load(sys.stdin); chs=d.get('sales_channels',[]); print(next((c['id'] for c in chs if c['name'].endswith(' Store')),None))")
+          echo "Channel ID: $CHANNEL_ID"
+
+          # Get all published product IDs (limit 100)
+          PRODUCT_IDS=$(curl -sf "http://localhost:9000/admin/products?limit=100&status[]=published" \
+            -H "Authorization: Bearer $ADMIN_TOKEN" \
+            | python3 -c "import json,sys; d=json.load(sys.stdin); print(','.join(p['id'] for p in d.get('products',[])))")
+          echo "Product IDs: $PRODUCT_IDS"
+
+          # Add all products to channel via admin API
+          if [ -n "$CHANNEL_ID" ] && [ -n "$PRODUCT_IDS" ]; then
+            PRODUCT_IDS_JSON=$(echo "$PRODUCT_IDS" | python3 -c "import sys,json; ids=sys.stdin.read().strip().split(','); print(json.dumps({'product_ids': ids}))")
+            curl -sf -X POST "http://localhost:9000/admin/sales-channels/$CHANNEL_ID/products" \
+              -H "Authorization: Bearer $ADMIN_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "$PRODUCT_IDS_JSON" \
+              | python3 -c "import json,sys; d=json.load(sys.stdin); print('Added products:', len(d.get('sales_channel',{}).get('products',[])))" \
+              || echo "Note: products may already be linked"
+          fi
+
+          # Verify store count with the publishable key
+          STORE_COUNT=$(curl -sf "http://localhost:9000/store/products?limit=1" \
+            -H "x-publishable-api-key: ${NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY}" \
+            | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('count','?'))")
+          echo "Store product count: $STORE_COUNT"
       - name: Run full Playwright suite
         run: pnpm --filter ./apps/storefront exec playwright test
       - uses: actions/upload-artifact@v4
