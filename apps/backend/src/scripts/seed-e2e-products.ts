@@ -1,6 +1,10 @@
 import { ContainerRegistrationKeys, Modules, ProductStatus } from "@medusajs/framework/utils"
 import type { ExecArgs } from "@medusajs/framework/types"
-import { createProductsWorkflow, createInventoryLevelsWorkflow } from "@medusajs/medusa/core-flows"
+import {
+  createProductsWorkflow,
+  createInventoryLevelsWorkflow,
+  linkProductsToSalesChannelWorkflow,
+} from "@medusajs/medusa/core-flows"
 
 /**
  * Idempotent seed for the Hops & Glory Playwright e2e suite.
@@ -346,11 +350,13 @@ export default async function seedE2eProducts({ container }: ExecArgs) {
   // -------------------------------------------------------------------------
   // 1. Prerequisites: sales channel, stock locations, shipping profile
   // -------------------------------------------------------------------------
-  const salesChannels = await salesChannelModule.listSalesChannels({})
-  if (!salesChannels.length) {
-    throw new Error("No sales channel found. Run base seed first (just bootstrap).")
+  // Use the named channel to match what create-ci-publishable-key.ts uses.
+  const CHANNEL_NAME = `${process.env.BRAND_NAME || "Hops & Glory"} Store`
+  const [salesChannel] = await salesChannelModule.listSalesChannels({ name: CHANNEL_NAME })
+  if (!salesChannel) {
+    throw new Error(`Sales channel "${CHANNEL_NAME}" not found. Run base seed first.`)
   }
-  const salesChannel = salesChannels[0]
+  logger.info(`Using sales channel: ${salesChannel.name} (${salesChannel.id})`)
 
   const stockLocations = await stockLocationModule.listStockLocations({})
   if (!stockLocations.length) {
@@ -531,6 +537,7 @@ export default async function seedE2eProducts({ container }: ExecArgs) {
       [Modules.PRODUCT]: { product_id: existing.id },
       [Modules.SALES_CHANNEL]: { sales_channel_id: salesChannel.id },
     })
+    logger.info(`  Ensured ${sp.handle} is in sales channel ${salesChannel.id}`) // workflow approach below as belt-and-suspenders
 
     // Tags (anniversary + any others) — find-or-create, attach
     if (sp.tags?.length) {
@@ -607,6 +614,23 @@ export default async function seedE2eProducts({ container }: ExecArgs) {
       })
     }
   }
+
+  // -------------------------------------------------------------------------
+  // 4b. Ensure ALL products are linked to the sales channel via the official
+  //     workflow. This is belt-and-suspenders: createProductsWorkflow should
+  //     handle it, but the Admin API sometimes skips sales_channels on creation.
+  // -------------------------------------------------------------------------
+  const allProductHandles = ALL_PRODUCTS.map((p) => p.handle)
+  const allProductRows = await productModule.listProducts(
+    { handle: allProductHandles },
+    { select: ["id", "handle"] }
+  )
+  const allProductIds = allProductRows.map((p: any) => p.id)
+  logger.info(`Linking ${allProductIds.length} products to sales channel via workflow...`)
+  await linkProductsToSalesChannelWorkflow(container).run({
+    input: { id: salesChannel.id, add: allProductIds, remove: [] },
+  })
+  logger.info(`All products linked to sales channel ${salesChannel.name}`)
 
   // -------------------------------------------------------------------------
   // 5. Inventory: ensure TARGET_STOCK_PER_LOCATION at every stock location
