@@ -221,6 +221,14 @@ jobs:
             -H "x-publishable-api-key: ${NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY}" \
             | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('count','?'))")
           echo "Store product count: $STORE_COUNT"
+
+          # Direct DB diagnostic — show sales channel rows
+          echo "--- product_sales_channel rows ---"
+          PGPASSWORD=medusa psql -h localhost -U medusa -d medusa_db \
+            -c "SELECT COUNT(*) AS channel_links FROM product_sales_channel;" || true
+          echo "--- published products count ---"
+          PGPASSWORD=medusa psql -h localhost -U medusa -d medusa_db \
+            -c "SELECT COUNT(*) AS published FROM product WHERE status='published';" || true
       - name: Run full Playwright suite
         run: pnpm --filter ./apps/storefront exec playwright test
       - uses: actions/upload-artifact@v4
