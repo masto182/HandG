@@ -240,7 +240,9 @@ jobs:
             -c "SELECT psc.sales_channel_id, COUNT(*) AS cnt FROM product_sales_channel psc GROUP BY psc.sales_channel_id;" || true
           echo "--- publishable key channel link ---"
           PGPASSWORD=medusa psql -h localhost -U medusa -d medusa_db \
-            -c "SELECT sc.id, sc.name FROM api_key ak JOIN publishable_api_key_sales_channel paksc ON paksc.api_key_id = ak.id JOIN sales_channel sc ON sc.id = paksc.sales_channel_id WHERE ak.type = 'publishable' LIMIT 3;" || true
+            -c "\d publishable_api_key_sales_channel" || true
+          PGPASSWORD=medusa psql -h localhost -U medusa -d medusa_db \
+            -c "SELECT * FROM publishable_api_key_sales_channel LIMIT 5;" || true
       - name: Run full Playwright suite
         run: pnpm --filter ./apps/storefront exec playwright test
       - uses: actions/upload-artifact@v4
