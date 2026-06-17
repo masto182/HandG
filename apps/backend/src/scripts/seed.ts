@@ -219,13 +219,11 @@ export default async function seed({ container }: ExecArgs) {
     logger.info(`  Created shipping option "${name}": ${created.id}`)
     // Wire a free (amount=0) price via the pricing module so the option
     // appears in checkout. createShippingOptions alone does not do this.
-    const [priceSet] = await pricingModule.createPriceSets([{ rules: [] }])
-    await pricingModule.addPrices([
-      {
-        price_set_id: priceSet.id,
-        prices: [{ currency_code: CURRENCY, amount: 0 }],
-      },
-    ])
+    const priceSet = (await pricingModule.createPriceSets({} as any)) as any
+    await (pricingModule as any).addPrices({
+      price_set_id: priceSet.id,
+      prices: [{ currency_code: CURRENCY, amount: 0 }],
+    })
     await safeLink(
       {
         [Modules.FULFILLMENT]: { shipping_option_id: created.id },
