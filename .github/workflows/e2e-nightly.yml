@@ -229,6 +229,16 @@ jobs:
           echo "--- published products count ---"
           PGPASSWORD=medusa psql -h localhost -U medusa -d medusa_db \
             -c "SELECT COUNT(*) AS published FROM product WHERE status='published';" || true
+          echo "--- variant price set links ---"
+          PGPASSWORD=medusa psql -h localhost -U medusa -d medusa_db \
+            -c "SELECT COUNT(*) AS price_links FROM product_variant_price_set;" || true
+          echo "--- products with price links ---"
+          PGPASSWORD=medusa psql -h localhost -U medusa -d medusa_db \
+            -c "SELECT COUNT(DISTINCT v.product_id) AS products_with_prices FROM product_variant v JOIN product_variant_price_set pvps ON pvps.variant_id = v.id;" || true
+          echo "--- store API test for specific product ---"
+          curl -sf "http://localhost:9000/store/products?handle=tree-house-tenth-anniversary" \
+            -H "x-publishable-api-key: ${NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY}" \
+            | python3 -c "import json,sys; d=json.load(sys.stdin); print('tenth-anniversary count:', d.get('count',0))" || echo "product query failed"
       - name: Run full Playwright suite
         run: pnpm --filter ./apps/storefront exec playwright test
       - uses: actions/upload-artifact@v4
