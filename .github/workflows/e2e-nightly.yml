@@ -70,7 +70,7 @@ jobs:
       MEILI_HOST: http://localhost:7700
       MEILI_URL: http://localhost:7700
       MEILI_MASTER_KEY: dev-meili-master-key
-      MEDUSA_FF_INDEX_ENGINE: "true"
+      MEDUSA_FF_INDEX_ENGINE: "false"
       # Storefront public vars
       NEXT_PUBLIC_MEDUSA_BACKEND_URL: http://localhost:9000
       NEXT_PUBLIC_BASE_URL: http://localhost:8000
@@ -186,10 +186,6 @@ jobs:
         # the seed, but any issues with medusa exec DB commits would be caught here.
         run: |
           pnpm --filter ./apps/backend exec medusa exec ./src/scripts/seed-e2e-products.ts
-
-          # MEDUSA_FF_INDEX_ENGINE=true means GET /store/products uses MeiliSearch.
-          # Re-sync the index so all 15 products are visible before tests run.
-          pnpm --filter ./apps/backend exec medusa exec ./src/scripts/reindex-search.ts
 
           # Get admin bearer token
           ADMIN_TOKEN=$(curl -sf -X POST http://localhost:9000/auth/user/emailpass \

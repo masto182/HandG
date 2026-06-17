@@ -64,12 +64,6 @@ async function globalSetup(_config: FullConfig) {
     exec("pnpm exec medusa exec ./src/scripts/seed-hops.ts")
     console.log("[globalSetup] Seeding E2E products...")
     exec("pnpm exec medusa exec ./src/scripts/seed-e2e-products.ts")
-    // MEDUSA_FF_INDEX_ENGINE=true makes GET /store/products query MeiliSearch.
-    // Re-sync after seeding so all 15 products are indexed before tests run.
-    if (process.env.MEDUSA_FF_INDEX_ENGINE === "true") {
-      console.log("[globalSetup] Re-syncing MeiliSearch index after seeding...")
-      exec("pnpm exec medusa exec ./src/scripts/reindex-search.ts")
-    }
   }
 
   console.log(`[globalSetup] Health-checking ${BACKEND_URL}/health ...`)
