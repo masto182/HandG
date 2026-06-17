@@ -41,6 +41,7 @@ export const POST = async (req: AuthenticatedMedusaRequest, res: MedusaResponse)
 
   await orderModule.updateOrders(orderId, {
     // workflow-exempt
+    // workflow-exempt
     metadata: {
       ...((order as any).metadata || {}),
       ready_for_pickup_at: new Date().toISOString(),

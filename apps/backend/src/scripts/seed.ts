@@ -1,5 +1,6 @@
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import type { ExecArgs } from "@medusajs/framework/types"
+import { createShippingOptionsWorkflow } from "@medusajs/medusa/core-flows"
 import { PICKUP_LOCATION_MODULE } from "../modules/pickup-location"
 import type PickupLocationModuleService from "../modules/pickup-location/service"
 
@@ -214,9 +215,14 @@ export default async function seed({ container }: ExecArgs) {
   async function findOrCreateShippingOption(name: string, opts: any) {
     const [existing] = await fulfillmentModule.listShippingOptions({ name })
     if (existing) return existing
-    const created = (await fulfillmentModule.createShippingOptions(opts)) as any
-    logger.info(`  Created shipping option "${name}": ${created.id}`)
-    return created
+    // Use the workflow so prices are set via the pricing module (flat 0 rate).
+    // Direct module.createShippingOptions does not wire up the pricing link.
+    const { result: created } = await createShippingOptionsWorkflow(container).run({
+      input: [{ ...opts, prices: [{ currency_code: CURRENCY, amount: 0 }] }],
+    })
+    const option = created[0] as any
+    logger.info(`  Created shipping option "${name}": ${option.id}`)
+    return option
   }
 
   async function safeLink(payload: any, label: string) {

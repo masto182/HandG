@@ -52,6 +52,7 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
       await authModule.updateProviderIdentities(
         // workflow-exempt
         // workflow-exempt
+        // workflow-exempt
         identities.map((pi) => ({ id: pi.id, entity_id: new_email }))
       )
     }

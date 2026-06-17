@@ -275,7 +275,7 @@ test.describe("Extended UAT — Visual Polish & Navigation", () => {
       const toggle = page.locator('button[aria-label*="Switch to"]').first()
       if (await toggle.isVisible({ timeout: 3000 }).catch(() => false)) {
         await toggle.click()
-        await page.waitForTimeout(500)
+        await page.waitForTimeout(1500) // allow JS to apply theme class
         const newClass = (await html.getAttribute("class")) || ""
         expect(newClass).not.toBe(initialClass)
       }

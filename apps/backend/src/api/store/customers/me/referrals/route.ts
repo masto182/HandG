@@ -26,6 +26,7 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
     await customerModule.updateCustomers(customerId, {
       // workflow-exempt
       // workflow-exempt
+      // workflow-exempt
       metadata: { ...((customer.metadata as any) || {}), referral_code: referralCode },
     })
     // Keep the indexed lookup table in sync so the code resolves in validate.
