@@ -1,5 +1,6 @@
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import type { ExecArgs } from "@medusajs/framework/types"
+import { createShippingOptionsWorkflow } from "@medusajs/medusa/core-flows"
 import { PICKUP_LOCATION_MODULE } from "../modules/pickup-location"
 import type PickupLocationModuleService from "../modules/pickup-location/service"
 
@@ -105,7 +106,6 @@ export default async function seed({ container }: ExecArgs) {
   const stockLocationModule = container.resolve(Modules.STOCK_LOCATION)
   const fulfillmentModule = container.resolve(Modules.FULFILLMENT)
   const paymentModule = container.resolve(Modules.PAYMENT)
-  const pricingModule = container.resolve(Modules.PRICING)
   const pickupSvc = container.resolve(PICKUP_LOCATION_MODULE) as PickupLocationModuleService
 
   logger.info(`Starting ${BRAND_NAME} seed (currency=${CURRENCY}, country=${COUNTRY})...`)
@@ -215,23 +215,14 @@ export default async function seed({ container }: ExecArgs) {
   async function findOrCreateShippingOption(name: string, opts: any) {
     const [existing] = await fulfillmentModule.listShippingOptions({ name })
     if (existing) return existing
-    const created = (await fulfillmentModule.createShippingOptions(opts)) as any
-    logger.info(`  Created shipping option "${name}": ${created.id}`)
-    // Wire a free (amount=0) price via the pricing module so the option
-    // appears in checkout. createShippingOptions alone does not do this.
-    const priceSet = (await pricingModule.createPriceSets({} as any)) as any
-    await (pricingModule as any).addPrices({
-      price_set_id: priceSet.id,
-      prices: [{ currency_code: CURRENCY, amount: 0 }],
+    // Use createShippingOptionsWorkflow to properly wire the pricing module link.
+    // Requires stock-location → fulfillment-provider links to exist first.
+    const { result: created } = await createShippingOptionsWorkflow(container).run({
+      input: [{ ...opts, prices: [{ currency_code: CURRENCY, amount: 0 }] }],
     })
-    await safeLink(
-      {
-        [Modules.FULFILLMENT]: { shipping_option_id: created.id },
-        [Modules.PRICING]: { price_set_id: priceSet.id },
-      },
-      `${name} → price set`
-    )
-    return created
+    const option = created[0] as any
+    logger.info(`  Created shipping option "${name}": ${option.id}`)
+    return option
   }
 
   async function safeLink(payload: any, label: string) {
@@ -246,11 +237,39 @@ export default async function seed({ container }: ExecArgs) {
   if (manualProvider && shippingProfile) {
     const profileId = shippingProfile.id
 
+    // Link fulfillment providers to stock locations FIRST so the
+    // createShippingOptionsWorkflow provider-validation passes.
+    await safeLink(
+      {
+        [Modules.STOCK_LOCATION]: { stock_location_id: warehouse.id },
+        [Modules.FULFILLMENT]: { fulfillment_provider_id: manualProvider.id },
+      },
+      `warehouse → manual provider`
+    )
+    for (const pl of PICKUP_LOCATIONS) {
+      await safeLink(
+        {
+          [Modules.STOCK_LOCATION]: { stock_location_id: pickupStockLocations[pl.slug].id },
+          [Modules.FULFILLMENT]: { fulfillment_provider_id: manualProvider.id },
+        },
+        `${pl.stock_location_name} → manual provider`
+      )
+    }
+
     // 5a. Shipping (delivery from warehouse) — manual flat-rate placeholder.
     // Adopters typically replace this with a calculated provider (ShipEngine,
     // AusPost, EasyPost, etc.) registered in medusa-config.ts.
     const shippingSet = await findOrCreateFulfillmentSet("Shipping", "shipping")
     const shippingZone = await findOrCreateServiceZone(`${REGION_NAME} Shipping`, shippingSet.id)
+    // Link warehouse to fulfillment set BEFORE creating the shipping option
+    // so createShippingOptionsWorkflow provider-validation passes.
+    await safeLink(
+      {
+        [Modules.STOCK_LOCATION]: { stock_location_id: warehouse.id },
+        [Modules.FULFILLMENT]: { fulfillment_set_id: shippingSet.id },
+      },
+      `warehouse → shipping set`
+    )
     await findOrCreateShippingOption("Standard Shipping", {
       name: "Standard Shipping",
       price_type: "flat",
@@ -260,13 +279,6 @@ export default async function seed({ container }: ExecArgs) {
       type: { label: "Shipping", description: "Flat-rate delivery", code: "standard" },
       rules: [],
     })
-    await safeLink(
-      {
-        [Modules.STOCK_LOCATION]: { stock_location_id: warehouse.id },
-        [Modules.FULFILLMENT]: { fulfillment_set_id: shippingSet.id },
-      },
-      `warehouse → shipping set`
-    )
 
     // 5a-ii. Calculated shipping options for live-rate providers
     const shipengineProvider = providers.find((p: any) => p.id.includes("shipengine"))
@@ -309,6 +321,14 @@ export default async function seed({ container }: ExecArgs) {
       const zoneName = `${pl.stock_location_name} Pickup`
       const pickupSet = await findOrCreateFulfillmentSet(setName, "pickup")
       const pickupZone = await findOrCreateServiceZone(zoneName, pickupSet.id)
+      // Link pickup location to fulfillment set BEFORE creating the option
+      await safeLink(
+        {
+          [Modules.STOCK_LOCATION]: { stock_location_id: pickupStockLocations[pl.slug].id },
+          [Modules.FULFILLMENT]: { fulfillment_set_id: pickupSet.id },
+        },
+        `${pl.stock_location_name} → pickup set`
+      )
       await findOrCreateShippingOption(pl.stock_location_name, {
         name: pl.stock_location_name,
         price_type: "flat",
@@ -322,13 +342,6 @@ export default async function seed({ container }: ExecArgs) {
         },
         rules: [],
       })
-      await safeLink(
-        {
-          [Modules.STOCK_LOCATION]: { stock_location_id: pickupStockLocations[pl.slug].id },
-          [Modules.FULFILLMENT]: { fulfillment_set_id: pickupSet.id },
-        },
-        `${pl.stock_location_name} → pickup set`
-      )
     }
   }
   // ---------------------------------------------------------------------------
