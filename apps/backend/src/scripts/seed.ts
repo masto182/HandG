@@ -1,6 +1,5 @@
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import type { ExecArgs } from "@medusajs/framework/types"
-import { createShippingOptionsWorkflow } from "@medusajs/medusa/core-flows"
 import { PICKUP_LOCATION_MODULE } from "../modules/pickup-location"
 import type PickupLocationModuleService from "../modules/pickup-location/service"
 
@@ -106,6 +105,7 @@ export default async function seed({ container }: ExecArgs) {
   const stockLocationModule = container.resolve(Modules.STOCK_LOCATION)
   const fulfillmentModule = container.resolve(Modules.FULFILLMENT)
   const paymentModule = container.resolve(Modules.PAYMENT)
+  const pricingModule = container.resolve(Modules.PRICING)
   const pickupSvc = container.resolve(PICKUP_LOCATION_MODULE) as PickupLocationModuleService
 
   logger.info(`Starting ${BRAND_NAME} seed (currency=${CURRENCY}, country=${COUNTRY})...`)
@@ -215,14 +215,25 @@ export default async function seed({ container }: ExecArgs) {
   async function findOrCreateShippingOption(name: string, opts: any) {
     const [existing] = await fulfillmentModule.listShippingOptions({ name })
     if (existing) return existing
-    // Use the workflow so prices are set via the pricing module (flat 0 rate).
-    // Direct module.createShippingOptions does not wire up the pricing link.
-    const { result: created } = await createShippingOptionsWorkflow(container).run({
-      input: [{ ...opts, prices: [{ currency_code: CURRENCY, amount: 0 }] }],
-    })
-    const option = created[0] as any
-    logger.info(`  Created shipping option "${name}": ${option.id}`)
-    return option
+    const created = (await fulfillmentModule.createShippingOptions(opts)) as any
+    logger.info(`  Created shipping option "${name}": ${created.id}`)
+    // Wire a free (amount=0) price via the pricing module so the option
+    // appears in checkout. createShippingOptions alone does not do this.
+    const [priceSet] = await pricingModule.createPriceSets([{ rules: [] }])
+    await pricingModule.addPrices([
+      {
+        price_set_id: priceSet.id,
+        prices: [{ currency_code: CURRENCY, amount: 0 }],
+      },
+    ])
+    await safeLink(
+      {
+        [Modules.FULFILLMENT]: { shipping_option_id: created.id },
+        [Modules.PRICING]: { price_set_id: priceSet.id },
+      },
+      `${name} → price set`
+    )
+    return created
   }
 
   async function safeLink(payload: any, label: string) {
@@ -322,7 +333,6 @@ export default async function seed({ container }: ExecArgs) {
       )
     }
   }
-
   // ---------------------------------------------------------------------------
   // 6. Payment provider link (system default; adopters add Stripe/PayPal/etc.)
   // ---------------------------------------------------------------------------
