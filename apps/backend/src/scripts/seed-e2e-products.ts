@@ -434,6 +434,7 @@ export default async function seedE2eProducts({ container }: ExecArgs) {
   // -------------------------------------------------------------------------
   // 4. Products: find-or-create, patch metadata, ensure links + beer_detail
   // -------------------------------------------------------------------------
+  const seededProductIds: string[] = [] // collected here, used for bulk channel linking below
   for (const sp of ALL_PRODUCTS) {
     const releaseAt = resolveReleaseAt(sp.releaseAt)
     const earlyAccessUntil = releaseAt ? new Date(releaseAt.getTime() + 24 * 3600 * 1000) : null
@@ -537,7 +538,8 @@ export default async function seedE2eProducts({ container }: ExecArgs) {
       [Modules.PRODUCT]: { product_id: existing.id },
       [Modules.SALES_CHANNEL]: { sales_channel_id: salesChannel.id },
     })
-    logger.info(`  Ensured ${sp.handle} is in sales channel ${salesChannel.id}`) // workflow approach below as belt-and-suspenders
+    logger.info(`  Ensured ${sp.handle} is in sales channel ${salesChannel.id}`)
+    seededProductIds.push(existing.id)
 
     // Tags (anniversary + any others) — find-or-create, attach
     if (sp.tags?.length) {
@@ -620,12 +622,7 @@ export default async function seedE2eProducts({ container }: ExecArgs) {
   //     workflow. This is belt-and-suspenders: createProductsWorkflow should
   //     handle it, but the Admin API sometimes skips sales_channels on creation.
   // -------------------------------------------------------------------------
-  const allProductHandles = ALL_PRODUCTS.map((p) => p.handle)
-  const allProductRows = await productModule.listProducts(
-    { handle: allProductHandles },
-    { select: ["id", "handle"] }
-  )
-  const allProductIds = allProductRows.map((p: any) => p.id)
+  const allProductIds = seededProductIds
   logger.info(`Linking ${allProductIds.length} products to sales channel via workflow...`)
   await linkProductsToSalesChannelWorkflow(container).run({
     input: { id: salesChannel.id, add: allProductIds, remove: [] },
