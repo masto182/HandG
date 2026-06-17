@@ -187,6 +187,10 @@ jobs:
         run: |
           pnpm --filter ./apps/backend exec medusa exec ./src/scripts/seed-e2e-products.ts
 
+          # MEDUSA_FF_INDEX_ENGINE=true means GET /store/products uses MeiliSearch.
+          # Re-sync the index so all 15 products are visible before tests run.
+          pnpm --filter ./apps/backend exec medusa exec ./src/scripts/reindex-search.ts
+
           # Get admin bearer token
           ADMIN_TOKEN=$(curl -sf -X POST http://localhost:9000/auth/user/emailpass \
             -H "Content-Type: application/json" \
