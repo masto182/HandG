@@ -71,6 +71,11 @@ jobs:
       MEILI_URL: http://localhost:7700
       MEILI_MASTER_KEY: dev-meili-master-key
       MEDUSA_FF_INDEX_ENGINE: "false"
+      # The admin is served over plain http://localhost in CI (no TLS), so the
+      # session cookie must NOT be Secure or express-session won't set it and
+      # admin login fails (/admin/users/me 401). Real deploys run behind HTTPS
+      # and leave this unset (defaults to Secure).
+      COOKIE_SECURE: "false"
       # Storefront public vars
       NEXT_PUBLIC_MEDUSA_BACKEND_URL: http://localhost:9000
       NEXT_PUBLIC_BASE_URL: http://localhost:8000

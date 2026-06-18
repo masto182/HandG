@@ -10,6 +10,20 @@ module.exports = defineConfig({
     databaseUrl: process.env.DATABASE_URL,
     redisUrl: process.env.REDIS_URL,
     workerMode: (process.env.MEDUSA_WORKER_MODE as "shared" | "worker" | "server") || "shared",
+    // Session cookie security. Real production deploys run behind HTTPS (Caddy)
+    // so the cookie must be Secure. But CI and local production builds serve the
+    // admin over plain http://localhost, where express-session silently refuses
+    // to set a `secure` cookie — which breaks admin login (/admin/users/me 401)
+    // and every admin-UI E2E test. Allow an explicit COOKIE_SECURE override so
+    // those http environments can disable Secure WITHOUT weakening production
+    // (where COOKIE_SECURE is unset and this falls back to the prod default).
+    cookieOptions: {
+      secure:
+        process.env.COOKIE_SECURE !== undefined
+          ? process.env.COOKIE_SECURE === "true"
+          : process.env.NODE_ENV === "production",
+      sameSite: "lax",
+    },
     http: {
       storeCors: process.env.STORE_CORS!,
       adminCors: process.env.ADMIN_CORS!,
