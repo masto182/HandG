@@ -271,13 +271,15 @@ test.describe("Extended UAT — Visual Polish & Navigation", () => {
     }) => {
       await goToHomepage(page)
       const html = page.locator("html")
-      const initialClass = (await html.getAttribute("class")) || ""
+      // Theme is applied via the data-theme attribute (dark/light), not a class
+      // — see theme-toggle component + layout.tsx. Assert on that, not class.
+      const initialTheme = (await html.getAttribute("data-theme")) || ""
       const toggle = page.locator('button[aria-label*="Switch to"]').first()
       if (await toggle.isVisible({ timeout: 3000 }).catch(() => false)) {
         await toggle.click()
-        await page.waitForTimeout(1500) // allow JS to apply theme class
-        const newClass = (await html.getAttribute("class")) || ""
-        expect(newClass).not.toBe(initialClass)
+        await page.waitForTimeout(1500) // allow JS to apply theme attribute
+        const newTheme = (await html.getAttribute("data-theme")) || ""
+        expect(newTheme).not.toBe(initialTheme)
       }
     })
   })

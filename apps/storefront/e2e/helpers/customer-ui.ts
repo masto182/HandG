@@ -357,19 +357,28 @@ export async function readVipScoreFromAccount(page: Page): Promise<number> {
  * Uses the font-mono display element that renders the code directly.
  */
 export async function readReferralCode(page: Page): Promise<string> {
-  await page.goto("/account/referrals")
-  await page.waitForLoadState("domcontentloaded")
-  // The code is rendered in a font-mono div with select-all styling.
-  const codeEl = page.locator(".font-mono.tracking-widest").first()
-  if (await codeEl.isVisible({ timeout: 5_000 }).catch(() => false)) {
-    return ((await codeEl.textContent()) || "").trim()
+  // The referrals page fetches its data client-side and the code is written by
+  // the approve workflow, both of which can lag in a production build. Retry
+  // with reloads instead of reading once.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await page.goto("/account/referrals")
+    await page.waitForLoadState("domcontentloaded")
+    const codeEl = page.locator(".font-mono.tracking-widest").first()
+    if (await codeEl.isVisible({ timeout: 8_000 }).catch(() => false)) {
+      const txt = ((await codeEl.textContent()) || "").trim()
+      if (txt) return txt
+    }
+    // Fallback: regex on full text, requires at least one digit to exclude headings.
+    const text = (await page.locator("main").last().textContent()) || ""
+    const nearLabel = text.match(
+      /(?:REFERRAL CODE|YOUR CODE)[^A-Z0-9]*([A-Z0-9]{6,16})/i,
+    )
+    if (nearLabel) return nearLabel[1]
+    const all = text.match(/\b[A-Z0-9]{6,16}\b/g) || []
+    const found = all.find((c) => /\d/.test(c))
+    if (found) return found
+    // Not ready yet — wait and retry (code generation / data fetch may lag).
+    await page.waitForTimeout(2_000)
   }
-  // Fallback: regex on full text, requires at least one digit to exclude headings.
-  const text = (await page.locator("main").last().textContent()) || ""
-  const nearLabel = text.match(
-    /(?:REFERRAL CODE|YOUR CODE)[^A-Z0-9]*([A-Z0-9]{6,16})/i,
-  )
-  if (nearLabel) return nearLabel[1]
-  const all = text.match(/\b[A-Z0-9]{6,16}\b/g) || []
-  return all.find((c) => /\d/.test(c)) ?? ""
+  return ""
 }

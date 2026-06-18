@@ -171,7 +171,9 @@ test.describe.serial("Membership Access Control — Full Flow", () => {
       await page.reload()
       await page.waitForTimeout(2000)
       const nav = page.locator("nav, header")
-      const accountLink = nav.locator("text=/[Aa]ccount/")
+      // Approved users see an avatar icon link to /account (not the text
+      // "Account") — match the href like test 16, not literal text.
+      const accountLink = nav.locator('a[href*="/account"]')
       await expect(accountLink.first()).toBeVisible({ timeout: 5000 })
     })
 
