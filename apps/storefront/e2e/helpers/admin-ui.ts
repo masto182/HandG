@@ -80,14 +80,24 @@ export async function approveMember(page: Page, email: string): Promise<void> {
   await row.click()
 
   // The Approve button is in the drawer footer (not the row itself).
-  // The bulk-action bar renders "Approve N" so exact: true on "Approve" is safe.
+  // The drawer "Approve" button opens a confirmation prompt; it does NOT
+  // approve on its own. Click it, then confirm in the alert dialog (whose
+  // confirm action is also labelled "Approve"). Without the second click the
+  // member stays in the "pending" group.
   const approveBtn = page
     .locator("button")
     .filter({ hasText: /^Approve$/ })
     .last()
   await expect(approveBtn).toBeVisible({ timeout: 8_000 })
   await approveBtn.click()
-  await page.waitForTimeout(2_000)
+
+  const dialog = page.getByRole("alertdialog")
+  await expect(dialog).toBeVisible({ timeout: 8_000 })
+  const confirmBtn = dialog.getByRole("button", { name: /^Approve$/ })
+  await expect(confirmBtn).toBeVisible({ timeout: 8_000 })
+  await confirmBtn.click()
+  // Wait for the confirmation dialog to close (approval committed).
+  await expect(dialog).toBeHidden({ timeout: 15_000 })
 }
 
 /**
@@ -217,20 +227,8 @@ export async function readMemberVipScore(
 ): Promise<number> {
   await page.goto(adminUrl("/app/members"))
   await page.waitForLoadState("domcontentloaded")
-  // Switch to "All" tab so the member is visible regardless of approval status.
-  const allTab = page.locator('button:has-text("All")').first()
-  if (await allTab.isVisible({ timeout: 3_000 }).catch(() => false)) {
-    await allTab.click()
-    await page.waitForTimeout(500)
-  }
-  const search = page.locator('input[placeholder*="name or email"]').first()
-  if (await search.isVisible({ timeout: 3_000 }).catch(() => false)) {
-    await search.fill(email)
-    await search.press("Enter")
-    await page.waitForTimeout(1_000)
-  }
-  const row = page.locator(`tr:has-text("${email}")`).first()
-  if (!(await row.isVisible({ timeout: 5_000 }).catch(() => false))) return NaN
+  const row = await findMemberRowOnTierTabs(page, email)
+  if (!row) return NaN
   const cells = row.locator("td")
   // Layout on non-pending tab: Name | Email | Tier | VIP Score | Referred by | Joined
   const scoreCell = (await cells.nth(3).textContent())?.trim() ?? ""
@@ -244,21 +242,36 @@ export async function readMemberTier(
 ): Promise<string> {
   await page.goto(adminUrl("/app/members"))
   await page.waitForLoadState("domcontentloaded")
-  // Switch to "All" tab so the member is visible regardless of approval status.
-  const allTab = page.locator('button:has-text("All")').first()
-  if (await allTab.isVisible({ timeout: 3_000 }).catch(() => false)) {
-    await allTab.click()
-    await page.waitForTimeout(500)
-  }
-  const search = page.locator('input[placeholder*="name or email"]').first()
-  if (await search.isVisible({ timeout: 3_000 }).catch(() => false)) {
-    await search.fill(email)
-    await search.press("Enter")
-    await page.waitForTimeout(1_000)
-  }
-  const row = page.locator(`tr:has-text("${email}")`).first()
-  if (!(await row.isVisible({ timeout: 5_000 }).catch(() => false))) return ""
+  const row = await findMemberRowOnTierTabs(page, email)
+  if (!row) return ""
   const cells = row.locator("td")
   // Layout on non-pending tab: Name | Email | Tier | VIP Score | Referred by | Joined
   return (await cells.nth(2).textContent())?.trim() ?? ""
+}
+
+/**
+ * Find a member's row on a tier-bearing tab. Approved members live on the
+ * "Approved" tab and VIP members on the "VIP" tab — there is no "All" tab — so
+ * tier/score only render on those two. Search each in turn and return the first
+ * matching row (or null).
+ */
+async function findMemberRowOnTierTabs(page: Page, email: string) {
+  for (const tabName of ["Approved", "VIP"]) {
+    const tab = page.locator(`button:has-text("${tabName}")`).first()
+    if (await tab.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      await tab.click()
+      await page.waitForTimeout(500)
+    }
+    const search = page.locator('input[placeholder*="name or email"]').first()
+    if (await search.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      await search.fill(email)
+      await search.press("Enter")
+      await page.waitForTimeout(1_000)
+    }
+    const row = page.locator(`tr:has-text("${email}")`).first()
+    if (await row.isVisible({ timeout: 5_000 }).catch(() => false)) {
+      return row
+    }
+  }
+  return null
 }
