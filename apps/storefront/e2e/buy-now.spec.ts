@@ -67,11 +67,16 @@ test.describe("Buy-at-price (Buy Now)", () => {
     await gotoProductByHandle(cPage, STOUT_HANDLE)
     await addCurrentProductToCart(cPage)
     await cPage.goto("/cart")
-    await cPage.waitForLoadState("networkidle")
-    const cartText = (await cPage.locator("main").last().textContent()) || ""
-    // Either the subtotal shows $60.00 or there's a visible discount line for
-    // $20 off — both prove the buy-at-price promotion is applied.
-    expect(cartText).toMatch(/A?\$\s*60\.00|-A?\$\s*20\.00/)
+    await cPage.waitForLoadState("domcontentloaded")
+    // The buy-at-price promotion auto-applies via a client-side cart fetch a
+    // moment after the page loads. Assert on the discounted figure with retries
+    // rather than reading textContent once, which races the promo application.
+    // Either the subtotal/total shows $60.00 or there's a visible -$20.00
+    // discount line — both prove the buy-at-price promotion is applied.
+    await expect(cPage.locator("main").last()).toContainText(
+      /A?\$\s*60\.00|-A?\$\s*20\.00/,
+      { timeout: 15_000 },
+    )
 
     // 5. Checkout + capture (regression for the discounted-order capture path).
     const { orderRef } = await checkoutPickupPayid(cPage)

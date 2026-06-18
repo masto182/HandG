@@ -32,18 +32,31 @@ test.describe.serial("Inventory Reservation — Atomic Flow", () => {
     })
   }
 
-  async function adminPost(request: APIRequestContext, path: string, data: any) {
+  async function adminPost(
+    request: APIRequestContext,
+    path: string,
+    data: any,
+  ) {
     return request.post(`${BACKEND}${path}`, {
-      headers: { Authorization: `Bearer ${adminToken}`, "Content-Type": "application/json" },
+      headers: {
+        Authorization: `Bearer ${adminToken}`,
+        "Content-Type": "application/json",
+      },
       data,
     })
   }
 
   test("Setup: authenticate admin and seed inventory", async ({ request }) => {
     adminToken = (await adminAuth(request)) || ""
-    test.skip(!adminToken, "Cannot authenticate as admin — check ADMIN_EMAIL/ADMIN_PASSWORD env vars")
+    test.skip(
+      !adminToken,
+      "Cannot authenticate as admin — check ADMIN_EMAIL/ADMIN_PASSWORD env vars",
+    )
 
-    const productsRes = await adminGet(request, "/admin/products?limit=1&fields=id,variants.id,variants.inventory_quantity")
+    const productsRes = await adminGet(
+      request,
+      "/admin/products?limit=1&fields=id,variants.id,variants.inventory_quantity",
+    )
     expect(productsRes.ok()).toBeTruthy()
     const productsData = await productsRes.json()
     const product = productsData.products?.[0]
@@ -54,7 +67,10 @@ test.describe.serial("Inventory Reservation — Atomic Flow", () => {
     test.skip(!variant, "Product has no variants")
     variantId = variant.id
 
-    const invItemsRes = await adminGet(request, `/admin/inventory-items?sku=${variantId}&limit=10`)
+    const invItemsRes = await adminGet(
+      request,
+      `/admin/inventory-items?sku=${variantId}&limit=10`,
+    )
     let invData: any
     if (invItemsRes.ok()) {
       invData = await invItemsRes.json()
@@ -65,7 +81,7 @@ test.describe.serial("Inventory Reservation — Atomic Flow", () => {
       if (altRes.ok()) {
         const altData = await altRes.json()
         const match = altData.inventory_items?.find((i: any) =>
-          i.variants?.some((v: any) => v.id === variantId)
+          i.variants?.some((v: any) => v.id === variantId),
         )
         if (match) {
           invData = { inventory_items: [match] }
@@ -83,16 +99,26 @@ test.describe.serial("Inventory Reservation — Atomic Flow", () => {
     }
 
     if (inventoryItemId && locationId) {
-      const updateRes = await adminPost(request, `/admin/inventory-items/${inventoryItemId}/location-levels/${locationId}`, {
-        stocked_quantity: STOCK_LEVEL,
-      })
+      const updateRes = await adminPost(
+        request,
+        `/admin/inventory-items/${inventoryItemId}/location-levels/${locationId}`,
+        {
+          stocked_quantity: STOCK_LEVEL,
+        },
+      )
       if (!updateRes.ok()) {
         const body = await updateRes.text()
-        test.skip(true, `Could not set stock: ${updateRes.status()} ${body.slice(0, 100)}`)
+        test.skip(
+          true,
+          `Could not set stock: ${updateRes.status()} ${body.slice(0, 100)}`,
+        )
       }
     } else {
       originalStock = variant.inventory_quantity ?? 0
-      test.skip(originalStock <= 0, "Cannot determine inventory item/location and variant has no stock")
+      test.skip(
+        originalStock <= 0,
+        "Cannot determine inventory item/location and variant has no stock",
+      )
     }
   })
 
@@ -100,34 +126,53 @@ test.describe.serial("Inventory Reservation — Atomic Flow", () => {
     test.skip(!productId || !variantId, "Setup did not complete")
 
     const cartRes = await request.post(`${BACKEND}/store/carts`, {
-      headers: { "x-publishable-api-key": PUBLISHABLE_KEY, "Content-Type": "application/json" },
+      headers: {
+        "x-publishable-api-key": PUBLISHABLE_KEY,
+        "Content-Type": "application/json",
+      },
       data: {},
     })
     expect(cartRes.ok()).toBeTruthy()
     const cartData = await cartRes.json()
     cartId = cartData.cart.id
 
-    const beforeRes = await request.get(`${BACKEND}/store/products/${productId}?fields=variants.id,variants.inventory_quantity`, {
-      headers: { "x-publishable-api-key": PUBLISHABLE_KEY },
-    })
+    const beforeRes = await request.get(
+      `${BACKEND}/store/products/${productId}?fields=variants.id,variants.inventory_quantity`,
+      {
+        headers: { "x-publishable-api-key": PUBLISHABLE_KEY },
+      },
+    )
     expect(beforeRes.ok()).toBeTruthy()
     const beforeData = await beforeRes.json()
-    const beforeQty = beforeData.product.variants?.find((v: any) => v.id === variantId)?.inventory_quantity ?? 0
+    const beforeQty =
+      beforeData.product.variants?.find((v: any) => v.id === variantId)
+        ?.inventory_quantity ?? 0
 
-    const lineItemRes = await request.post(`${BACKEND}/store/carts/${cartId}/line-items`, {
-      headers: { "x-publishable-api-key": PUBLISHABLE_KEY, "Content-Type": "application/json" },
-      data: { variant_id: variantId, quantity: 1 },
-    })
+    const lineItemRes = await request.post(
+      `${BACKEND}/store/carts/${cartId}/line-items`,
+      {
+        headers: {
+          "x-publishable-api-key": PUBLISHABLE_KEY,
+          "Content-Type": "application/json",
+        },
+        data: { variant_id: variantId, quantity: 1 },
+      },
+    )
     expect(lineItemRes.ok()).toBeTruthy()
     const lineItemData = await lineItemRes.json()
     lineItemId = lineItemData.cart.items?.[0]?.id
 
-    const afterRes = await request.get(`${BACKEND}/store/products/${productId}?fields=variants.id,variants.inventory_quantity`, {
-      headers: { "x-publishable-api-key": PUBLISHABLE_KEY },
-    })
+    const afterRes = await request.get(
+      `${BACKEND}/store/products/${productId}?fields=variants.id,variants.inventory_quantity`,
+      {
+        headers: { "x-publishable-api-key": PUBLISHABLE_KEY },
+      },
+    )
     expect(afterRes.ok()).toBeTruthy()
     const afterData = await afterRes.json()
-    const afterQty = afterData.product.variants?.find((v: any) => v.id === variantId)?.inventory_quantity ?? 0
+    const afterQty =
+      afterData.product.variants?.find((v: any) => v.id === variantId)
+        ?.inventory_quantity ?? 0
 
     expect(afterQty).toBeLessThan(beforeQty)
   })
@@ -135,23 +180,36 @@ test.describe.serial("Inventory Reservation — Atomic Flow", () => {
   test("Removing line item restores inventory", async ({ request }) => {
     test.skip(!cartId || !lineItemId, "Prior test did not complete")
 
-    const beforeRes = await request.get(`${BACKEND}/store/products/${productId}?fields=variants.id,variants.inventory_quantity`, {
-      headers: { "x-publishable-api-key": PUBLISHABLE_KEY },
-    })
+    const beforeRes = await request.get(
+      `${BACKEND}/store/products/${productId}?fields=variants.id,variants.inventory_quantity`,
+      {
+        headers: { "x-publishable-api-key": PUBLISHABLE_KEY },
+      },
+    )
     const beforeData = await beforeRes.json()
-    const beforeQty = beforeData.product.variants?.find((v: any) => v.id === variantId)?.inventory_quantity ?? 0
+    const beforeQty =
+      beforeData.product.variants?.find((v: any) => v.id === variantId)
+        ?.inventory_quantity ?? 0
 
-    const removeRes = await request.delete(`${BACKEND}/store/carts/${cartId}/line-items/${lineItemId}`, {
-      headers: { "x-publishable-api-key": PUBLISHABLE_KEY },
-    })
+    const removeRes = await request.delete(
+      `${BACKEND}/store/carts/${cartId}/line-items/${lineItemId}`,
+      {
+        headers: { "x-publishable-api-key": PUBLISHABLE_KEY },
+      },
+    )
     expect(removeRes.ok()).toBeTruthy()
 
-    const afterRes = await request.get(`${BACKEND}/store/products/${productId}?fields=variants.id,variants.inventory_quantity`, {
-      headers: { "x-publishable-api-key": PUBLISHABLE_KEY },
-    })
+    const afterRes = await request.get(
+      `${BACKEND}/store/products/${productId}?fields=variants.id,variants.inventory_quantity`,
+      {
+        headers: { "x-publishable-api-key": PUBLISHABLE_KEY },
+      },
+    )
     expect(afterRes.ok()).toBeTruthy()
     const afterData = await afterRes.json()
-    const afterQty = afterData.product.variants?.find((v: any) => v.id === variantId)?.inventory_quantity ?? 0
+    const afterQty =
+      afterData.product.variants?.find((v: any) => v.id === variantId)
+        ?.inventory_quantity ?? 0
 
     expect(afterQty).toBeGreaterThanOrEqual(beforeQty)
   })
@@ -159,12 +217,18 @@ test.describe.serial("Inventory Reservation — Atomic Flow", () => {
   test("Cleanup: restore original stock level", async ({ request }) => {
     if (!adminToken || !inventoryItemId || !locationId) return
 
-    await adminPost(request, `/admin/inventory-items/${inventoryItemId}/location-levels/${locationId}`, {
-      stocked_quantity: originalStock,
-    })
+    await adminPost(
+      request,
+      `/admin/inventory-items/${inventoryItemId}/location-levels/${locationId}`,
+      {
+        stocked_quantity: originalStock,
+      },
+    )
   })
 
-  test("UI shows error state on 500 from line-items endpoint", async ({ page }) => {
+  test("UI shows error state on 500 from line-items endpoint", async ({
+    page,
+  }) => {
     await page.route("**/store/carts/*/line-items", (route) => {
       if (route.request().method() === "POST") {
         route.fulfill({
@@ -178,7 +242,7 @@ test.describe.serial("Inventory Reservation — Atomic Flow", () => {
     })
 
     await page.goto("/")
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
 
     const productLink = page.locator('a[href^="/products/"]').first()
     if (!(await productLink.isVisible({ timeout: 5000 }).catch(() => false))) {
@@ -187,18 +251,28 @@ test.describe.serial("Inventory Reservation — Atomic Flow", () => {
 
     const href = await productLink.getAttribute("href")
     if (href) await page.goto(href)
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
 
-    const addBtn = page.locator('button:has-text("Add to cart"), button:has-text("Add to Cart")')
+    const addBtn = page.locator(
+      'button:has-text("Add to cart"), button:has-text("Add to Cart")',
+    )
     if (!(await addBtn.isVisible({ timeout: 5000 }).catch(() => false))) {
-      test.skip(true, "Add to cart button not visible — product may be out of stock")
+      test.skip(
+        true,
+        "Add to cart button not visible — product may be out of stock",
+      )
     }
 
     await addBtn.click()
     await page.waitForTimeout(3000)
 
-    const errorIndicator = page.locator('[role="alert"], .error, [data-testid="error"], text=/error|failed|unavailable/i')
-    const hasError = await errorIndicator.first().isVisible({ timeout: 5000 }).catch(() => false)
+    const errorIndicator = page.locator(
+      '[role="alert"], .error, [data-testid="error"], text=/error|failed|unavailable/i',
+    )
+    const hasError = await errorIndicator
+      .first()
+      .isVisible({ timeout: 5000 })
+      .catch(() => false)
     expect(hasError).toBeTruthy()
   })
 })

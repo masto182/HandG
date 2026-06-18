@@ -54,7 +54,7 @@ test.describe("Registration & approval @smoke", () => {
     const loggedPage = await loggedCtx.newPage()
     await login(loggedPage, TEST_EMAIL, TEST_PASSWORD)
     await loggedPage.goto("/account")
-    await loggedPage.waitForLoadState("networkidle")
+    await loggedPage.waitForLoadState("domcontentloaded")
     await expect(loggedPage).not.toHaveURL(/\/apply/, { timeout: 5_000 })
     await loggedCtx.close()
   })

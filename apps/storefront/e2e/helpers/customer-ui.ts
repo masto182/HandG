@@ -21,7 +21,7 @@ export async function apply(page: Page, i: ApplyInput): Promise<void> {
     ? `/apply?ref=${encodeURIComponent(i.referralCode)}`
     : "/apply"
   await page.goto(url)
-  await page.waitForLoadState("networkidle")
+  await page.waitForLoadState("domcontentloaded")
   await page.fill('input[name="first_name"]', i.firstName ?? "E2E")
   await page.fill('input[name="last_name"]', i.lastName ?? "Tester")
   await page.fill('input[name="email"]', i.email)
@@ -53,7 +53,7 @@ export async function login(
   password: string,
 ): Promise<void> {
   await page.goto("/account")
-  await page.waitForLoadState("networkidle")
+  await page.waitForLoadState("domcontentloaded")
   const emailInput = page.locator('input[name="email"]').first()
   if (await emailInput.isVisible({ timeout: 5000 }).catch(() => false)) {
     await emailInput.fill(email)
@@ -64,14 +64,14 @@ export async function login(
     await page
       .waitForURL(/\/account(?!.*login)/, { timeout: 30_000 })
       .catch(() => {})
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
     await page.waitForTimeout(1500)
   }
 }
 
 export async function logout(page: Page): Promise<void> {
   await page.goto("/account")
-  await page.waitForLoadState("networkidle")
+  await page.waitForLoadState("domcontentloaded")
   const logoutBtn = page
     .locator(
       'button:has-text("Log out"), button:has-text("Logout"), button:has-text("Sign out")',
@@ -79,7 +79,7 @@ export async function logout(page: Page): Promise<void> {
     .first()
   if (await logoutBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
     await logoutBtn.click()
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
   }
 }
 
@@ -87,11 +87,13 @@ export async function gotoProductByHandle(
   page: Page,
   handle: string,
 ): Promise<void> {
-  await page.goto(`/products/${handle}`)
-  await page.waitForLoadState("networkidle")
+  await page.goto(`/products/${handle}`, { waitUntil: "domcontentloaded" })
+  // Do NOT wait for "networkidle" — a storefront page has settling background
+  // requests that rarely reach 500ms of true idle, so it can burn the whole
+  // test timeout. The visibility assertion below is the real readiness gate.
   await expect(
     page.locator('h1, [data-testid="product-title"]').first(),
-  ).toBeVisible({ timeout: 10_000 })
+  ).toBeVisible({ timeout: 15_000 })
 }
 
 export async function addCurrentProductToCart(page: Page): Promise<void> {
@@ -119,14 +121,21 @@ export async function setBuyAtPrice(
     )
     .first()
   await expect(priceCheckbox).toBeVisible({ timeout: 10_000 })
-  await priceCheckbox.click()
-  await page.waitForTimeout(500)
 
-  // Fill the price input (appears after checking the checkbox)
+  // The wishlist panel hydrates its toggle state asynchronously from the saved
+  // wishlist item (a useEffect keyed on the loaded item). That hydration can
+  // reset the price-alert toggle a moment after we click it, so a single click
+  // + fixed wait is racy. Retry the toggle until the price input is stably
+  // visible.
   const priceInput = page
     .locator('input[type="number"][step="0.01"], input[inputmode="decimal"]')
     .first()
-  await expect(priceInput).toBeVisible({ timeout: 5_000 })
+  await expect(async () => {
+    if (!(await priceInput.isVisible())) {
+      await priceCheckbox.click()
+    }
+    await expect(priceInput).toBeVisible({ timeout: 2_000 })
+  }).toPass({ timeout: 15_000 })
   await priceInput.fill(targetPrice.toFixed(2))
 
   // Click the "SET" button next to the price input
@@ -147,7 +156,7 @@ export async function checkoutPickupPayid(
   page: Page,
 ): Promise<{ orderRef: string; orderId: string }> {
   await page.goto("/checkout?step=fulfilment")
-  await page.waitForLoadState("networkidle")
+  await page.waitForLoadState("domcontentloaded")
 
   // Select In-Store Pickup card (label wraps the radio — click label directly)
   const pickupLabel = page.locator('label:has-text("In-Store Pickup")').first()
@@ -172,7 +181,7 @@ export async function checkoutPickupPayid(
 
   // Wait for payment step
   await page.waitForURL(/step=payment/, { timeout: 15_000 })
-  await page.waitForLoadState("networkidle")
+  await page.waitForLoadState("domcontentloaded")
 
   // When multiple payment methods exist, the card selector is shown and PayID
   // must be clicked explicitly (pickup orders never auto-select a method).
@@ -231,7 +240,7 @@ export async function checkoutDeliveryPayid(
   opts?: { toggleSignature?: boolean },
 ): Promise<{ orderRef: string; orderId: string }> {
   await page.goto("/checkout?step=fulfilment")
-  await page.waitForLoadState("networkidle")
+  await page.waitForLoadState("domcontentloaded")
 
   // 1. Choose Home Delivery
   const deliveryLabel = page.locator('label:has-text("Home Delivery")').first()
@@ -283,7 +292,7 @@ export async function checkoutDeliveryPayid(
 
   // 4. Payment step (PayID) -> place order
   await page.waitForURL(/step=payment/, { timeout: 15_000 })
-  await page.waitForLoadState("networkidle")
+  await page.waitForLoadState("domcontentloaded")
 
   // Delivery checkout: PayID is the only visible method for non-pickup carts,
   // so it auto-selects when filteredMethods.length === 1. But click it anyway
@@ -334,7 +343,7 @@ export async function checkoutDeliveryPayid(
  */
 export async function readVipScoreFromAccount(page: Page): Promise<number> {
   await page.goto("/account/vip")
-  await page.waitForLoadState("networkidle")
+  await page.waitForLoadState("domcontentloaded")
   const text = (await page.locator("main, body").first().textContent()) || ""
   // The VIP page renders "Current score: X" — regex matches any "score" pattern.
   const m = text.match(
@@ -349,7 +358,7 @@ export async function readVipScoreFromAccount(page: Page): Promise<number> {
  */
 export async function readReferralCode(page: Page): Promise<string> {
   await page.goto("/account/referrals")
-  await page.waitForLoadState("networkidle")
+  await page.waitForLoadState("domcontentloaded")
   // The code is rendered in a font-mono div with select-all styling.
   const codeEl = page.locator(".font-mono.tracking-widest").first()
   if (await codeEl.isVisible({ timeout: 5_000 }).catch(() => false)) {

@@ -36,7 +36,7 @@ test.describe("Hydration Hygiene — No React Mismatch Warnings", () => {
       })
 
       await page.goto(path)
-      await page.waitForLoadState("networkidle")
+      await page.waitForLoadState("domcontentloaded")
       await page.waitForTimeout(2000)
 
       expect(

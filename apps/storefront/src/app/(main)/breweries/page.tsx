@@ -95,7 +95,7 @@ export default async function BreweriesPage() {
                     </div>
                   )}
                 </div>
-                <div className="p-6 flex-grow flex flex-col relative z-10">
+                <div className="p-6 flex-grow flex flex-col relative z-10 pointer-events-none">
                   <div className="block">
                     <div className="flex justify-between items-start mb-2">
                       <h3 className="text-h3 text-hg-text">{brewery.name}</h3>
@@ -118,7 +118,7 @@ export default async function BreweriesPage() {
                           href={brewery.website_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="relative z-20 text-hg-text-muted hover:text-hl-primary transition-colors"
+                          className="relative z-20 pointer-events-auto text-hg-text-muted hover:text-hl-primary transition-colors"
                           aria-label={`${brewery.name} website`}
                         >
                           <svg
@@ -140,7 +140,7 @@ export default async function BreweriesPage() {
                           href={brewery.instagram_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="relative z-20 text-hg-text-muted hover:text-hl-primary transition-colors"
+                          className="relative z-20 pointer-events-auto text-hg-text-muted hover:text-hl-primary transition-colors"
                           aria-label={`${brewery.name} Instagram`}
                         >
                           <svg
@@ -160,7 +160,7 @@ export default async function BreweriesPage() {
                     </div>
                     <Link
                       href={`/breweries/${brewery.slug}`}
-                      className="relative z-20 text-hl-primary text-xs font-bold uppercase tracking-tight"
+                      className="relative z-20 pointer-events-auto text-hl-primary text-xs font-bold uppercase tracking-tight"
                     >
                       View Releases →
                     </Link>

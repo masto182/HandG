@@ -24,7 +24,7 @@ const US_HOP_SLUG = "citra"
 test.describe("Hop list page /hops @smoke", () => {
   test("renders hop list with at least one hop card", async ({ page }) => {
     await page.goto("/hops")
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
     // The hop grid should have cards
     const cards = page.locator("a[href^='/hops/']")
     await expect(cards.first()).toBeVisible({ timeout: 20_000 })
@@ -32,7 +32,7 @@ test.describe("Hop list page /hops @smoke", () => {
 
   test("country filter tabs render (All, NZ, AU, US, EU)", async ({ page }) => {
     await page.goto("/hops")
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
     for (const label of [
       "All",
       "New Zealand",
@@ -46,7 +46,7 @@ test.describe("Hop list page /hops @smoke", () => {
 
   test("NZ tab filters to NZ hops only", async ({ page }) => {
     await page.goto("/hops?country=NZ")
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
 
     // Should show the NZ badge on cards
     const nzBadge = page.locator("text=NZ").first()
@@ -60,7 +60,7 @@ test.describe("Hop list page /hops @smoke", () => {
     page,
   }) => {
     await page.goto("/hops?country=EU")
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
     // The EU tab link should be marked active (bg-hg-gold)
     // Note: EU hops may have zero linked products — that's correct behaviour
     // (the list shows only hops with stock). We verify the filter tab renders active.
@@ -75,11 +75,11 @@ test.describe("Hop list page /hops @smoke", () => {
     page,
   }) => {
     await page.goto("/hops")
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
     const allCards = await page.locator("a[href^='/hops/']").count()
 
     await page.goto("/hops?country=NZ")
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
     const nzCards = await page.locator("a[href^='/hops/']").count()
 
     // NZ subset should be smaller than or equal to all
@@ -90,7 +90,7 @@ test.describe("Hop list page /hops @smoke", () => {
 test.describe("Hop detail page /hops/[slug] @smoke", () => {
   test("NZ hop page shows New Zealand country badge", async ({ page }) => {
     await page.goto(`/hops/${NZ_HOP_SLUG}`)
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
     // Country badge links to /hops?country=NZ and shows "New Zealand"
     await expect(page.getByRole("link", { name: "New Zealand" })).toBeVisible({
       timeout: 10_000,
@@ -99,7 +99,7 @@ test.describe("Hop detail page /hops/[slug] @smoke", () => {
 
   test("NZ hop page shows breeder (NZ Hops Ltd)", async ({ page }) => {
     await page.goto(`/hops/${NZ_HOP_SLUG}`)
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
     // "by NZ Hops Ltd" appears in the breeder span; also appears in farm notes
     // — use first() to avoid strict-mode violation
     await expect(page.getByText("NZ Hops Ltd").first()).toBeVisible({
@@ -111,7 +111,7 @@ test.describe("Hop detail page /hops/[slug] @smoke", () => {
     page,
   }) => {
     await page.goto(`/hops/${NZ_HOP_SLUG}`)
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
     // "Available Forms" section heading
     await expect(page.getByText("Available Forms")).toBeVisible({
       timeout: 10_000,
@@ -122,7 +122,7 @@ test.describe("Hop detail page /hops/[slug] @smoke", () => {
 
   test("NZ hop page shows farm & sourcing notes section", async ({ page }) => {
     await page.goto(`/hops/${NZ_HOP_SLUG}`)
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
     await expect(page.getByText("Farms & Sourcing")).toBeVisible({
       timeout: 10_000,
     })
@@ -132,7 +132,7 @@ test.describe("Hop detail page /hops/[slug] @smoke", () => {
     page,
   }) => {
     await page.goto(`/hops/${NZ_HOP_SLUG}`)
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
     // The chip has a title attribute — verify the DOM attribute exists
     const t90Chip = page
       .locator("span[title]")
@@ -146,7 +146,7 @@ test.describe("Hop detail page /hops/[slug] @smoke", () => {
 
   test("EU hop page shows Europe country badge", async ({ page }) => {
     await page.goto(`/hops/${EU_HOP_SLUG}`)
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
     await expect(page.getByRole("link", { name: "Europe" })).toBeVisible({
       timeout: 10_000,
     })
@@ -154,7 +154,7 @@ test.describe("Hop detail page /hops/[slug] @smoke", () => {
 
   test("EU hop page shows breeder", async ({ page }) => {
     await page.goto(`/hops/${EU_HOP_SLUG}`)
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
     // Czech Hop Institute is the breeder for Saaz
     await expect(page.getByText("Czech Hop Institute")).toBeVisible({
       timeout: 10_000,
@@ -164,7 +164,7 @@ test.describe("Hop detail page /hops/[slug] @smoke", () => {
   test("US hop page shows United States badge", async ({ page }) => {
     await page.goto(`/hops/${US_HOP_SLUG}`)
     // Turbopack dev: wait for network idle PLUS ensure the page hasn't 404'd
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
     await page.waitForLoadState("domcontentloaded")
     // Country badge links to /hops?country=US with text "United States"
     // Use first() in case the hop country chip appears in any other context
@@ -180,7 +180,7 @@ test.describe("Hop detail page /hops/[slug] @smoke", () => {
     page,
   }) => {
     await page.goto(`/hops/${NZ_HOP_SLUG}`)
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
     await page.getByRole("link", { name: "New Zealand" }).click()
     await page.waitForURL("**/hops?country=NZ")
     await expect(page).toHaveURL(/\/hops\?country=NZ/)
@@ -201,7 +201,7 @@ test.describe("Store filter panel — Hop Origin @smoke", () => {
     page,
   }) => {
     await page.goto("/store")
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
     // Filter panel renders twice (desktop + mobile) — use first()
     await expect(
       page.getByRole("heading", { name: "Hop Origin" }).first(),
@@ -210,7 +210,7 @@ test.describe("Store filter panel — Hop Origin @smoke", () => {
 
   test("Hop Origin has NZ, AU, US, EU chips", async ({ page }) => {
     await page.goto("/store")
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
     // The filter panel renders these as buttons
     for (const label of [
       "New Zealand",
@@ -226,7 +226,7 @@ test.describe("Store filter panel — Hop Origin @smoke", () => {
     page,
   }) => {
     await page.goto("/store")
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
     await page.getByRole("button", { name: "New Zealand" }).click()
     await expect(page).toHaveURL(/hop_country=NZ/, { timeout: 5_000 })
   })
@@ -235,7 +235,7 @@ test.describe("Store filter panel — Hop Origin @smoke", () => {
     page,
   }) => {
     await page.goto("/store?hop_country=NZ")
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
     await page.getByRole("button", { name: "New Zealand" }).click()
     // After toggle-off the param should be gone
     await page.waitForURL((url) => !url.search.includes("hop_country=NZ"), {

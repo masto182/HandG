@@ -17,7 +17,7 @@ const adminUrl = (path: string) => `${BACKEND_URL}${path}`
 
 export async function adminLogin(page: Page): Promise<void> {
   await page.goto(adminUrl("/app/login"))
-  await page.waitForLoadState("networkidle")
+  await page.waitForLoadState("domcontentloaded")
 
   const emailField = page
     .locator('input[name="email"], input[type="email"]')
@@ -42,26 +42,40 @@ export async function adminLogin(page: Page): Promise<void> {
  */
 export async function approveMember(page: Page, email: string): Promise<void> {
   await page.goto(adminUrl("/app/members"))
-  await page.waitForLoadState("networkidle")
+  await page.waitForLoadState("domcontentloaded")
 
-  // Pending tab is the default but click it to be sure.
-  const pendingTab = page.locator('button:has-text("Pending")').first()
-  if (await pendingTab.isVisible({ timeout: 3_000 }).catch(() => false)) {
-    await pendingTab.click()
-    await page.waitForTimeout(500)
-  }
+  // The customer's "pending" group assignment is committed by a workflow step
+  // that may lag the registration response. Retry search+reload until the row
+  // appears (group assignment is durable) rather than relying on a single wait.
+  const row = page.locator(`tr:has-text("${email}")`).first()
+  let rowVisible = false
+  for (let attempt = 0; attempt < 5; attempt++) {
+    // Pending tab is the default but click it to be sure.
+    const pendingTab = page.locator('button:has-text("Pending")').first()
+    if (await pendingTab.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      await pendingTab.click()
+      await page.waitForTimeout(500)
+    }
 
-  const search = page.locator('input[placeholder*="name or email"]').first()
-  if (await search.isVisible({ timeout: 3_000 }).catch(() => false)) {
-    await search.fill(email)
-    await search.press("Enter")
-    await page.waitForTimeout(3_000) // allow API round-trip to re-render table
-  } else {
-    await page.waitForTimeout(2_000) // no search box; wait for initial load
+    const search = page.locator('input[placeholder*="name or email"]').first()
+    if (await search.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      await search.fill(email)
+      await search.press("Enter")
+      await page.waitForTimeout(3_000) // allow API round-trip to re-render table
+    } else {
+      await page.waitForTimeout(2_000) // no search box; wait for initial load
+    }
+
+    if (await row.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      rowVisible = true
+      break
+    }
+    // Not yet — reload and try again (group assignment may still be committing).
+    await page.goto(adminUrl("/app/members"))
+    await page.waitForLoadState("domcontentloaded")
   }
 
   // Click the row to open the member detail drawer.
-  const row = page.locator(`tr:has-text("${email}")`).first()
   await expect(row).toBeVisible({ timeout: 15_000 })
   await row.click()
 
@@ -87,9 +101,14 @@ export async function approveAllBuyAtPriceFor(
   customerEmail: string,
 ): Promise<void> {
   await page.goto(adminUrl("/app/buy-at-price"))
-  await page.waitForLoadState("networkidle")
+  await page.waitForLoadState("domcontentloaded")
 
+  // The buy-at-price table loads its rows via a client-side fetch, so the row
+  // for this customer appears a moment after the document loads. Wait for it
+  // explicitly (auto-retrying) instead of counting immediately — otherwise we
+  // race the data load and see zero rows.
   const rows = page.locator(`tr:has-text("${customerEmail}")`)
+  await expect(rows.first()).toBeVisible({ timeout: 15_000 })
   const n = await rows.count()
   expect(n, `No buy-at-price rows found for ${customerEmail}`).toBeGreaterThan(
     0,
@@ -105,8 +124,15 @@ export async function approveAllBuyAtPriceFor(
     }
   }
 
-  await page.locator('button:has-text("Approve")').first().click()
-  await page.waitForTimeout(2_500)
+  // Approval is a two-step flow: "Review & approve N" opens a confirmation
+  // dialog, and "Approve all" inside it actually POSTs the approval. Clicking
+  // only the first "Approve" button just opens the dialog without confirming.
+  await page.locator('button:has-text("Review & approve")').first().click()
+  const approveAll = page.locator('button:has-text("Approve all")')
+  await expect(approveAll).toBeVisible({ timeout: 10_000 })
+  await approveAll.click()
+  // Wait for the approval POST to settle (the dialog closes on success).
+  await expect(approveAll).toBeHidden({ timeout: 15_000 })
 }
 
 /**
@@ -119,14 +145,14 @@ export async function approveAllBuyAtPriceFor(
  */
 export async function captureFirstAwaitingPayment(page: Page): Promise<void> {
   await page.goto(adminUrl("/app/orders"))
-  await page.waitForLoadState("networkidle")
+  await page.waitForLoadState("domcontentloaded")
   // Open the first row in the orders table.
   const firstRow = page
     .locator('table tbody tr, [role="row"]:not(:has-text("Customer"))')
     .first()
   await expect(firstRow).toBeVisible({ timeout: 10_000 })
   await firstRow.click()
-  await page.waitForLoadState("networkidle")
+  await page.waitForLoadState("domcontentloaded")
 
   // The capture button text varies across Medusa minor releases; try the
   // common variants.
@@ -162,7 +188,7 @@ export async function captureOrderPayment(
     return captureFirstAwaitingPayment(page)
   }
   await page.goto(adminUrl(`/app/orders/${orderId}`))
-  await page.waitForLoadState("networkidle")
+  await page.waitForLoadState("domcontentloaded")
 
   const captureBtn = page
     .locator(
@@ -190,7 +216,7 @@ export async function readMemberVipScore(
   email: string,
 ): Promise<number> {
   await page.goto(adminUrl("/app/members"))
-  await page.waitForLoadState("networkidle")
+  await page.waitForLoadState("domcontentloaded")
   // Switch to "All" tab so the member is visible regardless of approval status.
   const allTab = page.locator('button:has-text("All")').first()
   if (await allTab.isVisible({ timeout: 3_000 }).catch(() => false)) {
@@ -217,7 +243,7 @@ export async function readMemberTier(
   email: string,
 ): Promise<string> {
   await page.goto(adminUrl("/app/members"))
-  await page.waitForLoadState("networkidle")
+  await page.waitForLoadState("domcontentloaded")
   // Switch to "All" tab so the member is visible regardless of approval status.
   const allTab = page.locator('button:has-text("All")').first()
   if (await allTab.isVisible({ timeout: 3_000 }).catch(() => false)) {

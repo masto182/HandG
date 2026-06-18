@@ -140,7 +140,7 @@ test.describe.serial("Membership Access Control — Full Flow", () => {
 
     test("15. Brewery page loads", async ({ page }) => {
       await page.goto("/breweries")
-      await page.waitForLoadState("networkidle")
+      await page.waitForLoadState("domcontentloaded")
       const content = page.locator("main").last()
       await expect(content).toBeVisible()
     })

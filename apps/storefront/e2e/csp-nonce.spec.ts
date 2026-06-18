@@ -45,7 +45,7 @@ test.describe("CSP Nonce Verification", () => {
     })
 
     await page.goto("/")
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
     await page.waitForTimeout(2000)
 
     expect(cspViolations).toHaveLength(0)

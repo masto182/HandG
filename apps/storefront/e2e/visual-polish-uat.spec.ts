@@ -7,7 +7,7 @@ import {
 
 const goToHomepage = async (page: any) => {
   await page.goto("/")
-  await page.waitForLoadState("networkidle")
+  await page.waitForLoadState("domcontentloaded")
 }
 
 const ts = Date.now()
@@ -72,7 +72,7 @@ test.describe("Extended UAT — Visual Polish & Navigation", () => {
       const page = await ctx.newPage()
       await login(page, APPROVED_EMAIL, APPROVED_PASSWORD)
       await page.goto("/")
-      await page.waitForLoadState("networkidle")
+      await page.waitForLoadState("domcontentloaded")
       await page.waitForTimeout(1000)
       const header = page.locator("header")
       const applyLink = header.locator('a:has-text("Apply")')
@@ -85,7 +85,7 @@ test.describe("Extended UAT — Visual Polish & Navigation", () => {
   test.describe("Breweries Page", () => {
     test("Brewery cards are clickable links", async ({ page }) => {
       await page.goto("/breweries")
-      await page.waitForLoadState("networkidle")
+      await page.waitForLoadState("domcontentloaded")
       const firstCard = page.locator('a[href^="/breweries/"]').first()
       await expect(firstCard).toBeVisible({ timeout: 10000 })
     })
@@ -94,7 +94,7 @@ test.describe("Extended UAT — Visual Polish & Navigation", () => {
       page,
     }) => {
       await page.goto("/breweries")
-      await page.waitForLoadState("networkidle")
+      await page.waitForLoadState("domcontentloaded")
       const firstCard = page.locator('a[href^="/breweries/"]').first()
       await expect(firstCard).toBeVisible({ timeout: 10000 })
       const href = await firstCard.getAttribute("href")
@@ -108,7 +108,7 @@ test.describe("Extended UAT — Visual Polish & Navigation", () => {
       page,
     }) => {
       await page.goto("/breweries")
-      await page.waitForLoadState("networkidle")
+      await page.waitForLoadState("domcontentloaded")
       const errorText = page.locator('text="Something broke."')
       expect(await errorText.count()).toBe(0)
     })
@@ -119,7 +119,7 @@ test.describe("Extended UAT — Visual Polish & Navigation", () => {
       page,
     }) => {
       await page.goto("/store")
-      await page.waitForLoadState("networkidle")
+      await page.waitForLoadState("domcontentloaded")
       const overlay = page.locator('text="Members Only"')
       await expect(overlay.first()).toBeVisible({ timeout: 10000 })
     })
@@ -181,7 +181,7 @@ test.describe("Extended UAT — Visual Polish & Navigation", () => {
       const page = await ctx.newPage()
       await login(page, email, APPROVED_PASSWORD)
       await page.goto("/store")
-      await page.waitForLoadState("networkidle")
+      await page.waitForLoadState("domcontentloaded")
       const filterSection = page
         .locator('details:has(h3:has-text("Brewery"))')
         .first()
@@ -194,7 +194,7 @@ test.describe("Extended UAT — Visual Polish & Navigation", () => {
       page,
     }) => {
       await page.goto("/store")
-      await page.waitForLoadState("networkidle")
+      await page.waitForLoadState("domcontentloaded")
       const pagination = page.locator('button:has-text("NEXT")')
       if (await pagination.isVisible({ timeout: 5000 }).catch(() => false)) {
         await expect(pagination).toBeVisible()
@@ -206,7 +206,7 @@ test.describe("Extended UAT — Visual Polish & Navigation", () => {
     test("Mobile nav visible on small viewport", async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 812 })
       await page.goto("/store")
-      await page.waitForLoadState("networkidle")
+      await page.waitForLoadState("domcontentloaded")
       const bottomNav = page
         .locator("nav.fixed.bottom-0, nav[class*='bottom-0']")
         .first()
@@ -216,7 +216,7 @@ test.describe("Extended UAT — Visual Polish & Navigation", () => {
     test("Mobile nav hidden on desktop", async ({ page }) => {
       await page.setViewportSize({ width: 1280, height: 900 })
       await page.goto("/store")
-      await page.waitForLoadState("networkidle")
+      await page.waitForLoadState("domcontentloaded")
       const bottomNav = page
         .locator("nav.fixed.bottom-0, nav[class*='bottom-0']")
         .first()

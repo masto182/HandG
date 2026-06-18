@@ -79,10 +79,20 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
     // Optional DI resolver (used by unit tests + future scoped-container paths).
     // In Medusa 2.x production runs the fulfillment provider scope does not
     // expose `siteConfig`, so this is best-effort.
-    this.siteConfigResolver_ =
-      typeof (deps as { resolve?: unknown }).resolve === "function"
-        ? (deps as { resolve: (name: string) => unknown }).resolve
-        : null
+    // NOTE: `deps` is an Awilix cradle proxy. Accessing an unregistered key
+    // (e.g. `deps.resolve`) throws "Could not resolve 'resolve'" instead of
+    // returning undefined, so the access MUST be wrapped in try/catch.
+    let resolver: ((name: string) => unknown) | null = null
+    try {
+      const maybeResolve = (deps as { resolve?: unknown }).resolve
+      if (typeof maybeResolve === "function") {
+        resolver = maybeResolve as (name: string) => unknown
+      }
+    } catch {
+      // Awilix proxy threw for unregistered `resolve` — no resolver available.
+      resolver = null
+    }
+    this.siteConfigResolver_ = resolver
   }
 
   // ---------- helpers ----------

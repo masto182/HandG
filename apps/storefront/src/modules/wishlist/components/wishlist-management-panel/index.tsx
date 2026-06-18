@@ -29,11 +29,18 @@ export default function WishlistManagementPanel({
   useEffect(() => {
     if (item) {
       setSavedToWishlist(true)
-      setLowStockAlert((item.stock_threshold ?? 0) > 0)
       setStockThreshold(String(item.stock_threshold || 2))
-      setPriceAlert(!!item.target_price)
+      // Only ever turn the alert toggles ON from saved server state — never OFF
+      // based on the item merely existing. The item is (re)emitted after every
+      // wishlist write, including the one the toggle itself triggers; turning a
+      // toggle OFF here would collapse a section the user just opened (e.g. a
+      // freshly-created item that has no target_price yet).
       if (item.target_price) {
         setTargetPrice(String(item.target_price))
+        setPriceAlert(true)
+      }
+      if ((item.stock_threshold ?? 0) > 0) {
+        setLowStockAlert(true)
       }
     } else {
       setSavedToWishlist(false)
@@ -164,6 +171,9 @@ export default function WishlistManagementPanel({
       type="button"
       onClick={(e) => {
         e.preventDefault()
+        // Stop propagation so the click does not ALSO trigger the wrapping
+        // label's onClick, which would double-toggle and cancel the change.
+        e.stopPropagation()
         onChange()
       }}
       disabled={disabled}
@@ -233,6 +243,8 @@ export default function WishlistManagementPanel({
             className="flex items-center gap-3 cursor-pointer"
             onClick={handleStockToggle}
           >
+            {/* Checkbox button calls onChange and stops propagation; the label
+                onClick handles clicks on the text. Single toggle either way. */}
             <Checkbox
               checked={lowStockAlert}
               onChange={handleStockToggle}
@@ -270,6 +282,8 @@ export default function WishlistManagementPanel({
             className="flex items-center gap-3 cursor-pointer"
             onClick={handlePriceToggle}
           >
+            {/* Checkbox button calls onChange and stops propagation; the label
+                onClick handles clicks on the text. Single toggle either way. */}
             <Checkbox
               checked={priceAlert}
               onChange={handlePriceToggle}

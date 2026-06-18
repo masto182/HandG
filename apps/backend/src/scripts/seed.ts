@@ -215,8 +215,16 @@ export default async function seed({ container }: ExecArgs) {
   async function findOrCreateShippingOption(name: string, opts: any) {
     const [existing] = await fulfillmentModule.listShippingOptions({ name })
     if (existing) return existing
-    // Use createShippingOptionsWorkflow to properly wire the pricing module link.
-    // Requires stock-location → fulfillment-provider links to exist first.
+    // Calculated options (ShipEngine, AusPost) have provider-determined prices.
+    // Use the module method directly: no price needed, and it skips the
+    // provider validation that crashes the ShipEngine provider on Awilix resolve.
+    if (opts.price_type === "calculated") {
+      const created = (await fulfillmentModule.createShippingOptions(opts)) as any
+      logger.info(`  Created shipping option "${name}": ${created.id}`)
+      return created
+    }
+    // Flat-rate options need a price wired via the pricing module. Use the
+    // workflow (provider + fulfillment-set links are created beforehand).
     const { result: created } = await createShippingOptionsWorkflow(container).run({
       input: [{ ...opts, prices: [{ currency_code: CURRENCY, amount: 0 }] }],
     })
@@ -253,6 +261,26 @@ export default async function seed({ container }: ExecArgs) {
           [Modules.FULFILLMENT]: { fulfillment_provider_id: manualProvider.id },
         },
         `${pl.stock_location_name} → manual provider`
+      )
+    }
+
+    // Link the sales channel to every stock location. Without this, a cart on
+    // that sales channel resolves no stock locations and GET /store/shipping-options
+    // returns nothing, so checkout shows neither delivery nor pickup.
+    await safeLink(
+      {
+        [Modules.SALES_CHANNEL]: { sales_channel_id: salesChannel.id },
+        [Modules.STOCK_LOCATION]: { stock_location_id: warehouse.id },
+      },
+      `sales channel → warehouse`
+    )
+    for (const pl of PICKUP_LOCATIONS) {
+      await safeLink(
+        {
+          [Modules.SALES_CHANNEL]: { sales_channel_id: salesChannel.id },
+          [Modules.STOCK_LOCATION]: { stock_location_id: pickupStockLocations[pl.slug].id },
+        },
+        `sales channel → ${pl.stock_location_name}`
       )
     }
 
