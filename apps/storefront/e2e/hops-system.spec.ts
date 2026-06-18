@@ -23,11 +23,23 @@ const US_HOP_SLUG = "citra"
 
 test.describe("Hop list page /hops @smoke", () => {
   test("renders hop list with at least one hop card", async ({ page }) => {
-    await page.goto("/hops")
-    await page.waitForLoadState("domcontentloaded")
-    // The hop grid should have cards
+    // The hop grid is data-driven; a transient empty first render can occur in
+    // production (search/index warm-up). Retry with a reload before failing.
     const cards = page.locator("a[href^='/hops/']")
-    await expect(cards.first()).toBeVisible({ timeout: 20_000 })
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await page.goto("/hops")
+      await page.waitForLoadState("domcontentloaded")
+      if (
+        await cards
+          .first()
+          .isVisible({ timeout: 10_000 })
+          .catch(() => false)
+      ) {
+        break
+      }
+      await page.waitForTimeout(1_500)
+    }
+    await expect(cards.first()).toBeVisible({ timeout: 10_000 })
   })
 
   test("country filter tabs render (All, NZ, AU, US, EU)", async ({ page }) => {
@@ -241,11 +253,15 @@ test.describe("Store filter panel — Hop Origin @smoke", () => {
     // the component has hydrated and read hop_country=NZ from the URL. Clicking
     // before that races hydration and the toggle-off is a no-op.
     await expect(nzChip).toHaveClass(/bg-hg-gold/, { timeout: 10_000 })
-    await nzChip.click()
-    // After toggle-off the param should be gone
-    await page.waitForURL((url) => !url.search.includes("hop_country=NZ"), {
-      timeout: 10_000,
-    })
+    // The chip renders gold from the SSR'd URL param before React attaches its
+    // onClick handler, so an immediate click can race hydration and no-op
+    // (this is what made the test flaky). Retry the click until the toggle-off
+    // actually registers (chip loses the gold fill). Once it passes, toPass
+    // stops, so there's no risk of toggling it back on.
+    await expect(async () => {
+      await nzChip.click()
+      await expect(nzChip).not.toHaveClass(/bg-hg-gold/, { timeout: 4_000 })
+    }).toPass({ timeout: 20_000 })
     expect(page.url()).not.toContain("hop_country=NZ")
   })
 })

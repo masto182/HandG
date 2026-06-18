@@ -232,8 +232,10 @@ export async function readMemberVipScore(
   const cells = row.locator("td")
   // Layout on non-pending tab: Name | Email | Tier | VIP Score | Referred by | Joined
   const scoreCell = (await cells.nth(3).textContent())?.trim() ?? ""
-  const m = scoreCell.match(/[0-9.]+/)
-  return m ? parseFloat(m[0]) : NaN
+  // The cell is currency-formatted (e.g. "$1,040.00"); strip everything but
+  // digits and the decimal point so the thousands comma doesn't truncate it.
+  const cleaned = scoreCell.replace(/[^0-9.]/g, "")
+  return cleaned ? parseFloat(cleaned) : NaN
 }
 
 export async function readMemberTier(

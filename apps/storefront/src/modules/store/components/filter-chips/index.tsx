@@ -118,14 +118,17 @@ export default function FilterChips() {
       params.delete(key)
     }
     params.delete("page")
-    router.push(`${pathname}?${params.toString()}`, { scroll: false })
+    // Push bare pathname when empty: `${pathname}?` no-ops in the App Router.
+    const qs = params.toString()
+    router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
   }
 
   const clearAll = () => {
     const params = new URLSearchParams()
     const sort = searchParams.get("sortBy")
     if (sort) params.set("sortBy", sort)
-    router.push(`${pathname}?${params.toString()}`, { scroll: false })
+    const qs = params.toString()
+    router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
   }
 
   return (

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test"
-import { apply, login } from "./helpers/customer-ui"
+import { apply, login, gotoDeliveryPaymentStep } from "./helpers/customer-ui"
 import { addFirstProductToCart, goToCheckout } from "./helpers/navigation"
 import {
   approveCustomerByEmail,
@@ -126,7 +126,9 @@ test.describe.serial("New flows — PR 3 / 4 / 5", () => {
   test("PayID visible for delivery checkout", async ({ page }) => {
     await login(page, APPROVED_EMAIL, APPROVED_PASSWORD)
     await addFirstProductToCart(page)
-    await goToCheckout(page, "payment")
+    // Walk the delivery flow to the payment step (jumping to ?step=payment is
+    // redirected back to fulfilment when no shipping method is selected).
+    await gotoDeliveryPaymentStep(page)
     await expect(page.locator("text=/PayID/").first()).toBeVisible({
       timeout: 10000,
     })

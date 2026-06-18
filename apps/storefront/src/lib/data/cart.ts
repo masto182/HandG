@@ -15,6 +15,12 @@ import {
 } from "./cookies"
 import { getRegion } from "./regions"
 import { getLocale } from "./locale-actions"
+import { getCustomerOffers } from "./wishlist-offers"
+
+// Shared field selection for fetching a cart with everything the cart/checkout
+// templates need to render (items, variants, totals, promotions).
+const CART_QUERY_FIELDS =
+  "*items, *region, *items.product, +items.product.metadata, *items.variant, *items.variant.options, *items.variant.options.option, *items.variant.product, +items.variant.product.metadata, +items.variant.inventory_quantity, *items.thumbnail, *items.metadata, +items.total, +items.product_subtitle, +items.product_collection, *promotions, +shipping_methods.name, +shipping_methods.data"
 
 /**
  * Detects when an error came from Medusa's get-variants/region validation
@@ -62,8 +68,7 @@ async function withStaleCartRecovery<T>(
  */
 export async function retrieveCart(cartId?: string, fields?: string) {
   const id = cartId || (await getCartId())
-  fields ??=
-    "*items, *region, *items.product, +items.product.metadata, *items.variant, *items.variant.options, *items.variant.options.option, *items.variant.product, +items.variant.product.metadata, +items.variant.inventory_quantity, *items.thumbnail, *items.metadata, +items.total, +items.product_subtitle, +items.product_collection, *promotions, +shipping_methods.name, +shipping_methods.data"
+  fields ??= CART_QUERY_FIELDS
 
   if (!id) {
     return null
@@ -388,6 +393,65 @@ export async function submitPromotionForm(
     await applyPromotions([code])
   } catch (e: any) {
     return e.message
+  }
+}
+
+/**
+ * Apply the current customer's approved buy-at-price promotion(s) to a cart.
+ *
+ * Buy-at-price promotions are created `is_automatic: true` but Medusa v2 only
+ * re-scans automatic promotions on an explicit cart update, not on line-item
+ * add. So a freshly-built cart never gets the discount on its own. This bridges
+ * that gap: for any cart line whose product has an approved offer with a
+ * promotion code that isn't already applied, push the code onto the cart.
+ *
+ * Takes the already-fetched cart (avoids a redundant round-trip) and returns
+ * the updated cart so a Server Component can render it directly. It does NOT
+ * call revalidateTag (safe to call during render); returns null when there is
+ * nothing to apply or on any error (best-effort, never blocks the cart page).
+ */
+export async function applyApprovedOffersToCart(
+  cart: HttpTypes.StoreCart | null,
+): Promise<HttpTypes.StoreCart | null> {
+  try {
+    if (!cart?.id || !cart.items?.length) return null
+
+    const offers = await getCustomerOffers()
+    if (!offers.length) return null
+
+    const cartProductIds = new Set(
+      (cart.items ?? [])
+        .map((i: any) => i.product_id)
+        .filter(Boolean) as string[],
+    )
+    const existingCodes = ((cart.promotions ?? []) as any[])
+      .map((p) => p?.code)
+      .filter(Boolean) as string[]
+    const existingSet = new Set(existingCodes)
+
+    const newCodes = offers
+      .filter(
+        (o) =>
+          !!o.promotion_code &&
+          cartProductIds.has(o.product_id) &&
+          !existingSet.has(o.promotion_code as string),
+      )
+      .map((o) => o.promotion_code as string)
+
+    if (!newCodes.length) return null
+
+    const merged = Array.from(new Set([...existingCodes, ...newCodes]))
+    const headers = { ...(await getAuthHeaders()) }
+
+    const { cart: updated } = await sdk.store.cart.update(
+      cart.id,
+      { promo_codes: merged },
+      { fields: CART_QUERY_FIELDS },
+      headers,
+    )
+    return updated as HttpTypes.StoreCart
+  } catch {
+    return null
   }
 }
 

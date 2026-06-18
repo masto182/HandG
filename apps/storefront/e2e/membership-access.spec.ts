@@ -276,14 +276,16 @@ test.describe.serial("Membership Access Control — Full Flow", () => {
       )
       await addFirstProductToCart(page)
       await goToCart(page)
-      const qtySelect = page
-        .locator('select, [data-testid="product-select-button"]')
+      // The cart quantity control is a custom +/- stepper, not a native select.
+      const incrementBtn = page
+        .locator('[data-testid="quantity-increment"]')
         .first()
-      if (await qtySelect.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await qtySelect.selectOption("2")
-        await page.waitForTimeout(2000)
-        const cartText = await page.locator("main").last().textContent()
-        expect(cartText).toContain("2")
+      if (await incrementBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
+        await incrementBtn.click()
+        // The quantity display updates after the cart round-trip.
+        await expect(
+          page.locator('[data-testid="product-select-button"]').first(),
+        ).toHaveText("2", { timeout: 10000 })
       }
     })
 

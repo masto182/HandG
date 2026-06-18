@@ -116,6 +116,7 @@ const Item = ({ item, type = "full", currencyCode, maxStock }: ItemProps) => {
               </span>
               <button
                 type="button"
+                data-testid="quantity-increment"
                 onClick={() =>
                   item.quantity < maxQuantity &&
                   changeQuantity(item.quantity + 1)

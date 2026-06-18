@@ -53,7 +53,7 @@ async function setQuantityOnProductPage(
   qty: number,
 ): Promise<void> {
   // The product page has a quantity selector; use the explicit input if it
-  // exists, otherwise click the +/- buttons until the value matches.
+  // exists, otherwise click the increment button until the value matches.
   const input = page
     .locator('input[name="quantity"], input[type="number"]')
     .first()
@@ -62,8 +62,28 @@ async function setQuantityOnProductPage(
     return
   }
   const plus = page
-    .locator('button[aria-label="Increase quantity"], button:has-text("+")')
+    .locator(
+      '[data-testid="pdp-quantity-increment"], button[aria-label="Increase quantity"], button:has-text("+")',
+    )
     .first()
+  const valueEl = page.locator('[data-testid="pdp-quantity-value"]').first()
+  if (await valueEl.isVisible({ timeout: 2_000 }).catch(() => false)) {
+    // Click increment one at a time, re-reading the displayed value each pass.
+    // Rapid blind clicks can be dropped/raced; this stops exactly at qty and
+    // self-heals a missed click. The order value (and thus VIP score) depends
+    // on this being correct.
+    await expect(async () => {
+      const cur =
+        parseInt(((await valueEl.textContent()) || "1").trim(), 10) || 1
+      if (cur < qty) {
+        await plus.click()
+        throw new Error(`quantity ${cur} < target ${qty}`)
+      }
+    }).toPass({ timeout: 15_000 })
+    await expect(valueEl).toHaveText(String(qty), { timeout: 5_000 })
+    return
+  }
+  // Fallback: no value readout — blind increment clicks.
   for (let i = 1; i < qty; i++) {
     if (await plus.isVisible({ timeout: 1_000 }).catch(() => false)) {
       await plus.click()

@@ -193,7 +193,12 @@ export default function FilterPanel({
         params.delete(key)
       }
       params.delete("page")
-      router.push(`${pathname}?${params.toString()}`, { scroll: false })
+      // When no filters remain, push the bare pathname. Pushing `${pathname}?`
+      // (trailing "?" with an empty query) is treated as the current URL by the
+      // App Router and silently no-ops — which made removing the last filter
+      // (e.g. toggling off the only hop-origin chip) appear broken.
+      const qs = params.toString()
+      router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
     },
     [router, pathname, searchParams],
   )
@@ -279,7 +284,9 @@ export default function FilterPanel({
                   className={checkboxClass}
                 />
                 <span
-                  className={`text-[14px] ${isActive ? "text-hg-text" : "text-hg-text-secondary"} group-hover/item:text-hg-gold transition-colors`}
+                  className={`text-[14px] ${
+                    isActive ? "text-hg-text" : "text-hg-text-secondary"
+                  } group-hover/item:text-hg-gold transition-colors`}
                 >
                   {name}
                 </span>
@@ -342,7 +349,9 @@ export default function FilterPanel({
                     className={checkboxClass}
                   />
                   <span
-                    className={`text-[14px] flex-1 ${isActive ? "text-hg-text" : "text-hg-text-secondary"} group-hover/item:text-hg-gold transition-colors`}
+                    className={`text-[14px] flex-1 ${
+                      isActive ? "text-hg-text" : "text-hg-text-secondary"
+                    } group-hover/item:text-hg-gold transition-colors`}
                   >
                     {fam}
                   </span>
@@ -391,7 +400,9 @@ export default function FilterPanel({
                     className={checkboxClass}
                   />
                   <span
-                    className={`text-[14px] ${isActive ? "text-hg-text" : "text-hg-text-secondary"} group-hover/item:text-hg-gold transition-colors`}
+                    className={`text-[14px] ${
+                      isActive ? "text-hg-text" : "text-hg-text-secondary"
+                    } group-hover/item:text-hg-gold transition-colors`}
                   >
                     {range.label}
                   </span>
@@ -434,7 +445,9 @@ export default function FilterPanel({
                   className={checkboxClass}
                 />
                 <span
-                  className={`text-[14px] ${isActive ? "text-hg-text" : "text-hg-text-secondary"} group-hover/item:text-hg-gold transition-colors`}
+                  className={`text-[14px] ${
+                    isActive ? "text-hg-text" : "text-hg-text-secondary"
+                  } group-hover/item:text-hg-gold transition-colors`}
                 >
                   {band.label}
                 </span>
@@ -465,13 +478,21 @@ export default function FilterPanel({
           <div className="flex bg-hl-surface3/50 rounded p-1 mb-4 border border-hl-border-strong">
             <button
               onClick={() => updateParams("hopsMode", "and")}
-              className={`flex-1 py-1 text-[10px] font-semibold uppercase tracking-widest rounded ${hopsMode === "and" ? "bg-hg-gold text-hg-on-primary shadow-sm" : "text-hg-text-muted hover:text-hg-text"}`}
+              className={`flex-1 py-1 text-[10px] font-semibold uppercase tracking-widest rounded ${
+                hopsMode === "and"
+                  ? "bg-hg-gold text-hg-on-primary shadow-sm"
+                  : "text-hg-text-muted hover:text-hg-text"
+              }`}
             >
               AND
             </button>
             <button
               onClick={() => updateParams("hopsMode", "or")}
-              className={`flex-1 py-1 text-[10px] font-semibold uppercase tracking-widest rounded ${hopsMode === "or" ? "bg-hg-gold text-hg-on-primary shadow-sm" : "text-hg-text-muted hover:text-hg-text"}`}
+              className={`flex-1 py-1 text-[10px] font-semibold uppercase tracking-widest rounded ${
+                hopsMode === "or"
+                  ? "bg-hg-gold text-hg-on-primary shadow-sm"
+                  : "text-hg-text-muted hover:text-hg-text"
+              }`}
             >
               OR
             </button>
@@ -491,7 +512,9 @@ export default function FilterPanel({
                     className={checkboxClass}
                   />
                   <span
-                    className={`text-[14px] flex-1 ${isActive ? "text-hg-text" : "text-hg-text-secondary"} group-hover/item:text-hg-gold transition-colors`}
+                    className={`text-[14px] flex-1 ${
+                      isActive ? "text-hg-text" : "text-hg-text-secondary"
+                    } group-hover/item:text-hg-gold transition-colors`}
                   >
                     {name}
                   </span>
@@ -611,7 +634,9 @@ export default function FilterPanel({
               className={checkboxClass}
             />
             <span
-              className={`text-[14px] ${selectedOnSale ? "text-hg-text" : "text-hg-text-secondary"} group-hover/item:text-hg-gold transition-colors`}
+              className={`text-[14px] ${
+                selectedOnSale ? "text-hg-text" : "text-hg-text-secondary"
+              } group-hover/item:text-hg-gold transition-colors`}
             >
               On Sale
             </span>
@@ -624,7 +649,11 @@ export default function FilterPanel({
               className={checkboxClass}
             />
             <span
-              className={`text-[14px] ${selectedTags.includes("anniversary") ? "text-hg-text" : "text-hg-text-secondary"} group-hover/item:text-hg-gold transition-colors`}
+              className={`text-[14px] ${
+                selectedTags.includes("anniversary")
+                  ? "text-hg-text"
+                  : "text-hg-text-secondary"
+              } group-hover/item:text-hg-gold transition-colors`}
             >
               Anniversary
             </span>
@@ -639,7 +668,9 @@ export default function FilterPanel({
               className={checkboxClass}
             />
             <span
-              className={`text-[14px] ${selectedCollab ? "text-hg-text" : "text-hg-text-secondary"} group-hover/item:text-hg-gold transition-colors`}
+              className={`text-[14px] ${
+                selectedCollab ? "text-hg-text" : "text-hg-text-secondary"
+              } group-hover/item:text-hg-gold transition-colors`}
             >
               Collaborations
             </span>
@@ -654,7 +685,9 @@ export default function FilterPanel({
               className={checkboxClass}
             />
             <span
-              className={`text-[14px] ${!selectedAvailable ? "text-hg-text" : "text-hg-text-secondary"} group-hover/item:text-hg-gold transition-colors`}
+              className={`text-[14px] ${
+                !selectedAvailable ? "text-hg-text" : "text-hg-text-secondary"
+              } group-hover/item:text-hg-gold transition-colors`}
             >
               Include Sold Out
             </span>
@@ -699,7 +732,11 @@ export default function FilterPanel({
 
       {/* Mobile bottom sheet */}
       <div
-        className={`fixed inset-0 z-[90] md:hidden transition-opacity duration-300 ${mobileOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+        className={`fixed inset-0 z-[90] md:hidden transition-opacity duration-300 ${
+          mobileOpen
+            ? "opacity-100 pointer-events-auto"
+            : "opacity-0 pointer-events-none"
+        }`}
       >
         {/* Backdrop */}
         <div
@@ -708,7 +745,9 @@ export default function FilterPanel({
         />
         {/* Sheet */}
         <div
-          className={`fixed inset-x-0 bottom-0 bg-hg-surface-low rounded-t-2xl max-h-[85vh] flex flex-col transition-transform duration-300 ${mobileOpen ? "translate-y-0" : "translate-y-full"}`}
+          className={`fixed inset-x-0 bottom-0 bg-hg-surface-low rounded-t-2xl max-h-[85vh] flex flex-col transition-transform duration-300 ${
+            mobileOpen ? "translate-y-0" : "translate-y-full"
+          }`}
         >
           {/* Sticky header — always visible */}
           <div className="flex-shrink-0">

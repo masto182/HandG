@@ -235,6 +235,53 @@ export async function checkoutPickupPayid(
  * approved member. ShipEngine falls back to its deterministic stub when no API
  * key is set, so rates are present and stable in CI.
  */
+/**
+ * Walk the delivery checkout flow up to (and stopping at) the payment step,
+ * WITHOUT placing an order. Used to assert payment-step UI (e.g. PayID) for the
+ * delivery path. Jumping straight to ?step=payment is redirected back to
+ * fulfilment by the checkout guard when no shipping method is set.
+ */
+export async function gotoDeliveryPaymentStep(page: Page): Promise<void> {
+  await page.goto("/checkout?step=fulfilment")
+  await page.waitForLoadState("domcontentloaded")
+
+  const deliveryLabel = page.locator('label:has-text("Home Delivery")').first()
+  await expect(deliveryLabel).toBeVisible({ timeout: 10_000 })
+  await deliveryLabel.click()
+  await page.waitForTimeout(500)
+  await page.locator('button:has-text("Continue")').first().click()
+
+  await page.waitForURL(/step=address/, { timeout: 15_000 })
+  await page.fill('input[name="shipping_address.first_name"]', "Delivery")
+  await page.fill('input[name="shipping_address.last_name"]', "Tester")
+  await page.fill('input[name="shipping_address.address_1"]', "1 Test Street")
+  await page.keyboard.press("Escape")
+  await page.fill('input[name="shipping_address.city"]', "Melbourne")
+  await page.fill('input[name="shipping_address.province"]', "VIC")
+  await page.fill('input[name="shipping_address.postal_code"]', "3000")
+  const emailField = page.locator('input[name="email"]')
+  if (await emailField.isVisible({ timeout: 2_000 }).catch(() => false)) {
+    const cur = await emailField.inputValue().catch(() => "")
+    if (!cur) await emailField.fill("delivery-tester@hg-test.dev")
+  }
+  await page
+    .locator(
+      'button:has-text("Continue to Shipping Method"), button:has-text("Continue")',
+    )
+    .first()
+    .click()
+
+  await page.waitForURL(/step=shipping/, { timeout: 15_000 })
+  const firstRate = page.locator('input[name="shipping"]').first()
+  await expect(firstRate).toBeVisible({ timeout: 15_000 })
+  await firstRate.check({ force: true })
+  await page.waitForTimeout(2_500) // persistRate -> setShippingMethod round-trip
+
+  await page.locator('button:has-text("Proceed to Payment")').first().click()
+  await page.waitForURL(/step=payment/, { timeout: 15_000 })
+  await page.waitForLoadState("domcontentloaded")
+}
+
 export async function checkoutDeliveryPayid(
   page: Page,
   opts?: { toggleSignature?: boolean },

@@ -26,16 +26,24 @@ const STATUS_LABELS: Record<ReferralStatus, string> = {
   pending: "Pending",
 }
 
-export default function ReferralsPage() {
+export default function ReferralsPage({
+  initialData = null,
+}: {
+  initialData?: ReferralData | null
+}) {
   const router = useRouter()
-  const [data, setData] = useState<ReferralData | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [data, setData] = useState<ReferralData | null>(initialData)
+  const [loading, setLoading] = useState(!initialData)
   const [copied, setCopied] = useState<string | null>(null)
-  const [stealthMode, setStealthMode] = useState(false)
+  const [stealthMode, setStealthMode] = useState(
+    initialData?.stealth_mode ?? false,
+  )
   const [showAll, setShowAll] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
+    // Server already provided the data (SSR); no client fetch needed.
+    if (initialData) return
     getReferralData()
       .then((result) => {
         if (!result) {
@@ -49,7 +57,7 @@ export default function ReferralsPage() {
       .catch(() => {
         router.replace("/account?redirect_to=/account/referrals")
       })
-  }, [router])
+  }, [router, initialData])
 
   useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia) return
@@ -224,7 +232,10 @@ export default function ReferralsPage() {
                 <div
                   className="h-full bg-primary transition-all duration-500"
                   style={{
-                    width: `${Math.min((data.stats.total_referrals / 10) * 100, 100)}%`,
+                    width: `${Math.min(
+                      (data.stats.total_referrals / 10) * 100,
+                      100,
+                    )}%`,
                   }}
                 />
               </div>
@@ -354,13 +365,19 @@ export default function ReferralsPage() {
                           {entry.first_order || "—"}
                         </td>
                         <td
-                          className={`px-3 py-3 small:px-6 small:py-4 text-body-sm font-mono text-right ${entry.contribution > 0 ? "text-primary" : "text-on-surface-variant"}`}
+                          className={`px-3 py-3 small:px-6 small:py-4 text-body-sm font-mono text-right ${
+                            entry.contribution > 0
+                              ? "text-primary"
+                              : "text-on-surface-variant"
+                          }`}
                         >
                           {entry.contribution} pts
                         </td>
                         <td className="px-3 py-3 small:px-6 small:py-4 text-center">
                           <span
-                            className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-tight border ${STATUS_STYLES[entry.status]}`}
+                            className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-tight border ${
+                              STATUS_STYLES[entry.status]
+                            }`}
                           >
                             {STATUS_LABELS[entry.status]}
                           </span>

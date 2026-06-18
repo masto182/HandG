@@ -1,4 +1,4 @@
-import { retrieveCart } from "@lib/data/cart"
+import { retrieveCart, applyApprovedOffersToCart } from "@lib/data/cart"
 import { retrieveCustomer } from "@lib/data/customer"
 import { listCartShippingMethods } from "@lib/data/fulfillment"
 import { listCartPaymentMethods } from "@lib/data/payment"
@@ -43,6 +43,11 @@ export default async function Checkout({
   if (!cart || !cart.items?.length) {
     redirect("/cart")
   }
+
+  // Ensure any approved buy-at-price discount is applied (covers users who go
+  // straight to checkout without visiting /cart). Best-effort; persisted on the
+  // cart server-side so totals/order reflect it.
+  await applyApprovedOffersToCart(cart)
 
   // customer + shipping methods are both always needed and independent — fetch
   // in parallel rather than waterfalling.

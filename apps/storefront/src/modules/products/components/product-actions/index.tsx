@@ -256,6 +256,8 @@ export default function ProductActions({
                 <div className="flex items-center bg-hg-surface-dim rounded-xl border border-hg-border/30 overflow-hidden">
                   <button
                     type="button"
+                    aria-label="Decrease quantity"
+                    data-testid="pdp-quantity-decrement"
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
                     disabled={quantity <= 1}
                     className="px-3 py-4 hover:bg-hg-surface transition-colors flex items-center justify-center text-hg-text-secondary disabled:opacity-30"
@@ -271,11 +273,16 @@ export default function ProductActions({
                       <line x1="5" y1="12" x2="19" y2="12" />
                     </svg>
                   </button>
-                  <span className="w-10 text-center font-semibold text-[16px] text-hg-text select-none">
+                  <span
+                    className="w-10 text-center font-semibold text-[16px] text-hg-text select-none"
+                    data-testid="pdp-quantity-value"
+                  >
                     {quantity}
                   </span>
                   <button
                     type="button"
+                    aria-label="Increase quantity"
+                    data-testid="pdp-quantity-increment"
                     onClick={() => setQuantity(Math.min(maxQty, quantity + 1))}
                     disabled={quantity >= maxQty}
                     className="px-3 py-4 hover:bg-hg-surface transition-colors flex items-center justify-center text-hg-text-secondary disabled:opacity-30"
