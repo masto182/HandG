@@ -95,6 +95,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         events: update.events,
       })
       await fulfillmentModule.updateFulfillment(fulfillmentId, {
+        // workflow-exempt: external webhook updates fulfillment status
         // workflow-exempt
         // workflow-exempt
         // workflow-exempt

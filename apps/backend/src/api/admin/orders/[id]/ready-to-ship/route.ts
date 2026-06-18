@@ -35,6 +35,7 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
 
   if (body.override) {
     await orderModule.updateOrders(orderId, {
+      // workflow-exempt: simple order status flip, no workflow warranted
       // workflow-exempt
       // workflow-exempt
       metadata: { ...(order.metadata ?? {}), heat_hold_override: true },

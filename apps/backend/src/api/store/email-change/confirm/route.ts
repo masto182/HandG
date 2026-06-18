@@ -50,6 +50,7 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
     })
     if (identities.length) {
       await authModule.updateProviderIdentities(
+        // workflow-exempt: auth identity update
         // workflow-exempt
         // workflow-exempt
         // workflow-exempt

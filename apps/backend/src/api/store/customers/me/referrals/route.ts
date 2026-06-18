@@ -24,6 +24,7 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
   if (!referralCode && customer) {
     referralCode = generateReferralCode(customer.first_name || "")
     await customerModule.updateCustomers(customerId, {
+      // workflow-exempt: single customer field update
       // workflow-exempt
       // workflow-exempt
       // workflow-exempt

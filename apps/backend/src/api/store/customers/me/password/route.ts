@@ -61,6 +61,7 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
 
   // 2. Update password
   const update = await authModule.updateProvider("emailpass", {
+    // workflow-exempt: auth provider credential update
     // workflow-exempt
     // workflow-exempt
     // workflow-exempt
