@@ -51,13 +51,28 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     notFound()
   }
 
+  const meta = product.metadata as Record<string, any> | null
+  const style = meta?.style as string | undefined
+  const brewery = (meta?.brewery_name || meta?.brewery) as string | undefined
+
+  const descriptor = [
+    style,
+    brewery ? (style ? `by ${brewery}` : brewery) : undefined,
+  ]
+    .filter(Boolean)
+    .join(" ")
+
+  const description = descriptor
+    ? `${descriptor} — Hops & Glory`
+    : `${product.title} — Hops & Glory`
+
   return {
     title: `${product.title} | Hops & Glory`,
-    description: `${product.title} — from the Hops & Glory private collection`,
+    description,
     openGraph: {
       title: `${product.title} | Hops & Glory`,
-      description: `${product.title} — from the Hops & Glory private collection`,
-      images: product.thumbnail ? [product.thumbnail] : [],
+      description,
+      images: product.thumbnail ? [{ url: product.thumbnail }] : [],
     },
   }
 }

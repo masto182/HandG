@@ -55,7 +55,7 @@ function parseReleasedDate(raw: string | undefined | null): Date | null {
   return null
 }
 
-export function determinePillType(
+export function determinePillTypes(
   product: {
     id?: string
     metadata?: any
@@ -65,7 +65,7 @@ export function determinePillType(
   },
   customerVipTier?: string | null,
   activeSpecial?: ActiveSpecial | null,
-): PillType | null {
+): PillType[] {
   const meta = product.metadata as any
   const tagValues = (product.tags || [])
     .map((t) => t.value?.toLowerCase())
@@ -77,34 +77,35 @@ export function determinePillType(
       const now = Date.now()
       const releaseMs = releaseDate.getTime()
       if (releaseMs > now) {
-        const tierKey = customerVipTier as keyof typeof offsets
         const offsets = { vip1: 0, vip2: 6, vip3: 12, vip4: 24, vip5: 48 }
+        const tierKey = customerVipTier as keyof typeof offsets
         const offsetHours = offsets[tierKey] ?? 0
         const windowStart = releaseMs - offsetHours * 60 * 60 * 1000
         if (now >= windowStart) {
-          return "EARLY ACCESS"
+          return ["EARLY ACCESS"]
         }
       }
     }
   }
 
   if (activeSpecial) {
-    if (activeSpecial.type === "vip_exclusive") return "VIP DEAL"
-    return "SPECIAL"
+    return [activeSpecial.type === "vip_exclusive" ? "VIP DEAL" : "SPECIAL"]
   }
 
-  if (tagValues.includes("anniversary")) return "ANNIVERSARY"
+  const pills: PillType[] = []
+
+  if (tagValues.includes("anniversary")) pills.push("ANNIVERSARY")
 
   if (Array.isArray(product.breweries) && product.breweries.length > 1) {
-    return "COLLAB"
+    pills.push("COLLAB")
   }
 
-  if (product.created_at) {
+  if (pills.length === 0 && product.created_at) {
     const age = Date.now() - new Date(product.created_at).getTime()
-    if (age < NEW_THRESHOLD_MS && age >= 0) return "NEW"
+    if (age < NEW_THRESHOLD_MS && age >= 0) pills.push("NEW")
   }
 
-  return null
+  return pills
 }
 
 export default function ProductPill({
@@ -122,16 +123,22 @@ export default function ProductPill({
   customerVipTier?: string | null
   activeSpecial?: ActiveSpecial | null
 }) {
-  const type = determinePillType(product, customerVipTier, activeSpecial)
-  if (!type) return null
+  const types = determinePillTypes(product, customerVipTier, activeSpecial)
+  if (types.length === 0) return null
 
-  const config = PILL_STYLES[type]
   return (
-    <span
+    <div
       data-testid="product-pill"
-      className={`absolute top-3 left-3 z-10 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider shadow-sm ${config.className}`}
+      className="absolute top-3 left-3 z-10 flex flex-col gap-1"
     >
-      {config.label}
-    </span>
+      {types.map((type) => (
+        <span
+          key={type}
+          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider shadow-sm ${PILL_STYLES[type].className}`}
+        >
+          {PILL_STYLES[type].label}
+        </span>
+      ))}
+    </div>
   )
 }

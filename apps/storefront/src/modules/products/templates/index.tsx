@@ -13,6 +13,7 @@ import LikeButton from "@modules/likes/components/like-button"
 import ShareButton from "@modules/products/components/share-button"
 import BuyAtPriceBanner from "@modules/products/components/buy-at-price-banner"
 import ProductPill from "@modules/products/components/product-pill"
+import Icon from "@modules/common/components/icon"
 import EarlyAccessCountdown from "@modules/store/components/early-access-countdown"
 import { notFound } from "next/navigation"
 import { HttpTypes } from "@medusajs/types"
@@ -74,6 +75,8 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
   const collabPartners: string[] = linkedBreweries
     .filter((b) => b.slug && b.slug !== primarySlug)
     .map((b) => b.slug)
+  const breweryName =
+    ((metadata?.brewery_name || metadata?.brewery) as string | undefined) ?? ""
   const releaseAt = (metadata?.release_at as string | undefined) ?? null
   const earlyAccessUntil =
     (metadata?.early_access_until as string | undefined) ?? null
@@ -99,6 +102,24 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
           <div className="lg:col-span-7 lg:sticky lg:top-8">
             <div className="relative">
               <ImageGallery images={images} thumbnail={thumbnail} />
+              {!canSeePricing && (
+                <div className="absolute inset-0 z-10 rounded-xl bg-hg-surface/60 backdrop-blur-[6px] flex flex-col items-center justify-center gap-3">
+                  <Icon
+                    name="lock"
+                    size={32}
+                    className="text-hg-text-secondary"
+                  />
+                  <span className="text-sm font-semibold text-hg-text-secondary uppercase tracking-wider">
+                    Members Only
+                  </span>
+                  <a
+                    href="/apply"
+                    className="text-xs text-hl-primary hover:underline"
+                  >
+                    Apply for membership →
+                  </a>
+                </div>
+              )}
               <ProductPill product={product} />
             </div>
           </div>
@@ -171,9 +192,8 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
                   <WishlistManagementPanel productId={product.id} />
                 )}
 
-                <div className="flex items-center gap-6 py-4 px-2 border-b border-hg-border/20">
+                <div className="py-4 px-2 border-b border-hg-border/20">
                   <LikeButton productId={product.id} variant="detail" />
-                  <ShareButton />
                 </div>
               </>
             ) : canSeePricing && !hasEarlyAccess ? (
@@ -226,6 +246,14 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
               beerStyle={beerStyle}
               hopProvenance={hopProvenance}
             />
+
+            <div className="flex justify-end">
+              <ShareButton
+                productTitle={product.title || ""}
+                breweryName={breweryName}
+                thumbnail={thumbnail}
+              />
+            </div>
           </div>
         </div>
       </main>
