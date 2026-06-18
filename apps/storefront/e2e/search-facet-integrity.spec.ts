@@ -6,75 +6,91 @@ const MEILI_KEY = process.env.MEILI_MASTER_KEY || ""
 const PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
 
 test.describe("Search Facet Integrity — MeiliSearch vs Store API", () => {
-  test("Facet distribution matches store product count for top category", async ({ request }) => {
-    const meiliRes = await request.post(`${MEILI_URL}/indexes/products/search`, {
-      headers: {
-        "Authorization": MEILI_KEY ? `Bearer ${MEILI_KEY}` : "",
-        "Content-Type": "application/json",
-      },
-      data: {
-        q: "",
-        facets: ["category_handle", "collection_handle", "type"],
-        limit: 0,
-      },
-    })
-
-    if (!meiliRes.ok()) {
-      test.skip(true, `MeiliSearch not available (status ${meiliRes.status()})`)
+  test("Facet count for the top style family equals its filtered hit count", async ({
+    request,
+  }) => {
+    const meiliHeaders = {
+      Authorization: MEILI_KEY ? `Bearer ${MEILI_KEY}` : "",
+      "Content-Type": "application/json",
     }
-
-    const meiliData = await meiliRes.json()
-    const facets = meiliData.facetDistribution || {}
-
-    const categoryFacets = facets.category_handle || facets.collection_handle || facets.type || {}
-    const facetKeys = Object.keys(categoryFacets)
-    test.skip(facetKeys.length === 0, "No facets returned from MeiliSearch — index may be empty")
-
-    const topFacet = facetKeys[0]
-    const meiliCount = categoryFacets[topFacet]
-
-    const storeRes = await request.get(`${BACKEND}/store/products?limit=200&category_id[]=${topFacet}`, {
-      headers: {
-        "x-publishable-api-key": PUBLISHABLE_KEY,
+    // This catalog facets on real product attributes (style_family / style /
+    // hops), not Medusa categories/collections. Verify index integrity: the
+    // facet count reported for a value must equal the number of documents that
+    // actually match a filter on that value.
+    const facetRes = await request.post(
+      `${MEILI_URL}/indexes/products/search`,
+      {
+        headers: meiliHeaders,
+        data: { q: "", facets: ["style_family", "style"], limit: 0 },
       },
-    })
+    )
+    if (!facetRes.ok()) {
+      test.skip(true, `MeiliSearch not available (status ${facetRes.status()})`)
+    }
+    const facetData = await facetRes.json()
+    const facets = facetData.facetDistribution || {}
+    const styleFamilies = facets.style_family || {}
+    const familyKeys = Object.keys(styleFamilies)
+    test.skip(
+      familyKeys.length === 0,
+      "No style_family facets returned — index may be empty",
+    )
 
-    if (storeRes.ok()) {
-      const storeData = await storeRes.json()
-      const storeCount = storeData.count ?? storeData.products?.length ?? 0
-      expect(meiliCount).toBe(storeCount)
-    } else {
-      const collectionRes = await request.get(`${BACKEND}/store/products?limit=200&collection_id[]=${topFacet}`, {
-        headers: {
-          "x-publishable-api-key": PUBLISHABLE_KEY,
+    // Pick the style family with the most products and confirm a filtered query
+    // returns exactly that many documents.
+    const topFamily = familyKeys.sort(
+      (a, b) => styleFamilies[b] - styleFamilies[a],
+    )[0]
+    const facetCount = styleFamilies[topFamily]
+
+    const filterRes = await request.post(
+      `${MEILI_URL}/indexes/products/search`,
+      {
+        headers: meiliHeaders,
+        data: {
+          q: "",
+          filter: `style_family = ${JSON.stringify(topFamily)}`,
+          limit: 0,
         },
-      })
-      expect(collectionRes.ok()).toBeTruthy()
-      const collectionData = await collectionRes.json()
-      const collectionCount = collectionData.count ?? collectionData.products?.length ?? 0
-      expect(meiliCount).toBe(collectionCount)
-    }
+      },
+    )
+    expect(filterRes.ok()).toBeTruthy()
+    const filterData = await filterRes.json()
+    const filteredTotal =
+      filterData.estimatedTotalHits ?? filterData.totalHits ?? 0
+    expect(filteredTotal).toBe(facetCount)
   })
 
-  test("Total document count matches store product total (published only)", async ({ request }) => {
-    const meiliStatsRes = await request.get(`${MEILI_URL}/indexes/products/stats`, {
-      headers: {
-        "Authorization": MEILI_KEY ? `Bearer ${MEILI_KEY}` : "",
+  test("Total document count matches store product total (published only)", async ({
+    request,
+  }) => {
+    const meiliStatsRes = await request.get(
+      `${MEILI_URL}/indexes/products/stats`,
+      {
+        headers: {
+          Authorization: MEILI_KEY ? `Bearer ${MEILI_KEY}` : "",
+        },
       },
-    })
+    )
 
     if (!meiliStatsRes.ok()) {
-      test.skip(true, `MeiliSearch stats not available (status ${meiliStatsRes.status()})`)
+      test.skip(
+        true,
+        `MeiliSearch stats not available (status ${meiliStatsRes.status()})`,
+      )
     }
 
     const meiliStats = await meiliStatsRes.json()
     const meiliTotal = meiliStats.numberOfDocuments ?? 0
 
-    const storeRes = await request.get(`${BACKEND}/store/products?limit=1&offset=0`, {
-      headers: {
-        "x-publishable-api-key": PUBLISHABLE_KEY,
+    const storeRes = await request.get(
+      `${BACKEND}/store/products?limit=1&offset=0`,
+      {
+        headers: {
+          "x-publishable-api-key": PUBLISHABLE_KEY,
+        },
       },
-    })
+    )
     expect(storeRes.ok()).toBeTruthy()
     const storeData = await storeRes.json()
     const storeTotal = storeData.count ?? 0

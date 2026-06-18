@@ -1,9 +1,23 @@
 import { test, expect } from "@playwright/test"
 
-const isProduction = process.env.NODE_ENV === "production"
+const STOREFRONT = "http://localhost:8000"
 
 test.describe("CSP Nonce Verification", () => {
-  test.skip(!isProduction, "CSP nonces only apply in production mode")
+  // Run whenever the storefront actually serves a CSP header (i.e. a production
+  // build, which is what CI runs). The old gate keyed off the test-runner's
+  // NODE_ENV, which is not "production" in CI even though the served app is a
+  // prod build — so these security checks never ran. Probe the response instead.
+  let cspServed = false
+  test.beforeAll(async ({ request }) => {
+    const res = await request.get(`${STOREFRONT}/`).catch(() => null)
+    cspServed = !!res && !!res.headers()["content-security-policy"]
+  })
+  test.beforeEach(() => {
+    test.skip(
+      !cspServed,
+      "Storefront is not serving a CSP header (dev mode) — nonce checks are prod-only",
+    )
+  })
   test("Response includes Content-Security-Policy header with nonce and no unsafe-inline in script-src", async ({
     page,
   }) => {
@@ -68,6 +82,10 @@ test.describe("CSP Nonce Verification", () => {
     for (const tag of inlineScripts) {
       if (tag.includes("dangerouslySetInnerHTML") || tag === "<script>")
         continue
+      // Only executable inline scripts need a nonce. Data blocks like
+      // application/ld+json (and other non-JS types) are not run by the browser
+      // and are not governed by script-src, so they legitimately have no nonce.
+      if (/type=["'](?!text\/javascript|module)/.test(tag)) continue
       expect
         .soft(tag, `Script tag missing nonce: ${tag.slice(0, 80)}`)
         .toContain(`nonce=`)

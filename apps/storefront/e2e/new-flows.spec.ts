@@ -143,9 +143,12 @@ test.describe.serial("New flows — PR 3 / 4 / 5", () => {
     // Find any product via the public endpoint.
     const pubHeaders: Record<string, string> = {}
     if (PUBLISHABLE_KEY) pubHeaders["x-publishable-api-key"] = PUBLISHABLE_KEY
-    const listRes = await request.get(`${BACKEND}/store/products`, {
-      headers: pubHeaders,
-    })
+    const listRes = await request.get(
+      `${BACKEND}/store/products?limit=100&fields=id,variants.id,*metadata`,
+      {
+        headers: pubHeaders,
+      },
+    )
     if (!listRes.ok()) {
       test.skip(
         true,
@@ -157,7 +160,17 @@ test.describe.serial("New flows — PR 3 / 4 / 5", () => {
       variants: Array<{ id: string }>
       metadata?: Record<string, any>
     }>
-    const product = products.find((p) => p.variants?.length > 0)
+    // Prefer a product still inside its early-access window (early_access_until
+    // in the future) so we actually exercise the 409 gate; fall back to any
+    // product with variants.
+    const now = Date.now()
+    const product =
+      products.find(
+        (p) =>
+          p.variants?.length > 0 &&
+          p.metadata?.early_access_until &&
+          new Date(p.metadata.early_access_until).getTime() > now,
+      ) || products.find((p) => p.variants?.length > 0)
     if (!product) {
       test.skip(true, "No product with variants; skipping")
     }
