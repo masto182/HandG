@@ -39,15 +39,13 @@ export const POST = async (req: AuthenticatedMedusaRequest, res: MedusaResponse)
     ""
   const locationHours = body.location_hours || snapshot?.hours_summary
 
-  await orderModule.updateOrders(orderId, {
-    // workflow-exempt: simple order status flip, no workflow warranted
-    // workflow-exempt
-    // workflow-exempt
+  const pickupUpdate = {
     metadata: {
       ...((order as any).metadata || {}),
       ready_for_pickup_at: new Date().toISOString(),
     },
-  } as any)
+  } as any
+  await orderModule.updateOrders(orderId, pickupUpdate) // workflow-exempt: order status flip
 
   await refreshEmailConfig(req.scope)
   const result = await sendTemplate({

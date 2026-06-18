@@ -23,13 +23,10 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
 
   if (!referralCode && customer) {
     referralCode = generateReferralCode(customer.first_name || "")
-    await customerModule.updateCustomers(customerId, {
-      // workflow-exempt: single customer field update
-      // workflow-exempt
-      // workflow-exempt
-      // workflow-exempt
+    const codeMeta = {
       metadata: { ...((customer.metadata as any) || {}), referral_code: referralCode },
-    })
+    }
+    await customerModule.updateCustomers(customerId, codeMeta) // workflow-exempt: single customer field update
     // Keep the indexed lookup table in sync so the code resolves in validate.
     try {
       const referralService = req.scope.resolve(REFERRAL_MODULE) as any

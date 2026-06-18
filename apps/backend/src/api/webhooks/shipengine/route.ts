@@ -94,11 +94,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         status_description: update.status_description,
         events: update.events,
       })
-      await fulfillmentModule.updateFulfillment(fulfillmentId, {
-        // workflow-exempt: external webhook updates fulfillment status
-        // workflow-exempt
-        // workflow-exempt
-        // workflow-exempt
+      const fulfillmentUpdate = {
         metadata: {
           ...(existing.metadata ?? {}),
           tracking_events: events,
@@ -106,7 +102,8 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
           last_tracking_status_code: update.status_code,
           delivered_at: update.delivered_at ?? existing.metadata?.delivered_at,
         },
-      })
+      }
+      await fulfillmentModule.updateFulfillment(fulfillmentId, fulfillmentUpdate) // workflow-exempt: external webhook updates fulfillment status
     } catch (err) {
       logger.warn(`[shipengine-webhook] persist failed: ${(err as Error).message}`)
     }

@@ -49,13 +49,8 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
       provider: "emailpass",
     })
     if (identities.length) {
-      await authModule.updateProviderIdentities(
-        // workflow-exempt: auth identity update
-        // workflow-exempt
-        // workflow-exempt
-        // workflow-exempt
-        identities.map((pi) => ({ id: pi.id, entity_id: new_email }))
-      )
+      const idUpdates = identities.map((pi) => ({ id: pi.id, entity_id: new_email }))
+      await authModule.updateProviderIdentities(idUpdates) // workflow-exempt: auth identity update
     }
 
     // Step 2: Update customer.email (display value).

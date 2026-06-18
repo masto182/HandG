@@ -34,12 +34,8 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
   }
 
   if (body.override) {
-    await orderModule.updateOrders(orderId, {
-      // workflow-exempt: simple order status flip, no workflow warranted
-      // workflow-exempt
-      // workflow-exempt
-      metadata: { ...(order.metadata ?? {}), heat_hold_override: true },
-    })
+    const overrideUpdate = { metadata: { ...(order.metadata ?? {}), heat_hold_override: true } }
+    await orderModule.updateOrders(orderId, overrideUpdate) // workflow-exempt: order status flip
     logger.info(`[shipengine] heat_hold_override set on ${orderId} by admin request`)
   }
 
