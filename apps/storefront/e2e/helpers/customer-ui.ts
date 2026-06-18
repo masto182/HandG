@@ -404,14 +404,15 @@ export async function readVipScoreFromAccount(page: Page): Promise<number> {
  * Uses the font-mono display element that renders the code directly.
  */
 export async function readReferralCode(page: Page): Promise<string> {
-  // The referrals page fetches its data client-side and the code is written by
-  // the approve workflow, both of which can lag in a production build. Retry
-  // with reloads instead of reading once.
-  for (let attempt = 0; attempt < 3; attempt++) {
+  // The referrals page depends on the approve workflow having propagated
+  // (membership → approved) and the referral code being written, both of which
+  // can lag under CI load. Poll with reloads over a generous budget; if the
+  // page still redirects (not yet approved) we simply retry.
+  for (let attempt = 0; attempt < 10; attempt++) {
     await page.goto("/account/referrals")
     await page.waitForLoadState("domcontentloaded")
     const codeEl = page.locator(".font-mono.tracking-widest").first()
-    if (await codeEl.isVisible({ timeout: 8_000 }).catch(() => false)) {
+    if (await codeEl.isVisible({ timeout: 6_000 }).catch(() => false)) {
       const txt = ((await codeEl.textContent()) || "").trim()
       if (txt) return txt
     }
@@ -424,8 +425,8 @@ export async function readReferralCode(page: Page): Promise<string> {
     const all = text.match(/\b[A-Z0-9]{6,16}\b/g) || []
     const found = all.find((c) => /\d/.test(c))
     if (found) return found
-    // Not ready yet — wait and retry (code generation / data fetch may lag).
-    await page.waitForTimeout(2_000)
+    // Not ready yet — wait and retry (approval/code propagation may lag).
+    await page.waitForTimeout(4_000)
   }
   return ""
 }

@@ -6,22 +6,29 @@ const MEILI_KEY = process.env.MEILI_MASTER_KEY || ""
 const PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
 
 test.describe("Search Facet Integrity — MeiliSearch vs Store API", () => {
-  test("Facet count for the top style family equals its filtered hit count", async ({
+  test("Top facet value count equals its filtered hit count", async ({
     request,
   }) => {
     const meiliHeaders = {
       Authorization: MEILI_KEY ? `Bearer ${MEILI_KEY}` : "",
       "Content-Type": "application/json",
     }
-    // This catalog facets on real product attributes (style_family / style /
-    // hops), not Medusa categories/collections. Verify index integrity: the
-    // facet count reported for a value must equal the number of documents that
-    // actually match a filter on that value.
+    // This catalog facets on real product attributes, not Medusa categories.
+    // Use whichever facet the index actually populates (resilient across
+    // environments) and verify integrity: the facet count for a value must
+    // equal the number of documents matching a filter on that value.
+    const candidateFacets = [
+      "style_family",
+      "style",
+      "hops",
+      "hop_countries",
+      "brewery",
+    ]
     const facetRes = await request.post(
       `${MEILI_URL}/indexes/products/search`,
       {
         headers: meiliHeaders,
-        data: { q: "", facets: ["style_family", "style"], limit: 0 },
+        data: { q: "", facets: candidateFacets, limit: 0 },
       },
     )
     if (!facetRes.ok()) {
@@ -29,19 +36,20 @@ test.describe("Search Facet Integrity — MeiliSearch vs Store API", () => {
     }
     const facetData = await facetRes.json()
     const facets = facetData.facetDistribution || {}
-    const styleFamilies = facets.style_family || {}
-    const familyKeys = Object.keys(styleFamilies)
+    const chosen = candidateFacets.find(
+      (f) => Object.keys(facets[f] || {}).length > 0,
+    )
     test.skip(
-      familyKeys.length === 0,
-      "No style_family facets returned — index may be empty",
+      !chosen,
+      "No populated facets returned from MeiliSearch — index may be empty",
     )
 
-    // Pick the style family with the most products and confirm a filtered query
+    const dist = facets[chosen!] as Record<string, number>
+    const values = Object.keys(dist)
+    // Pick the value with the most products and confirm a filtered query
     // returns exactly that many documents.
-    const topFamily = familyKeys.sort(
-      (a, b) => styleFamilies[b] - styleFamilies[a],
-    )[0]
-    const facetCount = styleFamilies[topFamily]
+    const topValue = values.sort((a, b) => dist[b] - dist[a])[0]
+    const facetCount = dist[topValue]
 
     const filterRes = await request.post(
       `${MEILI_URL}/indexes/products/search`,
@@ -49,7 +57,7 @@ test.describe("Search Facet Integrity — MeiliSearch vs Store API", () => {
         headers: meiliHeaders,
         data: {
           q: "",
-          filter: `style_family = ${JSON.stringify(topFamily)}`,
+          filter: `${chosen} = ${JSON.stringify(topValue)}`,
           limit: 0,
         },
       },
