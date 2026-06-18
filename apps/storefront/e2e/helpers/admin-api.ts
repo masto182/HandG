@@ -84,7 +84,9 @@ export async function deleteWishlistEntriesForCustomer(
   }
 }
 
-export async function approveCustomerByEmail(email: string): Promise<void> {
+export async function approveCustomerByEmail(
+  email: string,
+): Promise<string | undefined> {
   let id: string | null = null
   for (let attempt = 0; attempt < 30; attempt++) {
     id = await findCustomerIdByEmail(email)
@@ -101,4 +103,12 @@ export async function approveCustomerByEmail(email: string): Promise<void> {
       `Approve failed for ${email}: ${res.status} ${await res.text()}`,
     )
   }
+  // The approve workflow generates the referral code synchronously and the
+  // route returns it. Hand it back so callers can use the authoritative code
+  // instead of scraping the referrals UI (which flakes under CI load while the
+  // logged-in session's "approved" group membership propagates).
+  const body = (await res.json().catch(() => ({}))) as {
+    referral_code?: string
+  }
+  return body.referral_code
 }

@@ -398,35 +398,3 @@ export async function readVipScoreFromAccount(page: Page): Promise<number> {
   )
   return m ? parseFloat(m[1]) : NaN
 }
-
-/**
- * Retrieve the logged-in customer's referral code from /account/referrals.
- * Uses the font-mono display element that renders the code directly.
- */
-export async function readReferralCode(page: Page): Promise<string> {
-  // The referrals page depends on the approve workflow having propagated
-  // (membership → approved) and the referral code being written, both of which
-  // can lag under CI load. Poll with reloads over a generous budget; if the
-  // page still redirects (not yet approved) we simply retry.
-  for (let attempt = 0; attempt < 10; attempt++) {
-    await page.goto("/account/referrals")
-    await page.waitForLoadState("domcontentloaded")
-    const codeEl = page.locator(".font-mono.tracking-widest").first()
-    if (await codeEl.isVisible({ timeout: 6_000 }).catch(() => false)) {
-      const txt = ((await codeEl.textContent()) || "").trim()
-      if (txt) return txt
-    }
-    // Fallback: regex on full text, requires at least one digit to exclude headings.
-    const text = (await page.locator("main").last().textContent()) || ""
-    const nearLabel = text.match(
-      /(?:REFERRAL CODE|YOUR CODE)[^A-Z0-9]*([A-Z0-9]{6,16})/i,
-    )
-    if (nearLabel) return nearLabel[1]
-    const all = text.match(/\b[A-Z0-9]{6,16}\b/g) || []
-    const found = all.find((c) => /\d/.test(c))
-    if (found) return found
-    // Not ready yet — wait and retry (approval/code propagation may lag).
-    await page.waitForTimeout(4_000)
-  }
-  return ""
-}

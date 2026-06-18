@@ -5,7 +5,6 @@ import {
   gotoProductByHandle,
   addCurrentProductToCart,
   checkoutPickupPayid,
-  readReferralCode,
   readVipScoreFromAccount,
 } from "./helpers/customer-ui"
 import {
@@ -61,12 +60,14 @@ test.describe("Referral attribution @smoke", () => {
       firstName: "Ref",
     })
     await refApplyCtx.close()
-    await approveCustomerByEmail(REFERRER_EMAIL)
+    // Use the authoritative referral code returned by the approve API rather
+    // than scraping /account/referrals (which flakes under CI load while the
+    // logged-in session's "approved" group membership propagates).
+    const referralCode = await approveCustomerByEmail(REFERRER_EMAIL)
+    expect(referralCode, "referrer must have a code").toBeTruthy()
     const refCtx = await browser.newContext()
     const refPage = await refCtx.newPage()
     await login(refPage, REFERRER_EMAIL, PASSWORD)
-    const referralCode = await readReferralCode(refPage)
-    expect(referralCode, "referrer must have a code").toBeTruthy()
     const baselineScore = await readVipScoreFromAccount(refPage)
 
     // 2. Referee applies with referral code, admin approves
