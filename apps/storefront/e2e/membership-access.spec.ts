@@ -186,7 +186,9 @@ test.describe.serial("Membership Access Control — Full Flow", () => {
       await page.goto("/")
       await page.waitForTimeout(3000)
       const mainText = await page.locator("main").last().textContent()
-      expect(mainText).toMatch(/A\$\d+/)
+      // Storefront uses en-AU locale, which renders AUD as "$55" (not the en-US
+      // "A$55"). Match the dollar amount that actually renders.
+      expect(mainText).toMatch(/\$\d+/)
     })
 
     test("19. Product detail: ABV visible", async ({ page }) => {
@@ -211,7 +213,8 @@ test.describe.serial("Membership Access Control — Full Flow", () => {
       )
       await goToFirstProduct(page)
       const pageText = await page.locator("main").last().textContent()
-      expect(pageText).toMatch(/A\$\d+/)
+      // en-AU locale renders AUD as "$55", not "A$55".
+      expect(pageText).toMatch(/\$\d+/)
     })
 
     test("21. Product detail: Add to Cart button visible", async ({ page }) => {
