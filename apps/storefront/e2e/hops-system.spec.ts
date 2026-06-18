@@ -236,10 +236,15 @@ test.describe("Store filter panel — Hop Origin @smoke", () => {
   }) => {
     await page.goto("/store?hop_country=NZ")
     await page.waitForLoadState("domcontentloaded")
-    await page.getByRole("button", { name: "New Zealand" }).click()
+    const nzChip = page.getByRole("button", { name: "New Zealand" })
+    // Wait until the chip reflects the active state (gold fill) — this proves
+    // the component has hydrated and read hop_country=NZ from the URL. Clicking
+    // before that races hydration and the toggle-off is a no-op.
+    await expect(nzChip).toHaveClass(/bg-hg-gold/, { timeout: 10_000 })
+    await nzChip.click()
     // After toggle-off the param should be gone
     await page.waitForURL((url) => !url.search.includes("hop_country=NZ"), {
-      timeout: 5_000,
+      timeout: 10_000,
     })
     expect(page.url()).not.toContain("hop_country=NZ")
   })
