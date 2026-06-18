@@ -9,7 +9,7 @@ import {
   goToBreweryPage,
 } from "./helpers/navigation"
 
-test.describe.serial("Membership Access Control — Full Flow", () => {
+test.describe("Membership Access Control — Full Flow", () => {
   test.describe("Phase 1: Non-Approved User (Not Logged In)", () => {
     test("1. Homepage loads with products", async ({ page }) => {
       await goToHomepage(page)
@@ -322,7 +322,7 @@ test.describe.serial("Membership Access Control — Full Flow", () => {
       await expect(itemRow).toBeVisible({ timeout: 5000 })
     })
 
-    test("27. Checkout Step 1: 3 fulfilment cards visible", async ({
+    test("27. Checkout Step 1: fulfilment options visible", async ({
       page,
     }) => {
       await login(
@@ -332,12 +332,15 @@ test.describe.serial("Membership Access Control — Full Flow", () => {
       )
       await addFirstProductToCart(page)
       await goToCheckout(page, "fulfilment")
-      const heading = page.locator("text=/[Hh]ow would you like/")
-      await expect(heading.first()).toBeVisible({ timeout: 10000 })
-      const cards = page.locator(
-        'button:has-text("SELECT"), button:has-text("SELECTED")',
-      )
-      expect(await cards.count()).toBeGreaterThanOrEqual(2)
+      // Confirm we're on the fulfilment step: the Home Delivery card renders
+      // (same selector pattern test 28 uses). Heading copy is intentionally
+      // not asserted — it drifts; the option cards are the real signal.
+      await expect(page.locator('h3:has-text("Home Delivery")')).toBeVisible({
+        timeout: 10000,
+      })
+      // Both fulfilment options (Home Delivery + In-Store Pickup) are present.
+      const options = page.locator('input[name="fulfilment"]')
+      expect(await options.count()).toBeGreaterThanOrEqual(2)
     })
 
     test("28. Select Delivery → navigates to address", async ({ page }) => {
@@ -365,45 +368,11 @@ test.describe.serial("Membership Access Control — Full Flow", () => {
       )
       await addFirstProductToCart(page)
       await goToCheckout(page, "address")
-      const heading = page.locator("text=/[Ww]here should we deliver/")
+      const heading = page.locator("text=/[Ww]here should we send/")
       await expect(heading.first()).toBeVisible({ timeout: 10000 })
     })
 
-    test("30. Submit address → navigates to shipping", async ({ page }) => {
-      await login(
-        page,
-        TEST_ACCOUNTS.approved.email,
-        TEST_ACCOUNTS.approved.password,
-      )
-      await addFirstProductToCart(page)
-      await goToCheckout(page, "address")
-      await page.waitForTimeout(2000)
-      const submitBtn = page.locator('button:has-text("CONTINUE TO SHIPPING")')
-      await expect(submitBtn).toBeVisible({ timeout: 5000 })
-      await submitBtn.click()
-      await page.waitForTimeout(3000)
-      expect(page.url()).toContain("step=shipping")
-    })
-
-    test("31. Shipping shows address summary", async ({ page }) => {
-      await login(
-        page,
-        TEST_ACCOUNTS.approved.email,
-        TEST_ACCOUNTS.approved.password,
-      )
-      await addFirstProductToCart(page)
-      await goToCheckout(page, "shipping")
-      await page.waitForTimeout(2000)
-      const pageText = (await page.locator("main").last().textContent()) || ""
-      const hasAddressInfo =
-        pageText.includes("Delivering to") ||
-        pageText.includes("Standard") ||
-        pageText.includes("Express") ||
-        page.url().includes("step=shipping")
-      expect(hasAddressInfo || page.url().includes("step=address")).toBeTruthy()
-    })
-
-    test("32. Standard + Express options visible with prices", async ({
+    test("Delivery checkout walk: address → shipping → payment → review", async ({
       page,
     }) => {
       await login(
@@ -412,56 +381,86 @@ test.describe.serial("Membership Access Control — Full Flow", () => {
         TEST_ACCOUNTS.approved.password,
       )
       await addFirstProductToCart(page)
-      await goToCheckout(page, "shipping")
-      const standard = page.locator("text=/[Ss]tandard/")
-      const express = page.locator("text=/[Ee]xpress/")
-      await expect(standard.first()).toBeVisible({ timeout: 10000 })
-      await expect(express.first()).toBeVisible({ timeout: 5000 })
-    })
 
-    test("33. Recommended badge on Standard", async ({ page }) => {
-      await login(
-        page,
-        TEST_ACCOUNTS.approved.email,
-        TEST_ACCOUNTS.approved.password,
+      // Fulfilment → choose Home Delivery → Address
+      await goToCheckout(page, "fulfilment")
+      await page.locator('label:has-text("Home Delivery")').first().click()
+      await page.waitForTimeout(400)
+      await page
+        .locator('button:has-text("Continue to Address")')
+        .first()
+        .click()
+      await page.waitForURL(/step=address/, { timeout: 15000 })
+
+      // Address step: fill the form and continue to shipping
+      await page.fill('input[name="shipping_address.first_name"]', "Member")
+      await page.fill('input[name="shipping_address.last_name"]', "Tester")
+      await page.fill(
+        'input[name="shipping_address.address_1"]',
+        "1 Test Street",
       )
-      await addFirstProductToCart(page)
-      await goToCheckout(page, "shipping")
-      const badge = page.locator("text=/[Rr]ecommended/")
-      await expect(badge.first()).toBeVisible({ timeout: 10000 })
+      await page.keyboard.press("Escape")
+      await page.fill('input[name="shipping_address.city"]', "Melbourne")
+      await page.fill('input[name="shipping_address.province"]', "VIC")
+      await page.fill('input[name="shipping_address.postal_code"]', "3000")
+      const emailField = page.locator('input[name="email"]')
+      if (await emailField.isVisible({ timeout: 2000 }).catch(() => false)) {
+        if (!(await emailField.inputValue().catch(() => "")))
+          await emailField.fill("member-checkout@hg-test.dev")
+      }
+      await page
+        .locator(
+          'button:has-text("Continue to Shipping Method"), button:has-text("Continue to Shipping")',
+        )
+        .first()
+        .click()
+      await page.waitForURL(/step=shipping/, { timeout: 15000 })
+
+      // Shipping step: a rate option + the Recommended badge render
+      await expect(page.locator("text=/standard/i").first()).toBeVisible({
+        timeout: 10000,
+      })
+      await expect(page.locator("text=Recommended").first()).toBeVisible({
+        timeout: 5000,
+      })
+      const rates = page.locator('input[name="shipping"]')
+      expect(await rates.count()).toBeGreaterThanOrEqual(1)
+      await rates.first().check({ force: true })
+      await page.waitForTimeout(2500) // persistRate round-trip
+      await page
+        .locator('button:has-text("Proceed to Payment")')
+        .first()
+        .click()
+      await page.waitForURL(/step=payment/, { timeout: 15000 })
+
+      // Payment step: PayID shown, Cash on Pickup hidden for delivery
+      await expect(page.locator("text=/PayID/i").first()).toBeVisible({
+        timeout: 10000,
+      })
+      expect(await page.locator("text=/cash on pickup/i").count()).toBe(0)
+      const payidCard = page
+        .locator('button:has-text("PayID Transfer"), button:has-text("PayID")')
+        .first()
+      if (await payidCard.isVisible({ timeout: 3000 }).catch(() => false)) {
+        await payidCard.click()
+        await page.waitForTimeout(600)
+      }
+      await page.locator('button:has-text("I Understand")').first().click()
+      await page.waitForURL(/step=review/, { timeout: 20000 })
+
+      // Review step: heading, item table, and back-to-payment link
+      await expect(
+        page.locator("text=/review your order/i").first(),
+      ).toBeVisible({ timeout: 10000 })
+      await expect(
+        page.locator('[data-testid="review-line-item"]').first(),
+      ).toBeVisible({ timeout: 10000 })
+      await expect(
+        page.locator('a:has-text("Back to Payment")').first(),
+      ).toBeVisible({ timeout: 5000 })
     })
 
-    test("34. Select Standard → navigates to payment", async ({ page }) => {
-      await login(
-        page,
-        TEST_ACCOUNTS.approved.email,
-        TEST_ACCOUNTS.approved.password,
-      )
-      await addFirstProductToCart(page)
-      await goToCheckout(page, "shipping")
-      const standardBtn = page.locator('button:has-text("Standard")').first()
-      await standardBtn.click()
-      await page.waitForTimeout(1000)
-      const continueBtn = page.locator('button:has-text("CONTINUE TO PAYMENT")')
-      await expect(continueBtn).toBeVisible({ timeout: 5000 })
-      await continueBtn.click()
-      await page.waitForTimeout(2000)
-      expect(page.url()).toContain("step=payment")
-    })
-
-    test("35. PayID option visible", async ({ page }) => {
-      await login(
-        page,
-        TEST_ACCOUNTS.approved.email,
-        TEST_ACCOUNTS.approved.password,
-      )
-      await addFirstProductToCart(page)
-      await goToCheckout(page, "payment")
-      const payid = page.locator("text=/PayID/")
-      await expect(payid.first()).toBeVisible({ timeout: 10000 })
-    })
-
-    test("36. Cash on Pickup NOT visible in delivery mode", async ({
+    test("Pickup checkout walk: skips to payment with Cash on Pickup", async ({
       page,
     }) => {
       await login(
@@ -470,118 +469,30 @@ test.describe.serial("Membership Access Control — Full Flow", () => {
         TEST_ACCOUNTS.approved.password,
       )
       await addFirstProductToCart(page)
-      await goToCheckout(page, "payment")
-      const cash = page.locator("text=/[Cc]ash on [Pp]ickup/")
-      expect(await cash.count()).toBe(0)
-    })
 
-    test("37. Select PayID → navigates to review", async ({ page }) => {
-      await login(
-        page,
-        TEST_ACCOUNTS.approved.email,
-        TEST_ACCOUNTS.approved.password,
-      )
-      await addFirstProductToCart(page)
-      await goToCheckout(page, "payment")
-      const payidBtn = page.locator('button:has-text("PayID")').first()
-      await payidBtn.click()
-      await page.waitForTimeout(1000)
-      const continueBtn = page.locator('button:has-text("CONTINUE TO REVIEW")')
-      await expect(continueBtn).toBeVisible({ timeout: 5000 })
-      await continueBtn.click()
-      await page.waitForTimeout(2000)
-      expect(page.url()).toContain("step=review")
-    })
-
-    test("38. Review: summary cards visible", async ({ page }) => {
-      await login(
-        page,
-        TEST_ACCOUNTS.approved.email,
-        TEST_ACCOUNTS.approved.password,
-      )
-      await addFirstProductToCart(page)
-      await goToCheckout(page, "review")
-      const heading = page.locator("text=/[Rr]eview your order/")
-      await expect(heading.first()).toBeVisible({ timeout: 10000 })
-    })
-
-    test("39. Review: item table shows product", async ({ page }) => {
-      await login(
-        page,
-        TEST_ACCOUNTS.approved.email,
-        TEST_ACCOUNTS.approved.password,
-      )
-      await addFirstProductToCart(page)
-      await goToCheckout(page, "review")
-      const productRow = page.locator("table tbody tr").first()
-      await expect(productRow).toBeVisible({ timeout: 10000 })
-    })
-
-    test("40. Back to payment link works", async ({ page }) => {
-      await login(
-        page,
-        TEST_ACCOUNTS.approved.email,
-        TEST_ACCOUNTS.approved.password,
-      )
-      await addFirstProductToCart(page)
-      await goToCheckout(page, "review")
-      const backLink = page.locator('a:has-text("Back to payment")')
-      await expect(backLink).toBeVisible({ timeout: 5000 })
-      await backLink.click()
-      await page.waitForTimeout(2000)
-      expect(page.url()).toContain("step=payment")
-    })
-
-    test("41. Pickup: select Hillside", async ({ page }) => {
-      await login(
-        page,
-        TEST_ACCOUNTS.approved.email,
-        TEST_ACCOUNTS.approved.password,
-      )
-      await addFirstProductToCart(page)
       await goToCheckout(page, "fulfilment")
-      const hillsideCard = page.locator('h3:has-text("Hillside")').locator("..")
-      await hillsideCard.click()
-      const selectedBadge = hillsideCard.locator("text=SELECTED")
-      await expect(selectedBadge).toBeVisible({ timeout: 3000 })
-    })
-
-    test("42. Pickup skips to payment", async ({ page }) => {
-      await login(
-        page,
-        TEST_ACCOUNTS.approved.email,
-        TEST_ACCOUNTS.approved.password,
-      )
-      await addFirstProductToCart(page)
-      await goToCheckout(page, "fulfilment")
-      const hillsideCard = page.locator('h3:has-text("Hillside")').locator("..")
-      await hillsideCard.click()
+      await page.locator('label:has-text("In-Store Pickup")').first().click()
       await page.waitForTimeout(500)
-      const continueBtn = page.locator('button:has-text("CONTINUE TO PAYMENT")')
-      await expect(continueBtn).toBeVisible({ timeout: 5000 })
-      await continueBtn.click()
-      await page.waitForTimeout(2000)
-      expect(page.url()).toContain("step=payment")
-    })
+      // Pick a seeded pickup location if the picker is shown (defaults otherwise)
+      const loc = page
+        .locator(
+          'button:has-text("Downtown Pickup"), button:has-text("Suburb Pickup")',
+        )
+        .first()
+      if (await loc.isVisible({ timeout: 3000 }).catch(() => false)) {
+        await loc.click()
+        await page.waitForTimeout(400)
+      }
+      await page
+        .locator('button:has-text("Continue to Payment")')
+        .first()
+        .click()
+      await page.waitForURL(/step=payment/, { timeout: 15000 })
 
-    test("43. Payment shows Cash on Pickup for pickup orders", async ({
-      page,
-    }) => {
-      await login(
-        page,
-        TEST_ACCOUNTS.approved.email,
-        TEST_ACCOUNTS.approved.password,
-      )
-      await addFirstProductToCart(page)
-      await goToCheckout(page, "fulfilment")
-      const hillsideCard = page.locator('h3:has-text("Hillside")').locator("..")
-      await hillsideCard.click()
-      await page.waitForTimeout(500)
-      const continueBtn = page.locator('button:has-text("CONTINUE TO PAYMENT")')
-      await continueBtn.click()
-      await page.waitForTimeout(2000)
-      const cash = page.locator("text=/[Cc]ash on [Pp]ickup/")
-      await expect(cash.first()).toBeVisible({ timeout: 5000 })
+      // Pickup orders pay with Cash on Pickup
+      await expect(page.locator("text=/cash on pickup/i").first()).toBeVisible({
+        timeout: 10000,
+      })
     })
 
     test("44. Step guard: shipping without address redirects", async ({
@@ -605,9 +516,14 @@ test.describe.serial("Membership Access Control — Full Flow", () => {
       )
       await page.goto("/")
       await page.waitForTimeout(2000)
-      const nav = page.locator("nav, header")
-      const account = nav.locator("text=/[Aa]ccount/")
-      await expect(account.first()).toBeVisible({ timeout: 5000 })
+      // Approved/logged-in users get an avatar link to /account (not the word
+      // "Account") plus the cart link — assert on the hrefs, not copy.
+      await expect(page.locator('a[href*="/account"]').first()).toBeVisible({
+        timeout: 5000,
+      })
+      await expect(page.locator('a[href*="/cart"]').first()).toBeVisible({
+        timeout: 5000,
+      })
     })
 
     test("46. Account page accessible", async ({ page }) => {

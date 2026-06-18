@@ -253,6 +253,7 @@ const StepReview: React.FC<Props> = ({ cart, isPickup, heatHold }) => {
             return (
               <div
                 key={item.id}
+                data-testid="review-line-item"
                 className="flex gap-4 p-4 bg-hg-surface border border-hg-border rounded-xl hover:bg-hl-surface2 transition-colors"
               >
                 <div className="h-20 w-20 bg-hl-surface3 rounded-lg overflow-hidden flex-shrink-0 border border-hg-border">

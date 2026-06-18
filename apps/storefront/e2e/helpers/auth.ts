@@ -32,33 +32,40 @@ export async function login(page: Page, email: string, password: string) {
 
 export async function logout(page: Page) {
   await page.goto("/account")
-  await page.waitForTimeout(1000)
+  await page.waitForLoadState("domcontentloaded")
 
-  const logoutBtn = page.locator('text=Log out').first()
-  if (await logoutBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-    await logoutBtn.click()
-    await page.waitForTimeout(2000)
-  } else {
-    const logoutLink = page.locator('a[href*="logout"], button:has-text("Logout"), button:has-text("Sign out")')
-    if (await logoutLink.first().isVisible({ timeout: 2000 }).catch(() => false)) {
-      await logoutLink.first().click()
-      await page.waitForTimeout(2000)
-    }
-  }
+  // The real logout control is the account-nav button (data-testid
+  // "logout-button", label "Sign Out"). Target it by testid only — text
+  // selectors also match a hidden mobile-variant button, which breaks the
+  // visibility wait. Fall back to the profile page's button if needed.
+  const logoutBtn = page
+    .locator(
+      '[data-testid="logout-button"], [data-testid="profile-logout-button"]',
+    )
+    .first()
+  await expect(logoutBtn).toBeVisible({ timeout: 10000 })
+  await logoutBtn.click()
+  // Wait for the session to actually clear: nav returns to Sign In / Apply.
+  await expect(
+    page.locator("text=Sign In").or(page.locator("text=Apply")).first(),
+  ).toBeVisible({ timeout: 10000 })
 }
 
 export async function expectLoggedIn(page: Page) {
   await page.goto("/")
   await page.waitForTimeout(1000)
   const nav = page.locator("nav, header")
-  await expect(nav.locator('text=Account').first()).toBeVisible({ timeout: 5000 })
+  await expect(nav.locator("text=Account").first()).toBeVisible({
+    timeout: 5000,
+  })
 }
 
 export async function expectLoggedOut(page: Page) {
   await page.goto("/")
-  await page.waitForTimeout(1000)
-  const applyLink = page.locator('text=Apply').first()
-  const signInLink = page.locator('text=Sign In').first()
-  const either = applyLink.or(signInLink)
+  await page.waitForLoadState("domcontentloaded")
+  const either = page
+    .locator("text=Sign In")
+    .or(page.locator("text=Apply"))
+    .first()
   await expect(either).toBeVisible({ timeout: 5000 })
 }
