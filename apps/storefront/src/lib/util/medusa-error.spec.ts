@@ -1,4 +1,4 @@
-import { isStaleCartError } from "./medusa-error"
+import medusaError, { isStaleCartError } from "./medusa-error"
 
 describe("isStaleCartError", () => {
   it("treats missing cart / region / product as stale", () => {
@@ -47,5 +47,78 @@ describe("isStaleCartError", () => {
   it("returns false for unrelated errors", () => {
     expect(isStaleCartError(new Error("network timeout"))).toBe(false)
     expect(isStaleCartError(undefined)).toBe(false)
+  })
+})
+
+describe("medusaError", () => {
+  describe("Medusa JS SDK v2 FetchError (numeric status)", () => {
+    it("throws the message, capitalized", () => {
+      expect(() =>
+        medusaError({ status: 400, message: "bad request" }),
+      ).toThrow("Bad request")
+    })
+
+    it("falls back to statusText when message is absent", () => {
+      expect(() =>
+        medusaError({ status: 500, statusText: "server error" }),
+      ).toThrow("Server error")
+    })
+
+    it("falls back to a generic message when both are absent", () => {
+      expect(() => medusaError({ status: 503 })).toThrow(
+        "An unknown error occurred.",
+      )
+    })
+  })
+
+  describe("Axios-style error (response present)", () => {
+    const config = { url: "/store/carts", baseURL: "https://api.test" }
+
+    beforeEach(() => {
+      jest.spyOn(console, "error").mockImplementation(() => {})
+    })
+
+    it("throws the object data.message, capitalized with a period", () => {
+      expect(() =>
+        medusaError({
+          response: {
+            data: { message: "not found" },
+            status: 404,
+            headers: {},
+          },
+          config,
+        }),
+      ).toThrow("Not found.")
+    })
+
+    it("stringifies object data when message is absent", () => {
+      expect(() =>
+        medusaError({
+          response: { data: {}, status: 500, headers: {} },
+          config,
+        }),
+      ).toThrow("[object Object].")
+    })
+
+    it("handles string response data", () => {
+      expect(() =>
+        medusaError({
+          response: { data: "raw failure", status: 500, headers: {} },
+          config,
+        }),
+      ).toThrow("Raw failure.")
+    })
+  })
+
+  it("reports a request that received no response", () => {
+    expect(() => medusaError({ request: "XHR-object" })).toThrow(
+      "No response received: XHR-object",
+    )
+  })
+
+  it("reports a request-setup error when nothing else matches", () => {
+    expect(() => medusaError({ message: "setup boom" })).toThrow(
+      "Error setting up the request: setup boom",
+    )
   })
 })
