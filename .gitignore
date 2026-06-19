@@ -33,3 +33,15 @@ apps/storefront/test-results/
 # Untappd scraper session (contains auth cookies)
 apps/backend/data/untappd-session.json
 apps/backend/data/chrome-profile/
+
+# Local image-enhancement Python venv (1.2GB, regenerated from requirements-image-enhance.txt)
+scripts/.venv-images/
+
+# Mobile screenshot diff artifacts (local QA)
+.mobile-after/
+.mobile-baseline/
+.mobile-member/
+
+# Editor/backup cruft
+*.bak
+1~
