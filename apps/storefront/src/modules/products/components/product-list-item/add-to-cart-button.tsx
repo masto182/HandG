@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { toast } from "sonner"
 import { addToCart } from "@lib/data/cart"
+import { classifyCartError } from "@lib/util/cart-error"
 
 export default function AddToCartButton({
   variantId,
@@ -27,16 +28,16 @@ export default function AddToCartButton({
       setTimeout(() => setAdded(false), 1500)
       toast.success("Added to cart")
     } catch (err: any) {
-      const msg = err?.message || ""
-      if (msg.includes("early-access") || msg.includes("not_yet_available")) {
+      const kind = classifyCartError(err)
+      if (kind === "early_access") {
         setErrorMsg("NOT YET")
         toast.error("Not yet available — check back when early access opens")
-      } else if (msg.includes("out of stock") || msg.includes("inventory")) {
+      } else if (kind === "out_of_stock") {
         setErrorMsg("SOLD OUT")
         toast.error("Out of stock")
       } else {
         setErrorMsg("ERROR")
-        toast.error("Failed to add to cart")
+        toast.error("Couldn't add to cart. Please try again.")
       }
       setTimeout(() => setErrorMsg(null), 3000)
     }

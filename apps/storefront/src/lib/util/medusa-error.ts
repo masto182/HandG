@@ -19,6 +19,12 @@ const STALE_CART_PATTERNS = [
   /Cart (?:with )?id .* (?:was )?not found/i,
   /Cart id not found/i,
   /Region (?:with )?id .* (?:was )?not found/i,
+  // Defense-in-depth: a cart whose sales channel was disabled or removed (e.g.
+  // channel cleanup / re-seed) is unrecoverable in place. Clearing the cookie
+  // and minting a fresh cart on the current channel completes the user's intent.
+  // NOTE: genuine stock shortages ("insufficient inventory" / "required
+  // inventory") are deliberately NOT listed — retrying cannot create stock.
+  /sales channel .* (?:is disabled|was not found|not found|does not exist)/i,
 ]
 
 /**

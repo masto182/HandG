@@ -1,6 +1,7 @@
 "use client"
 
 import { addToCart } from "@lib/data/cart"
+import { cartErrorMessage } from "@lib/util/cart-error"
 import { useIntersection } from "@lib/hooks/use-in-view"
 import { HttpTypes } from "@medusajs/types"
 import OptionSelect from "@modules/products/components/product-actions/option-select"
@@ -166,7 +167,7 @@ export default function ProductActions({
         countryCode,
       })
     } catch (e: any) {
-      setAddError(e?.message || "Failed to add to cart")
+      setAddError(cartErrorMessage(e))
     } finally {
       setIsAdding(false)
     }

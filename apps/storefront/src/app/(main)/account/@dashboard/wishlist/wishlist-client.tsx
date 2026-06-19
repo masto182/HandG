@@ -9,6 +9,8 @@ import {
   WishlistEntry,
 } from "@lib/data/wishlist"
 import { addToCart } from "@lib/data/cart"
+import { cartErrorMessage } from "@lib/util/cart-error"
+import { toast } from "sonner"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 
 type Tab = "all" | "watching" | "low_stock" | "price" | "restock"
@@ -604,7 +606,10 @@ export default function WishlistPage() {
       setAddingToCart(itemId)
       try {
         await addToCart({ variantId, quantity: 1, countryCode: "au" })
-      } catch {}
+        toast.success("Added to cart")
+      } catch (err) {
+        toast.error(cartErrorMessage(err))
+      }
       setAddingToCart(null)
     },
     [],
