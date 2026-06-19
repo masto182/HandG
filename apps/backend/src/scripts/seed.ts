@@ -187,9 +187,19 @@ export default async function seed({ container }: ExecArgs) {
     logger.warn("No manual fulfilment provider found. Skipping shipping options.")
   }
 
-  const [shippingProfile] = await fulfillmentModule.listShippingProfiles()
+  // A default shipping profile must exist before any shipping option is created
+  // AND before products are imported: createProductsWorkflow only auto-links a
+  // product to the default profile when one already exists. Medusa does not
+  // guarantee one on a fresh install, so create it here. Without it the whole
+  // fulfilment block below is skipped and GET /store/shipping-options returns
+  // [] for every cart — checkout then shows neither delivery nor pickup.
+  let [shippingProfile] = await fulfillmentModule.listShippingProfiles()
   if (!shippingProfile) {
-    logger.warn("No shipping profile found. Skipping shipping options.")
+    shippingProfile = await fulfillmentModule.createShippingProfiles({
+      name: "Default",
+      type: "default",
+    })
+    logger.info(`  Created default shipping profile: ${shippingProfile.id}`)
   }
 
   async function findOrCreateFulfillmentSet(name: string, type: string) {
@@ -372,6 +382,35 @@ export default async function seed({ container }: ExecArgs) {
       })
     }
   }
+
+  // ---------------------------------------------------------------------------
+  // 5c. Backfill product -> default shipping profile links. createProductsWorkflow
+  // only auto-links to the default profile when one existed at import time, so
+  // products imported before the profile was created (or before this seed ran)
+  // have no profile. Medusa filters GET /store/shipping-options by the cart
+  // items' shipping profiles, so such products surface zero options at checkout.
+  // Idempotent: existing links throw "already exists" and are swallowed.
+  // ---------------------------------------------------------------------------
+  if (shippingProfile) {
+    const productModule = container.resolve(Modules.PRODUCT)
+    const products = await productModule.listProducts({}, { select: ["id"], take: null })
+    let linkedCount = 0
+    for (const product of products) {
+      try {
+        await link.create({
+          [Modules.PRODUCT]: { product_id: product.id },
+          [Modules.FULFILLMENT]: { shipping_profile_id: shippingProfile.id },
+        })
+        linkedCount++
+      } catch (e: any) {
+        if (!e.message?.includes("already exists")) throw e
+      }
+    }
+    if (linkedCount > 0) {
+      logger.info(`  Linked ${linkedCount} product(s) to default shipping profile`)
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // 6. Payment provider link (system default; adopters add Stripe/PayPal/etc.)
   // ---------------------------------------------------------------------------
