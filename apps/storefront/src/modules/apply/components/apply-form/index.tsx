@@ -21,7 +21,7 @@ export default function ApplyForm() {
     setLoading(true)
 
     const form = new FormData(e.currentTarget)
-    const email = form.get("email") as string
+    const email = (form.get("email") as string).trim().toLowerCase()
     const password = form.get("password") as string
     const confirmPassword = form.get("confirm_password") as string
 

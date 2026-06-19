@@ -72,7 +72,7 @@ export async function signup(_currentState: unknown, _formData: FormData) {
 }
 
 export async function login(_currentState: unknown, formData: FormData) {
-  const email = formData.get("email") as string
+  const email = (formData.get("email") as string).trim().toLowerCase()
   const password = formData.get("password") as string
 
   try {

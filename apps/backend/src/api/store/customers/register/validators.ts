@@ -5,7 +5,11 @@ const REFERRAL_CODE_RE = /^[A-Z0-9-]{4,32}$/i
 const UNTAPPD_ID_RE = /^[A-Za-z0-9._-]{1,40}$/
 
 export const RegisterCustomerSchema = z.object({
-  email: z.string().email().max(254),
+  email: z
+    .string()
+    .email()
+    .max(254)
+    .transform((s) => s.trim().toLowerCase()),
   first_name: z
     .string()
     .min(1)
@@ -37,17 +41,11 @@ export const RegisterCustomerSchema = z.object({
   referral_code: z
     .string()
     .optional()
-    .refine(
-      (c) => !c || REFERRAL_CODE_RE.test(c),
-      "Invalid referral code format"
-    ),
+    .refine((c) => !c || REFERRAL_CODE_RE.test(c), "Invalid referral code format"),
   untappd_id: z
     .string()
     .optional()
-    .refine(
-      (c) => !c || UNTAPPD_ID_RE.test(c),
-      "Invalid Untappd id format"
-    ),
+    .refine((c) => !c || UNTAPPD_ID_RE.test(c), "Invalid Untappd id format"),
 })
 
 export type RegisterCustomerInput = z.infer<typeof RegisterCustomerSchema>
