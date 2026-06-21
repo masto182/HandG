@@ -2,6 +2,7 @@
 
 import { useRouter, usePathname, useSearchParams } from "next/navigation"
 import { useCallback, useEffect, useState, useRef } from "react"
+import { createPortal } from "react-dom"
 import { sdk } from "@lib/config"
 
 type FacetDistribution = Record<string, Record<string, number>>
@@ -9,6 +10,9 @@ type FacetDistribution = Record<string, Record<string, number>>
 type FilterPanelProps = {
   facets?: FacetDistribution
   canSeePricing?: boolean
+  /** When true, render the mobile trigger + full-screen portal panel.
+      When false (default), render the inline desktop sidebar content. */
+  mobile?: boolean
 }
 
 const FRESHNESS_BANDS = [
@@ -33,12 +37,14 @@ const INITIAL_SHOW = 6
 export default function FilterPanel({
   facets: propFacets,
   canSeePricing,
+  mobile = false,
 }: FilterPanelProps) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const [baseFacets, setBaseFacets] = useState<FacetDistribution | undefined>(
     propFacets,
   )
@@ -51,19 +57,36 @@ export default function FilterPanel({
   const [styleFamilies, setStyleFamilies] = useState<string[]>([])
   const abortRef = useRef<AbortController | null>(null)
   const initialFetchDone = useRef(false)
+  const scrollLockRef = useRef(0)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     setMobileOpen(false)
   }, [searchParams])
 
-  // Lock body scroll when sheet is open
+  // Lock body scroll when sheet is open (iOS-safe position:fixed pattern)
   useEffect(() => {
     if (mobileOpen) {
+      scrollLockRef.current = window.scrollY
+      document.body.style.position = "fixed"
+      document.body.style.top = `-${scrollLockRef.current}px`
+      document.body.style.width = "100%"
       document.body.style.overflow = "hidden"
     } else {
+      const restoreY = scrollLockRef.current
+      document.body.style.position = ""
+      document.body.style.top = ""
+      document.body.style.width = ""
       document.body.style.overflow = ""
+      window.scrollTo(0, restoreY)
     }
     return () => {
+      document.body.style.position = ""
+      document.body.style.top = ""
+      document.body.style.width = ""
       document.body.style.overflow = ""
     }
   }, [mobileOpen])
@@ -220,6 +243,7 @@ export default function FilterPanel({
       : fallbackBreweries
   const baseStyleFacets = baseFacets?.style_family || {}
   const baseHopsFacets = baseFacets?.hops || {}
+  const baseHopCountryFacets = baseFacets?.hop_countries || {}
 
   const liveBreweryFacets =
     Object.keys(liveFacets?.brewery || {}).length > 0
@@ -227,6 +251,7 @@ export default function FilterPanel({
       : fallbackBreweries
   const liveStyleFacets = liveFacets?.style_family || {}
   const liveHopsFacets = liveFacets?.hops || {}
+  const liveHopCountryFacets = liveFacets?.hop_countries || {}
 
   const sortedBreweries = Object.entries(baseBreweryFacets)
     .map(
@@ -250,9 +275,12 @@ export default function FilterPanel({
   const checkboxClass =
     "appearance-none w-4 h-4 rounded-sm bg-hl-surface3 border border-hg-text-muted mr-3 checked:bg-hg-gold checked:border-hg-gold focus:ring-2 focus:ring-hg-gold/20 relative after:content-[''] after:absolute after:inset-0 after:flex after:items-center after:justify-center checked:after:content-['✓'] after:text-[10px] after:text-hg-on-primary after:font-bold after:leading-4 after:text-center cursor-pointer flex-shrink-0"
 
-  const filterContent = (
+  const renderFilterSections = (openByDefault: boolean) => (
     <>
-      <details className="group border-b border-hg-border pb-4" open>
+      <details
+        className="group border-b border-hg-border pb-4"
+        {...(openByDefault ? { open: true } : {})}
+      >
         <summary className="flex justify-between items-center cursor-pointer list-none">
           <h3 className="font-semibold text-[12px] text-hg-text-muted uppercase tracking-widest">
             {canSeePricing ? "Brewery" : "Producer"}
@@ -316,7 +344,10 @@ export default function FilterPanel({
       </details>
 
       {canSeePricing && (
-        <details className="group border-b border-hg-border py-4" open>
+        <details
+          className="group border-b border-hg-border py-4"
+          {...(openByDefault ? { open: true } : {})}
+        >
           <summary className="flex justify-between items-center cursor-pointer list-none">
             <h3 className="font-semibold text-[12px] text-hg-text-muted uppercase tracking-widest">
               Style
@@ -368,7 +399,10 @@ export default function FilterPanel({
       )}
 
       {canSeePricing && (
-        <details className="group border-b border-hg-border py-4" open>
+        <details
+          className="group border-b border-hg-border py-4"
+          {...(openByDefault ? { open: true } : {})}
+        >
           <summary className="flex justify-between items-center cursor-pointer list-none">
             <h3 className="font-semibold text-[12px] text-hg-text-muted uppercase tracking-widest">
               ABV %
@@ -413,7 +447,10 @@ export default function FilterPanel({
         </details>
       )}
 
-      <details className="group border-b border-hg-border py-4" open>
+      <details
+        className="group border-b border-hg-border py-4"
+        {...(openByDefault ? { open: true } : {})}
+      >
         <summary className="flex justify-between items-center cursor-pointer list-none">
           <h3 className="font-semibold text-[12px] text-hg-text-muted uppercase tracking-widest">
             Freshness
@@ -457,7 +494,10 @@ export default function FilterPanel({
         </div>
       </details>
 
-      <details className="group border-b border-hg-border py-4" open>
+      <details
+        className="group border-b border-hg-border py-4"
+        {...(openByDefault ? { open: true } : {})}
+      >
         <summary className="flex justify-between items-center cursor-pointer list-none">
           <h3 className="font-semibold text-[12px] text-hg-text-muted uppercase tracking-widest">
             Hops
@@ -563,7 +603,10 @@ export default function FilterPanel({
         </div>
       </details>
 
-      <details className="group py-4" open>
+      <details
+        className="group py-4"
+        {...(openByDefault ? { open: true } : {})}
+      >
         <summary className="flex justify-between items-center cursor-pointer list-none">
           <h3 className="font-semibold text-[12px] text-hg-text-muted uppercase tracking-widest">
             Hop Origin
@@ -580,33 +623,52 @@ export default function FilterPanel({
             <polyline points="6 9 12 15 18 9" />
           </svg>
         </summary>
-        <div className="flex flex-wrap gap-2 mt-4">
-          {(["NZ", "AU", "US", "EU"] as const).map((code) => {
-            const label = {
-              NZ: "New Zealand",
-              AU: "Australia",
-              US: "United States",
-              EU: "Europe",
-            }[code]
-            const isActive = selectedHopCountry.includes(code)
-            return (
-              <button
-                key={code}
-                onClick={() => toggleArrayParam("hop_country", code)}
-                className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-                  isActive
-                    ? "bg-hg-gold text-hg-on-primary border-hg-gold"
-                    : "border-hg-border text-hg-text-muted hover:text-hg-text hover:border-hg-accent"
-                }`}
-              >
-                {label}
-              </button>
-            )
-          })}
+        <div className="space-y-3 mt-4">
+          {Object.entries(baseHopCountryFacets)
+            .filter(([, baseCount]) => baseCount > 0)
+            .sort((a, b) => b[1] - a[1])
+            .map(([code, baseCount]) => {
+              const label: Record<string, string> = {
+                NZ: "New Zealand",
+                AU: "Australia",
+                US: "United States",
+                EU: "Europe",
+              }
+              const isActive = selectedHopCountry.includes(code)
+              const count = liveHopCountryFacets[code] ?? baseCount
+              return (
+                <label
+                  key={code}
+                  className="flex items-center group/item cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    checked={isActive}
+                    onChange={() => toggleArrayParam("hop_country", code)}
+                    className={checkboxClass}
+                  />
+                  <span
+                    className={`text-[14px] flex-1 ${
+                      isActive ? "text-hg-text" : "text-hg-text-secondary"
+                    } group-hover/item:text-hg-gold transition-colors`}
+                  >
+                    {label[code] ?? code}
+                  </span>
+                  {count > 0 && (
+                    <span className="text-xs text-hg-text-muted ml-2">
+                      {count}
+                    </span>
+                  )}
+                </label>
+              )
+            })}
         </div>
       </details>
 
-      <details className="group py-4" open>
+      <details
+        className="group py-4"
+        {...(openByDefault ? { open: true } : {})}
+      >
         <summary className="flex justify-between items-center cursor-pointer list-none">
           <h3 className="font-semibold text-[12px] text-hg-text-muted uppercase tracking-widest">
             Special Filters
@@ -697,6 +759,12 @@ export default function FilterPanel({
     </>
   )
 
+  // Desktop sidebar instance: render the inline sections only. The parent
+  // <aside> controls visibility; no trigger or portal here.
+  if (!mobile) {
+    return <div className="space-y-2">{renderFilterSections(true)}</div>
+  }
+
   return (
     <>
       {/* Mobile trigger button */}
@@ -727,34 +795,29 @@ export default function FilterPanel({
         )}
       </button>
 
-      {/* Desktop sidebar content */}
-      <div className="hidden md:block">{filterContent}</div>
-
-      {/* Mobile bottom sheet */}
-      <div
-        className={`fixed inset-0 z-[90] md:hidden transition-opacity duration-300 ${
-          mobileOpen
-            ? "opacity-100 pointer-events-auto"
-            : "opacity-0 pointer-events-none"
-        }`}
-      >
-        {/* Backdrop */}
-        <div
-          className="fixed inset-0 bg-black/60"
-          onClick={() => setMobileOpen(false)}
-        />
-        {/* Sheet */}
-        <div
-          className={`fixed inset-x-0 bottom-0 bg-hg-surface-low rounded-t-2xl max-h-[85vh] flex flex-col transition-transform duration-300 ${
-            mobileOpen ? "translate-y-0" : "translate-y-full"
-          }`}
-        >
-          {/* Sticky header — always visible */}
-          <div className="flex-shrink-0">
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="w-10 h-1 bg-hg-border rounded-full" />
-            </div>
-            <div className="px-6 pt-2 pb-4 flex items-center justify-between border-b border-hg-border/40">
+      {/* Mobile full-screen filter panel — portaled to body so it escapes the
+          sticky bar's backdrop-filter containing block (which otherwise traps
+          the fixed overlay inside the thin header strip). */}
+      {mounted &&
+        createPortal(
+          <div
+            className={`fixed inset-0 z-[100] md:hidden bg-hg-bg flex flex-col transition-transform duration-300 ${
+              mobileOpen
+                ? "translate-y-0"
+                : "translate-y-full pointer-events-none"
+            }`}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Filters"
+          >
+            {/* Header */}
+            <div
+              className="flex-shrink-0 px-5 flex items-center justify-between border-b border-hg-border"
+              style={{
+                paddingTop: "max(env(safe-area-inset-top), 1rem)",
+                paddingBottom: "1rem",
+              }}
+            >
               <h2 className="text-base font-bold text-hg-text">
                 Filters
                 {activeCount > 0 && (
@@ -769,8 +832,8 @@ export default function FilterPanel({
                 aria-label="Close filters"
               >
                 <svg
-                  width="20"
-                  height="20"
+                  width="22"
+                  height="22"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -781,13 +844,36 @@ export default function FilterPanel({
                 </svg>
               </button>
             </div>
-          </div>
-          {/* Scrollable filter content */}
-          <div className="overflow-y-scroll overscroll-contain flex-1 min-h-0 px-6 pb-8">
-            {filterContent}
-          </div>
-        </div>
-      </div>
+
+            {/* Scrollable filter content */}
+            <div className="overflow-y-auto w-full flex-1 min-h-0 px-5 py-2">
+              {renderFilterSections(false)}
+            </div>
+
+            {/* Footer actions */}
+            <div
+              className="flex-shrink-0 flex items-center gap-3 px-5 pt-4 border-t border-hg-border bg-hg-bg"
+              style={{
+                paddingBottom: "max(env(safe-area-inset-bottom), 1rem)",
+              }}
+            >
+              <button
+                onClick={() => router.push(pathname, { scroll: false })}
+                disabled={activeCount === 0}
+                className="flex-shrink-0 px-4 py-3 text-sm font-semibold text-hg-text-muted hover:text-hg-text disabled:opacity-40 transition-colors"
+              >
+                Clear all
+              </button>
+              <button
+                onClick={() => setMobileOpen(false)}
+                className="flex-1 py-3 rounded-lg bg-hg-gold text-hg-on-primary text-sm font-bold uppercase tracking-widest"
+              >
+                Show results
+              </button>
+            </div>
+          </div>,
+          document.body,
+        )}
     </>
   )
 }
