@@ -71,7 +71,7 @@ export function buildOrganizationJsonLd() {
     "@type": "Organization",
     name: "Hops & Glory",
     url: STORE_URL,
-    logo: `${STORE_URL}/opengraph-image.jpg`,
+    logo: `${STORE_URL}/opengraph-image`,
     description:
       "A private collection of the most coveted, limited releases. Membership by application or referral only.",
   }

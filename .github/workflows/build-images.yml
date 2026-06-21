@@ -78,6 +78,7 @@ jobs:
           build-args: |
             ${{ matrix.app == 'storefront' && format('NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY={0}', secrets.STAGING_MEDUSA_PUBLISHABLE_KEY) || '' }}
             ${{ matrix.app == 'storefront' && format('NEXT_PUBLIC_GOOGLE_MAPS_API_KEY={0}', secrets.GOOGLE_MAPS_API_KEY) || '' }}
+            ${{ matrix.app == 'storefront' && format('NEXT_PUBLIC_STORE_URL={0}', vars.NEXT_PUBLIC_STORE_URL) || '' }}
           cache-from: type=gha,scope=${{ matrix.app }}
           cache-to: type=gha,scope=${{ matrix.app }},mode=max
           provenance: false
