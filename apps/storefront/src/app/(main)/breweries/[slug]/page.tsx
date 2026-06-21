@@ -31,11 +31,24 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 
   const { brewery } = result
 
+  const title = `${brewery.name} | Hops & Glory`
+  const description =
+    brewery.description ||
+    `${brewery.name} — featured producer in the Hops & Glory private collection`
+
   return {
-    title: `${brewery.name} | Hops & Glory`,
-    description:
-      brewery.description ||
-      `${brewery.name} — featured producer in the Hops & Glory private collection`,
+    title,
+    description,
+    openGraph: {
+      type: "website",
+      title,
+      description,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
   }
 }
 

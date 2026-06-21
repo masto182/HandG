@@ -11,11 +11,45 @@ import {
 import Providers from "@modules/layout/components/providers"
 import { Toaster } from "sonner"
 
-export const metadata: Metadata = {
-  metadataBase: new URL(getBaseURL()),
-  title: "Hops & Glory | Private Collection",
-  description:
-    "A private collection of the most coveted, limited-release cans in existence. Membership by application or referral only.",
+const shareDescription =
+  "The rarest of cans, you never expected to see in Australia"
+
+// Derive the absolute base URL from the incoming request so og:image / og:url
+// resolve correctly on whatever host serves the page (staging or prod), since
+// the same built image is promoted across environments. Falls back to the
+// build-time base URL when no host header is present.
+async function resolveBaseUrl(): Promise<string> {
+  const h = await headers()
+  const host = h.get("x-forwarded-host") || h.get("host")
+  if (host) {
+    const proto =
+      h.get("x-forwarded-proto") ||
+      (host.includes("localhost") ? "http" : "https")
+    return `${proto}://${host}`
+  }
+  return getBaseURL()
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const baseUrl = await resolveBaseUrl()
+  return {
+    metadataBase: new URL(baseUrl),
+    title: "Hops & Glory | Private Collection",
+    description:
+      "A private collection of the most coveted, limited-release cans in existence. Membership by application or referral only.",
+    openGraph: {
+      type: "website",
+      siteName: "Hops & Glory",
+      title: "Hops & Glory | Private Collection",
+      description: shareDescription,
+      url: baseUrl,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: "Hops & Glory | Private Collection",
+      description: shareDescription,
+    },
+  }
 }
 
 export const viewport: Viewport = {
