@@ -116,6 +116,11 @@ export default async function productSearchIndexer({
           abv: parseFloat(meta.abv) || 0,
           untappd_score: parseFloat(meta.untappd_score) || 0,
           created_at_ts: product.created_at ? new Date(product.created_at).getTime() : 0,
+          packaged_at_ts: meta.packaged_at
+            ? new Date(meta.packaged_at).getTime()
+            : product.created_at
+              ? new Date(product.created_at).getTime()
+              : 0,
           thumbnail: (product as any).thumbnail || null,
           is_collab: isCollab,
           hops: hopNames.length > 0 ? hopNames : Array.isArray(meta.hops) ? meta.hops : [],

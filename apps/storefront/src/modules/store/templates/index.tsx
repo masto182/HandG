@@ -118,7 +118,10 @@ const StoreTemplate = ({
         {/* Chips + products */}
         <div className="px-4 pb-4 pt-4 md:px-8 md:pb-8 md:pt-0">
           <FilterChips />
-          <Suspense fallback={<SkeletonProductGrid />}>
+          <Suspense
+            key={JSON.stringify(filterParams)}
+            fallback={<SkeletonProductGrid />}
+          >
             <PaginatedProducts
               sortBy={sort}
               page={pageNumber}
