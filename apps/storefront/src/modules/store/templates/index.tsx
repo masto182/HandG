@@ -79,7 +79,7 @@ const StoreTemplate = ({
               )}
             </div>
             {/* Controls */}
-            <FilterPanel canSeePricing={canSeePricing} />
+            <FilterPanel canSeePricing={canSeePricing} mobile />
             <RefinementList sortBy={sort} canSeePricing={canSeePricing} />
             <ViewToggle />
           </div>
