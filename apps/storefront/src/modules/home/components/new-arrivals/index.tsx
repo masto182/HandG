@@ -105,7 +105,7 @@ const NewArrivals = ({
             <li key={product.id}>
               <article className="flex flex-col gap-3 group">
                 <LocalizedClientLink href={`/products/${product.handle}`}>
-                  <div className="aspect-[4/5] w-full bg-hg-surface-dim rounded-lg overflow-hidden relative">
+                  <div className="aspect-square w-full bg-hg-surface-dim rounded-lg overflow-hidden relative">
                     <Thumbnail
                       thumbnail={product.thumbnail}
                       images={product.images}

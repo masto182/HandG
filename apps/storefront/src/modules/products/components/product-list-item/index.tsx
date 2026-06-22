@@ -90,7 +90,7 @@ export default async function ProductListItem({
       >
         <LocalizedClientLink
           href={`/products/${product.handle}`}
-          className="w-20 h-24 bg-hg-surface-dim rounded-md overflow-hidden flex-shrink-0 border border-hg-border/50 group-hover:border-hg-gold/30 transition-colors relative"
+          className="w-20 h-20 bg-hg-surface-dim rounded-md overflow-hidden flex-shrink-0 border border-hg-border/50 group-hover:border-hg-gold/30 transition-colors relative"
         >
           <Thumbnail
             thumbnail={product.thumbnail}
