@@ -68,7 +68,7 @@ export default async function Footer({
               )}
               <li>
                 <a
-                  href="mailto:hello@example.com"
+                  href="mailto:hello@hopsandglory.au"
                   className="text-sm text-hg-text-secondary hover:text-hg-gold transition-colors"
                 >
                   Contact Us
@@ -83,7 +83,7 @@ export default async function Footer({
             </h4>
             <div className="flex gap-4">
               <a
-                href={process.env.NEXT_PUBLIC_BASE_URL || "https://example.com"}
+                href="https://hopsandglory.au"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Visit our website"
@@ -121,7 +121,7 @@ export default async function Footer({
                 </svg>
               </a>
               <a
-                href="mailto:hello@example.com"
+                href="mailto:hello@hopsandglory.au"
                 aria-label="Send us an email"
                 className="w-10 h-10 flex items-center justify-center border border-hg-border rounded-full text-hg-text hover:border-hg-gold hover:text-hg-gold transition-all"
               >
