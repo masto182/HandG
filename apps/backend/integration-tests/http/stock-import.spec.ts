@@ -313,8 +313,9 @@ medusaIntegrationTestRunner({
         const dataRow = lines.find((l: string) => l.includes("Export Desc Beer"))
         expect(dataRow).toBeDefined()
 
-        // Parse the description cell at the correct column index
-        const cells = dataRow!.match(/("(?:[^"]|"")*"|[^,]*)/g) ?? []
+        // Parse the description cell at the correct column index.
+        // Use simple split — no cells in this test row contain commas.
+        const cells = dataRow!.split(",")
         const descCell = cells[descIdx]?.replace(/^"|"$/g, "").replace(/""/g, '"') ?? ""
         expect(descCell).toBe("Check this description exports")
       })
