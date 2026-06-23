@@ -35,7 +35,7 @@ const ImageGallery = ({ images, thumbnail }: ImageGalleryProps) => {
 
   if (slides.length === 0) {
     return (
-      <div className="aspect-square max-h-[600px] bg-hg-surface-dim rounded-xl overflow-hidden relative flex items-center justify-center">
+      <div className="aspect-square bg-hg-surface-dim rounded-xl overflow-hidden relative flex items-center justify-center">
         <svg
           width="64"
           height="64"
@@ -65,7 +65,7 @@ const ImageGallery = ({ images, thumbnail }: ImageGalleryProps) => {
         {slides.map((url, i) => (
           <div
             key={url + i}
-            className="snap-start shrink-0 w-full aspect-square max-h-[600px] bg-hg-surface-dim overflow-hidden group relative"
+            className="snap-start shrink-0 w-full aspect-square bg-hg-surface-dim overflow-hidden group relative"
           >
             <Image
               src={url}
