@@ -142,6 +142,167 @@ medusaIntegrationTestRunner({
         expect(breweries.length).toBe(0)
       })
 
+      it("stores description field in product.description on create", async () => {
+        const csv =
+          "name,brewery,style,abv,price,stock,container,description\n" +
+          "Desc Test Beer,Mountain Culture IT,IPA,6.0,12,5,Can 440ml,Tropical and juicy with stone fruit\n"
+
+        const res = await api.post(
+          "/admin/stock-import",
+          { csv, options: { dry_run: false } },
+          adminAuth
+        )
+
+        expect(res.status).toBe(200)
+        expect(res.data.created).toBe(1)
+        expect(res.data.errors).toEqual([])
+
+        const container = getContainer()
+        const productModule = container.resolve("product") as any
+        const [product] = await productModule.listProducts({ title: "Desc Test Beer" })
+        expect(product.description).toBe("Tropical and juicy with stone fruit")
+      })
+
+      it("updates product.description on re-import", async () => {
+        const container = getContainer()
+        const productModule = container.resolve("product") as any
+
+        const csv1 =
+          "name,brewery,style,abv,price,stock,container,description\n" +
+          "Desc Update Beer,Mountain Culture IT,IPA,6.0,12,5,Can 440ml,Original description\n"
+        await api.post("/admin/stock-import", { csv: csv1, options: { dry_run: false } }, adminAuth)
+
+        const csv2 =
+          "name,brewery,style,abv,price,stock,container,description\n" +
+          "Desc Update Beer,Mountain Culture IT,IPA,6.0,12,5,Can 440ml,Updated description\n"
+        const res = await api.post(
+          "/admin/stock-import",
+          { csv: csv2, options: { dry_run: false } },
+          adminAuth
+        )
+
+        expect(res.status).toBe(200)
+        expect(res.data.updated).toBe(1)
+
+        const [product] = await productModule.listProducts({ title: "Desc Update Beer" })
+        expect(product.description).toBe("Updated description")
+      })
+
+      it("uses auto-generated description when description column is blank", async () => {
+        const csv =
+          "name,brewery,style,abv,price,stock,container\n" +
+          "Auto Desc Beer,Mountain Culture IT,Double IPA,8.5,15,10,Can 440ml\n"
+
+        const res = await api.post(
+          "/admin/stock-import",
+          { csv, options: { dry_run: false } },
+          adminAuth
+        )
+
+        expect(res.status).toBe(200)
+        expect(res.data.created).toBe(1)
+
+        const container = getContainer()
+        const productModule = container.resolve("product") as any
+        const [product] = await productModule.listProducts({ title: "Auto Desc Beer" })
+        expect(product.description).toBe("Double IPA — 8.5% ABV. Brewed by Mountain Culture IT")
+      })
+
+      it("skips row and reports error when abv is non-numeric", async () => {
+        const csv =
+          "name,brewery,style,abv,price,stock,container\n" +
+          "Bad ABV Beer,Mountain Culture IT,IPA,eight,12,5,Can 440ml\n"
+
+        const res = await api.post(
+          "/admin/stock-import",
+          { csv, options: { dry_run: false } },
+          adminAuth
+        )
+
+        expect(res.status).toBe(200)
+        expect(res.data.created).toBe(0)
+        expect(res.data.errors).toHaveLength(1)
+        expect(res.data.errors[0]).toContain("abv must be a number")
+
+        const container = getContainer()
+        const productModule = container.resolve("product") as any
+        const products = await productModule.listProducts({ title: "Bad ABV Beer" })
+        expect(products.length).toBe(0)
+      })
+
+      it("skips row and reports error when price is non-numeric", async () => {
+        const csv =
+          "name,brewery,style,abv,price,stock,container\n" +
+          "Bad Price Beer,Mountain Culture IT,IPA,6.5,free,5,Can 440ml\n"
+
+        const res = await api.post(
+          "/admin/stock-import",
+          { csv, options: { dry_run: false } },
+          adminAuth
+        )
+
+        expect(res.status).toBe(200)
+        expect(res.data.created).toBe(0)
+        expect(res.data.errors).toHaveLength(1)
+        expect(res.data.errors[0]).toContain("price must be a non-negative number")
+
+        const container = getContainer()
+        const productModule = container.resolve("product") as any
+        const products = await productModule.listProducts({ title: "Bad Price Beer" })
+        expect(products.length).toBe(0)
+      })
+
+      it("creates product but reports error when style does not match any BeerStyle", async () => {
+        const csv =
+          "name,brewery,style,abv,price,stock,container\n" +
+          "Unknown Style Beer,Mountain Culture IT,Completely Made Up Style,6.5,12,5,Can 440ml\n"
+
+        const res = await api.post(
+          "/admin/stock-import",
+          { csv, options: { dry_run: false } },
+          adminAuth
+        )
+
+        expect(res.status).toBe(200)
+        expect(res.data.created).toBe(1)
+        expect(res.data.errors).toHaveLength(1)
+        expect(res.data.errors[0]).toContain("style")
+        expect(res.data.errors[0]).toContain("not found")
+
+        const container = getContainer()
+        const productModule = container.resolve("product") as any
+        const [product] = await productModule.listProducts({ title: "Unknown Style Beer" })
+        expect(product).toBeDefined()
+      })
+
+      it("GET export includes description column with correct value", async () => {
+        // Create a product with a known description
+        const csv =
+          "name,brewery,style,abv,price,stock,container,description\n" +
+          "Export Desc Beer,Mountain Culture IT,IPA,6.0,12,5,Can 440ml,Check this description exports\n"
+        await api.post("/admin/stock-import", { csv, options: { dry_run: false } }, adminAuth)
+
+        const exportRes = await api.get("/admin/stock-import", adminAuth)
+        expect(exportRes.status).toBe(200)
+        expect(typeof exportRes.data.csv).toBe("string")
+
+        const lines = exportRes.data.csv.split("\n")
+        const headers = lines[0].split(",")
+        const descIdx = headers.indexOf("description")
+        expect(descIdx).toBeGreaterThanOrEqual(0)
+
+        const commentIdx = headers.indexOf("comment")
+        expect(commentIdx).toBe(-1)
+
+        const dataRow = lines.find((l: string) => l.includes("Export Desc Beer"))
+        expect(dataRow).toBeDefined()
+
+        // Parse the description cell at the correct column index
+        const cells = dataRow!.match(/("(?:[^"]|"")*"|[^,]*)/g) ?? []
+        const descCell = cells[descIdx]?.replace(/^"|"$/g, "").replace(/""/g, '"') ?? ""
+        expect(descCell).toBe("Check this description exports")
+      })
+
       it("re-import preserves hops on empty cell, replaces on populated", async () => {
         const baseCsv =
           "name,brewery,style,abv,price,stock,container,hops\n" +

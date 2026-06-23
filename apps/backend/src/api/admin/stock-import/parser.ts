@@ -9,13 +9,14 @@ export type ParsedRow = {
   stock: string
   container?: string
   volume_ml?: string
-  comment?: string
+  description?: string
   collab_breweries: string[]
   hops: string[]
   images: string[]
   release_at?: string
   is_anniversary?: boolean
   extras: Record<string, string>
+  parseErrors: string[]
 }
 
 export const KNOWN_COLUMNS = new Set([
@@ -27,7 +28,7 @@ export const KNOWN_COLUMNS = new Set([
   "stock",
   "container",
   "volume_ml",
-  "comment",
+  "description",
   "collab_breweries",
   "hops",
   "images",
@@ -72,6 +73,19 @@ export function parseStockImportCsv(text: string): ParsedRow[] {
   for (const rec of records) {
     if (!rec.name || !rec.brewery) continue
 
+    const parseErrors: string[] = []
+
+    if (rec.abv && rec.abv !== "" && isNaN(parseFloat(rec.abv))) {
+      parseErrors.push(`"${rec.name}": abv must be a number (got "${rec.abv}")`)
+    }
+
+    if (rec.price && rec.price !== "") {
+      const p = parseFloat(rec.price)
+      if (isNaN(p) || p < 0) {
+        parseErrors.push(`"${rec.name}": price must be a non-negative number (got "${rec.price}")`)
+      }
+    }
+
     const extras: Record<string, string> = {}
     for (const [k, v] of Object.entries(rec)) {
       if (!KNOWN_COLUMNS.has(k) && v !== undefined && v !== "") {
@@ -88,13 +102,14 @@ export function parseStockImportCsv(text: string): ParsedRow[] {
       stock: rec.stock || "",
       container: rec.container,
       volume_ml: rec.volume_ml && rec.volume_ml !== "" ? rec.volume_ml : undefined,
-      comment: rec.comment,
+      description: rec.description && rec.description !== "" ? rec.description : undefined,
       collab_breweries: splitMulti(rec.collab_breweries || ""),
       hops: splitMulti(rec.hops || ""),
       images: splitMulti(rec.images || ""),
       release_at: rec.release_at && rec.release_at !== "" ? rec.release_at : undefined,
       is_anniversary: parseBoolean(rec.is_anniversary),
       extras,
+      parseErrors,
     })
   }
   return rows

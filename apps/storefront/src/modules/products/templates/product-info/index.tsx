@@ -105,6 +105,12 @@ const ProductInfo = ({
         )}
       </div>
 
+      {product.description && (
+        <p className="text-[15px] leading-relaxed text-hg-text-secondary">
+          {product.description}
+        </p>
+      )}
+
       {canSeePricing && (
         <div className="flex items-end gap-4">
           <span

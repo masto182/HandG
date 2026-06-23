@@ -25,7 +25,7 @@ const EXPORT_COLUMNS = [
   "stock",
   "container",
   "volume_ml",
-  "comment",
+  "description",
   "collab_breweries",
   "hops",
   "images",
@@ -53,6 +53,7 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
       fields: [
         "id",
         "title",
+        "description",
         "metadata",
         "variants.prices.amount",
         "variants.prices.currency_code",
@@ -98,13 +99,13 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
     try {
       const { data: variants } = await query.graph({
         entity: "product_variant",
-        fields: ["product_id", "inventory_items.inventory.location_levels.available_quantity"],
+        fields: ["product_id", "inventory_items.inventory.location_levels.stocked_quantity"],
       })
       for (const v of variants as any[]) {
         let qty = 0
         for (const ii of v.inventory_items || []) {
           for (const ll of ii.inventory?.location_levels || []) {
-            qty += Number(ll.available_quantity || 0)
+            qty += Number(ll.stocked_quantity || 0)
           }
         }
         stockByProduct.set(v.product_id, (stockByProduct.get(v.product_id) || 0) + qty)
@@ -159,7 +160,7 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
         stock: stock ?? "",
         container,
         volume_ml: md.volume_ml ?? "",
-        comment: "",
+        description: (p as any).description ?? "",
         collab_breweries: collabs.join(","),
         hops,
         images,
@@ -382,6 +383,12 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
   for (const row of rows) {
     rowNum++
     const rowMsgs: string[] = []
+    if (row.parseErrors.length > 0) {
+      for (const e of row.parseErrors) errors.push(e)
+      if (dryRun)
+        dryRunRows.push({ row: rowNum, name: row.name, action: "error", messages: row.parseErrors })
+      continue
+    }
     try {
       // Validate release_at if provided
       let releaseAtIso: string | undefined
@@ -489,6 +496,9 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
           metaPatch.beer_style = matchedStyle.name
           metaPatch.beer_style_slug = matchedStyle.slug
           metaPatch.beer_style_family = matchedStyle.family
+        } else {
+          errors.push(`Row "${row.name}": style "${row.style}" not found — link skipped`)
+          rowMsgs.push(`style "${row.style}" not found — link skipped`)
         }
       }
 
@@ -542,7 +552,9 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
         const variant = existing.variants?.[0]
         if (variant) {
           const updateInput: Record<string, any> = {
-            description: `${row.style} — ${row.abv}% ABV. Brewed by ${brewery.name}`,
+            description:
+              row.description?.trim() ||
+              `${row.style} — ${row.abv}% ABV. Brewed by ${brewery.name}`,
             metadata: { ...existing.metadata, ...metaPatch },
           }
           if (row.images.length > 0) {
@@ -670,7 +682,8 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
         const productInput: Record<string, any> = {
           title: row.name,
           handle,
-          description: `${row.style} — ${row.abv}% ABV. Brewed by ${brewery.name}`,
+          description:
+            row.description?.trim() || `${row.style} — ${row.abv}% ABV. Brewed by ${brewery.name}`,
           status: ProductStatus.PUBLISHED,
           metadata: metaPatch,
           options: [{ title: "Size", values: [containerValue] }],

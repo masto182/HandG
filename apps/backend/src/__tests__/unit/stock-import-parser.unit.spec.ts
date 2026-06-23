@@ -120,5 +120,45 @@ describe("stock-import parser", () => {
       const rows = parseStockImportCsv(csv)
       expect(rows[0].name).toBe("A")
     })
+
+    it("parses description when present", () => {
+      const csv =
+        "name,brewery,style,abv,price,stock,description\nBeer,Co,IPA,6,10,5,Juicy and hazy\n"
+      const rows = parseStockImportCsv(csv)
+      expect(rows[0].description).toBe("Juicy and hazy")
+    })
+
+    it("leaves description undefined when column absent", () => {
+      const csv = "name,brewery,style,abv,price,stock\nBeer,Co,IPA,6,10,5\n"
+      const rows = parseStockImportCsv(csv)
+      expect(rows[0].description).toBeUndefined()
+    })
+
+    it("adds a parseError for non-numeric abv", () => {
+      const csv = "name,brewery,style,abv,price,stock\nBeer,Co,IPA,eight,10,5\n"
+      const rows = parseStockImportCsv(csv)
+      expect(rows[0].parseErrors).toHaveLength(1)
+      expect(rows[0].parseErrors[0]).toContain("abv must be a number")
+    })
+
+    it("adds a parseError for non-numeric price", () => {
+      const csv = "name,brewery,style,abv,price,stock\nBeer,Co,IPA,6,free,5\n"
+      const rows = parseStockImportCsv(csv)
+      expect(rows[0].parseErrors).toHaveLength(1)
+      expect(rows[0].parseErrors[0]).toContain("price must be a non-negative number")
+    })
+
+    it("adds a parseError for negative price", () => {
+      const csv = "name,brewery,style,abv,price,stock\nBeer,Co,IPA,6,-5,5\n"
+      const rows = parseStockImportCsv(csv)
+      expect(rows[0].parseErrors).toHaveLength(1)
+      expect(rows[0].parseErrors[0]).toContain("price must be a non-negative number")
+    })
+
+    it("has no parseErrors for a valid row", () => {
+      const csv = "name,brewery,style,abv,price,stock\nBeer,Co,IPA,6.5,10,5\n"
+      const rows = parseStockImportCsv(csv)
+      expect(rows[0].parseErrors).toHaveLength(0)
+    })
   })
 })

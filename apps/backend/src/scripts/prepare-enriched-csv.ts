@@ -12,7 +12,7 @@ const EXPORT_COLUMNS = [
   "stock",
   "container",
   "volume_ml",
-  "comment",
+  "description",
   "collab_breweries",
   "hops",
   "images",
@@ -33,6 +33,7 @@ export default async function prepareEnrichedCsv({ container }: ExecArgs) {
     fields: [
       "id",
       "title",
+      "description",
       "metadata",
       "variants.prices.amount",
       "variants.prices.currency_code",
@@ -77,13 +78,13 @@ export default async function prepareEnrichedCsv({ container }: ExecArgs) {
   try {
     const { data: variants } = await query.graph({
       entity: "product_variant",
-      fields: ["product_id", "inventory_items.inventory.location_levels.available_quantity"],
+      fields: ["product_id", "inventory_items.inventory.location_levels.stocked_quantity"],
     })
     for (const v of variants as any[]) {
       let qty = 0
       for (const ii of v.inventory_items || []) {
         for (const ll of ii.inventory?.location_levels || []) {
-          qty += Number(ll.available_quantity || 0)
+          qty += Number(ll.stocked_quantity || 0)
         }
       }
       stockByProduct.set(v.product_id, (stockByProduct.get(v.product_id) || 0) + qty)
@@ -123,7 +124,7 @@ export default async function prepareEnrichedCsv({ container }: ExecArgs) {
 
     // Default container and volume for all current products (all cans)
     const container = md.container_type || md.container || "Can 440ml"
-    const volume_ml = md.volume_ml ?? 440
+    const volume_ml = md.volume_ml ?? ""
 
     const record: Record<string, unknown> = {
       name: (p as any).title,
@@ -134,7 +135,7 @@ export default async function prepareEnrichedCsv({ container }: ExecArgs) {
       stock,
       container,
       volume_ml,
-      comment: "",
+      description: (p as any).description ?? "",
       collab_breweries: collabs.join(","),
       hops,
       images,
