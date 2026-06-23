@@ -4,6 +4,7 @@ import { resolveCustomerTier } from "./store/middlewares/resolve-customer-tier"
 import { publicProductRedactor } from "./store/middlewares/public-product-redactor"
 import { enforceAccessOnCartAdd } from "./store/middlewares/enforce-access-on-cart-add"
 import { rateLimit } from "./store/middlewares/rate-limit"
+import { normalizeAuthEmail } from "./store/middlewares/normalize-auth-email"
 import { normalizeAdminProductResponse } from "./admin/middlewares/normalize-product-response"
 import { productImageMiddlewares } from "./admin/product-images/validators"
 
@@ -70,7 +71,14 @@ export default defineMiddlewares({
     {
       matcher: "/auth/customer/emailpass",
       method: "POST",
-      middlewares: [rateLimit(30, 60000)],
+      middlewares: [normalizeAuthEmail, rateLimit(30, 60000)],
+    },
+    {
+      // Identity creation during /apply. Normalise here too so the stored
+      // entity_id is lowercase from the start.
+      matcher: "/auth/customer/emailpass/register",
+      method: "POST",
+      middlewares: [normalizeAuthEmail],
     },
   ],
 })
