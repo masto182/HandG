@@ -31,6 +31,22 @@ medusaIntegrationTestRunner({
             is_active: true,
           })
         }
+
+        // Seed beer styles used across tests so style-mismatch errors don't
+        // pollute the errors[] array in assertions that expect it to be empty.
+        const beerStyleService = container.resolve("beerStyle") as any
+        const existingStyles = await beerStyleService.listBeerStyles({})
+        const seededNames = new Set(existingStyles.map((s: any) => s.name.toLowerCase()))
+        const stylesToSeed = [
+          { name: "Double IPA", slug: "double-ipa", family: "IPA" },
+          { name: "IPA", slug: "ipa", family: "IPA" },
+          { name: "Stout", slug: "stout", family: "Stout" },
+        ]
+        for (const style of stylesToSeed) {
+          if (!seededNames.has(style.name.toLowerCase())) {
+            await beerStyleService.createBeerStyles(style)
+          }
+        }
       })
 
       it("creates a product with collab links, hop links, images, anniversary, release_at; auto-creates unknown breweries and hops", async () => {
