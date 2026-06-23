@@ -45,3 +45,31 @@ scripts/.venv-images/
 # Editor/backup cruft
 *.bak
 1~
+
+# Image pipeline work product (generated locally, not deployed)
+apps/backend/data/image-selection/
+apps/backend/data/image-selection-visual/
+apps/backend/data/product-images/
+apps/backend/data/product-images-ranked/
+apps/backend/data/product-images-winners/
+apps/backend/data/product-images-visual/
+apps/backend/data/product-images-backup-*/
+apps/backend/data/brewery-logos/
+apps/backend/data/brewery-instagram-sources.json
+apps/backend/data/instagram-cache.json
+apps/backend/data/instagram-scraper.js
+apps/backend/data/phase1-upload.py
+apps/storefront/public/images/enhanced/
+apps/storefront/public/images/enhanced-quick/
+review/
+
+# Backend utility scripts (local tooling, not part of the Medusa app)
+apps/backend/scripts/scrape-untappd-images.ts
+apps/backend/scripts/staging-image-sync.ts
+apps/backend/scripts/sweep-instagram.ts
+
+# Python image enhancement tools
+scripts/enhance_product_images.py
+scripts/enhance_quick.py
+scripts/requirements-image-enhance.txt
+scripts/upload-beer-images.py

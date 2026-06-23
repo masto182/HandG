@@ -16,8 +16,20 @@ function isPickupOrder(order: HttpTypes.StoreOrder): boolean {
 const ShippingDetails = ({ order }: ShippingDetailsProps) => {
   const pickup = isPickupOrder(order)
   const shippingMethod = order.shipping_methods?.[0] as
-    | { name?: string }
+    | {
+        name?: string
+        data?: { carrier_friendly_name?: string; service_type?: string }
+      }
     | undefined
+
+  const methodLabel = shippingMethod?.data?.carrier_friendly_name
+    ? [
+        shippingMethod.data.carrier_friendly_name,
+        shippingMethod.data.service_type,
+      ]
+        .filter(Boolean)
+        .join(" ")
+    : (shippingMethod?.name ?? "")
 
   return (
     <div>
@@ -100,7 +112,7 @@ const ShippingDetails = ({ order }: ShippingDetailsProps) => {
           >
             <Text className="txt-medium-plus text-hg-text mb-1">Method</Text>
             <Text className="txt-medium text-hg-text-secondary">
-              {shippingMethod?.name} (
+              {methodLabel} (
               {convertToLocale({
                 amount: order.shipping_methods?.[0].total ?? 0,
                 currency_code: order.currency_code,
