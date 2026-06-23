@@ -223,14 +223,16 @@ test.describe("Store filter panel — Hop Origin @smoke", () => {
   test("Hop Origin has NZ, AU, US, EU chips", async ({ page }) => {
     await page.goto("/store")
     await page.waitForLoadState("domcontentloaded")
-    // The filter panel renders these as buttons
+    // The filter panel renders these as checkboxes (live-facet driven)
     for (const label of [
       "New Zealand",
       "Australia",
       "United States",
       "Europe",
     ]) {
-      await expect(page.getByRole("button", { name: label })).toBeVisible()
+      await expect(
+        page.getByRole("checkbox", { name: label }).first(),
+      ).toBeVisible()
     }
   })
 
@@ -239,7 +241,7 @@ test.describe("Store filter panel — Hop Origin @smoke", () => {
   }) => {
     await page.goto("/store")
     await page.waitForLoadState("domcontentloaded")
-    await page.getByRole("button", { name: "New Zealand" }).click()
+    await page.getByRole("checkbox", { name: "New Zealand" }).first().click()
     await expect(page).toHaveURL(/hop_country=NZ/, { timeout: 5_000 })
   })
 
@@ -248,19 +250,16 @@ test.describe("Store filter panel — Hop Origin @smoke", () => {
   }) => {
     await page.goto("/store?hop_country=NZ")
     await page.waitForLoadState("domcontentloaded")
-    const nzChip = page.getByRole("button", { name: "New Zealand" })
-    // Wait until the chip reflects the active state (gold fill) — this proves
-    // the component has hydrated and read hop_country=NZ from the URL. Clicking
-    // before that races hydration and the toggle-off is a no-op.
-    await expect(nzChip).toHaveClass(/bg-hg-gold/, { timeout: 10_000 })
-    // The chip renders gold from the SSR'd URL param before React attaches its
-    // onClick handler, so an immediate click can race hydration and no-op
-    // (this is what made the test flaky). Retry the click until the toggle-off
-    // actually registers (chip loses the gold fill). Once it passes, toPass
-    // stops, so there's no risk of toggling it back on.
+    const nzCheckbox = page
+      .getByRole("checkbox", { name: "New Zealand" })
+      .first()
+    // Wait until the checkbox is checked — this proves the component has hydrated
+    // and read hop_country=NZ from the URL.
+    await expect(nzCheckbox).toBeChecked({ timeout: 10_000 })
+    // Retry the click until the toggle-off actually registers.
     await expect(async () => {
-      await nzChip.click()
-      await expect(nzChip).not.toHaveClass(/bg-hg-gold/, { timeout: 4_000 })
+      await nzCheckbox.click()
+      await expect(nzCheckbox).not.toBeChecked({ timeout: 4_000 })
     }).toPass({ timeout: 20_000 })
     expect(page.url()).not.toContain("hop_country=NZ")
   })
