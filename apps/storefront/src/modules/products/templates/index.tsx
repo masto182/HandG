@@ -192,8 +192,13 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
                   <WishlistManagementPanel productId={product.id} />
                 )}
 
-                <div className="py-4 px-2 border-b border-hg-border/20">
+                <div className="flex items-center gap-2 border-b border-hg-border/20 pb-4">
                   <LikeButton productId={product.id} variant="detail" />
+                  <ShareButton
+                    productTitle={product.title || ""}
+                    breweryName={breweryName}
+                    thumbnail={thumbnail}
+                  />
                 </div>
               </>
             ) : canSeePricing && !hasEarlyAccess ? (
@@ -246,14 +251,6 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
               beerStyle={beerStyle}
               hopProvenance={hopProvenance}
             />
-
-            <div className="flex justify-end">
-              <ShareButton
-                productTitle={product.title || ""}
-                breweryName={breweryName}
-                thumbnail={thumbnail}
-              />
-            </div>
           </div>
         </div>
       </main>

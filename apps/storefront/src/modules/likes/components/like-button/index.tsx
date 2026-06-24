@@ -33,7 +33,7 @@ export default function LikeButton({
       <button
         onClick={handleClick}
         disabled={isLoading}
-        className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors text-xs font-medium ${
+        className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border transition-colors text-xs font-medium ${
           liked
             ? "border-red-400/50 bg-red-400/10 text-red-400"
             : "border-hg-border text-hg-text-secondary hover:border-red-400/50 hover:text-red-400"
@@ -41,8 +41,8 @@ export default function LikeButton({
         aria-label={liked ? "Unlike" : "Like"}
       >
         <svg
-          width="16"
-          height="16"
+          width="18"
+          height="18"
           viewBox="0 0 24 24"
           fill={liked ? "currentColor" : "none"}
           stroke="currentColor"

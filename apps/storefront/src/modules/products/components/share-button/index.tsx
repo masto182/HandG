@@ -111,9 +111,9 @@ export default function ShareButton({
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-hg-text-secondary hover:text-hg-text border border-hg-border rounded-lg hover:bg-hg-surface transition-colors"
+        className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium text-hg-text-secondary hover:text-hg-text border border-hg-border rounded-lg hover:bg-hg-surface transition-colors"
       >
-        <Icon name="share" size={14} />
+        <Icon name="share" size={16} />
         Share
       </button>
 
