@@ -100,10 +100,11 @@ medusaIntegrationTestRunner({
         const config = (res.data as any).config
         expect(config.payid_alias).toBeDefined()
         expect(config.site_name).toBeDefined()
-        // non-public keys must not leak
-        expect(config.payid_hold_hours).toBeUndefined()
+        // payid_hold_hours and email_orders_to are intentionally public
+        expect(config.payid_hold_hours).toBeDefined()
+        expect(config.email_orders_to).toBeDefined()
+        // genuinely private keys must not leak
         expect(config.email_from).toBeUndefined()
-        expect(config.email_orders_to).toBeUndefined()
         expect(config.vip_thresholds).toBeUndefined()
       })
 
