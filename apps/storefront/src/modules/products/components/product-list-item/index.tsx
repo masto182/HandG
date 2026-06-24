@@ -83,10 +83,10 @@ export default async function ProductListItem({
 
   return (
     <article
-      className={`grid grid-cols-1 lg:grid-cols-12 items-center border-b border-hg-border/60 gap-8 hover:bg-hg-surface-dim/30 transition-all px-4 group py-4`}
+      className={`grid grid-cols-1 md:grid-cols-12 items-center border-b border-hg-border/60 gap-8 hover:bg-hg-surface-dim/30 transition-all px-4 group py-4`}
     >
       <div
-        className={`col-span-1 ${canSeePricing ? "lg:col-span-5" : "lg:col-span-10"} flex items-center gap-6`}
+        className={`col-span-1 ${canSeePricing ? "md:col-span-5" : "md:col-span-10"} flex items-center gap-6`}
       >
         <LocalizedClientLink
           href={`/products/${product.handle}`}
@@ -148,28 +148,28 @@ export default async function ProductListItem({
         </LocalizedClientLink>
       </div>
       {canSeePricing && (
-        <div className="col-span-2 hidden lg:flex flex-col">
+        <div className="col-span-2 hidden md:flex flex-col">
           <span className="text-sm text-hg-text font-medium">{style}</span>
         </div>
       )}
       {canSeePricing && (
-        <div className="col-span-1 hidden lg:flex flex-col">
+        <div className="col-span-1 hidden md:flex flex-col">
           <span className="text-sm text-hg-text font-medium">{abv}</span>
         </div>
       )}
       {canSeePricing && (
-        <div className="col-span-2 hidden lg:flex flex-col">
+        <div className="col-span-2 hidden md:flex flex-col">
           <span className="text-sm text-hg-text font-medium">{freshness}</span>
         </div>
       )}
-      <div className="col-span-1 lg:col-span-2 flex items-center justify-end gap-6 h-full">
+      <div className="col-span-1 md:col-span-2 flex items-center justify-end gap-3 h-full">
         {canSeePricing && cheapestPrice && (
           <span className="font-bold text-lg text-hg-text">
             <PreviewPrice price={cheapestPrice} />
           </span>
         )}
         {hasEarlyAccess && variantId && (
-          <AddToCartButton variantId={variantId} />
+          <AddToCartButton variantId={variantId} compact />
         )}
       </div>
     </article>

@@ -43,11 +43,20 @@ export async function configureIndex() {
     "abv",
     "packaged_at_ts",
     "created_at_ts",
+    "tags",
+    "inventory_qty",
   ])
 
   await index.updateFaceting({ maxValuesPerFacet: 100 })
 
-  await index.updateSortableAttributes(["created_at_ts", "abv", "title", "untappd_score"])
+  await index.updateSortableAttributes([
+    "created_at_ts",
+    "abv",
+    "title",
+    "untappd_score",
+    "packaged_at_ts",
+    "inventory_qty",
+  ])
 
   await index.updateSearchableAttributes(["title", "brewery", "style", "hops", "description"])
 

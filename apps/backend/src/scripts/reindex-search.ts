@@ -35,7 +35,7 @@ export default async function reindexSearch({ container }: ExecArgs) {
     { status: ["published"] },
     {
       select: ["id", "title", "handle", "description", "metadata", "created_at", "thumbnail"],
-      relations: ["variants"],
+      relations: ["variants", "tags"],
     }
   )
 
@@ -83,7 +83,11 @@ export default async function reindexSearch({ container }: ExecArgs) {
     const inventoryQty = p.variants?.[0]?.inventory_quantity || 0
 
     const hops: string[] = hopMap.get(p.id) || (Array.isArray(meta.hops) ? meta.hops : [])
-    const packagedAtTs = meta.packaged_at ? new Date(meta.packaged_at).getTime() : createdAt
+    const packagedAtTs = meta.packaged_at
+      ? new Date(meta.packaged_at).getTime()
+      : meta.released_date
+        ? new Date(meta.released_date).getTime()
+        : createdAt
 
     const linkedStyle = styleMap.get(p.id)
 
@@ -103,6 +107,7 @@ export default async function reindexSearch({ container }: ExecArgs) {
       created_at_ts: createdAt,
       thumbnail: p.thumbnail || null,
       is_collab: isCollab,
+      tags: (p as any).tags?.map((t: any) => t.value).filter(Boolean) ?? [],
       inventory_qty: inventoryQty,
     }
   })

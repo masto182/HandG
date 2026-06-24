@@ -19,8 +19,22 @@ type PaginatedProductsParams = {
   order?: string
 }
 
+const MEILI_SORT_MAP: Record<string, string> = {
+  created_at: "created_at_ts:desc",
+  created_at_asc: "created_at_ts:asc",
+  packaged_at: "packaged_at_ts:desc",
+  packaged_at_asc: "packaged_at_ts:asc",
+  title_asc: "title:asc",
+  title_desc: "title:desc",
+  abv_desc: "abv:desc",
+  abv_asc: "abv:asc",
+  stock_asc: "inventory_qty:asc",
+  stock_desc: "inventory_qty:desc",
+}
+
 async function fetchFilteredProductIds(
   filterParams: FilterParams,
+  sortBy?: SortOptions,
 ): Promise<string[]> {
   const params = new URLSearchParams()
   if (filterParams.q) params.set("q", filterParams.q)
@@ -34,6 +48,9 @@ async function fetchFilteredProductIds(
   if (filterParams.abv) params.set("abv", filterParams.abv)
   if (filterParams.hop_country)
     params.set("hop_country", filterParams.hop_country)
+  if (filterParams.available) params.set("available", filterParams.available)
+  const meiliSort = sortBy ? MEILI_SORT_MAP[sortBy] : undefined
+  if (meiliSort) params.set("sort", meiliSort)
   params.set("limit", "200")
 
   try {
@@ -186,7 +203,8 @@ function hasActiveFilters(filterParams?: FilterParams): boolean {
     filterParams.tags ||
     filterParams.abv ||
     filterParams.on_sale ||
-    filterParams.hop_country
+    filterParams.hop_country ||
+    filterParams.available === "false"
   )
 }
 
@@ -256,7 +274,7 @@ export default async function PaginatedProducts({
       ? { ...filterParams, on_sale: undefined }
       : filterParams
 
-    const allIds = await fetchFilteredProductIds(nonSaleParams!)
+    const allIds = await fetchFilteredProductIds(nonSaleParams!, sortBy)
 
     if (allIds.length === 0) {
       return (
@@ -372,7 +390,7 @@ export default async function PaginatedProducts({
           data-testid="products-list"
         >
           <div
-            className={`hidden lg:grid gap-8 px-4 py-2 border-b border-hg-border/50 items-center ${canSeePricing ? "grid-cols-12" : "grid-cols-12"}`}
+            className={`hidden md:grid gap-8 px-4 py-2 border-b border-hg-border/50 items-center ${canSeePricing ? "grid-cols-12" : "grid-cols-12"}`}
           >
             <div className={canSeePricing ? "col-span-5" : "col-span-10"}>
               <span className="font-semibold text-[10px] text-hg-text-secondary uppercase tracking-widest">

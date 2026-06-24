@@ -41,6 +41,8 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     abv,
     freshness,
     collab,
+    tags,
+    available,
     sort = "created_at_ts:desc",
     limit = "20",
     offset = "0",
@@ -125,6 +127,20 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 
   if (collab === "1" || collab === "true") {
     filters.push("is_collab = true")
+  }
+
+  if (tags) {
+    const tagList = (tags as string)
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean)
+    const tagFilters = tagList.map((t) => `tags = "${sanitizeFilterValue(t)}"`)
+    filters.push(`(${tagFilters.join(" AND ")})`)
+  }
+
+  // By default exclude sold-out products. Pass available=false to include them.
+  if (available !== "false") {
+    filters.push("inventory_qty > 0")
   }
 
   const parsedLimit = safeInt(limit, 20, 1, MAX_LIMIT)

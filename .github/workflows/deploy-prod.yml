@@ -124,6 +124,8 @@ jobs:
               # Sync cross-module link tables (pivot tables between modules).
               $COMPOSE run --rm --no-deps backend ./node_modules/.bin/medusa db:sync-links
             fi
+            MEDUSA="./node_modules/.bin/medusa exec"
+            $COMPOSE run --rm --no-deps backend $MEDUSA ./src/scripts/reindex-search.ts
             $COMPOSE up -d --remove-orphans
             docker image prune -af
             docker builder prune -af || true

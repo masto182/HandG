@@ -45,7 +45,7 @@ export default async function productSearchIndexer({
         "thumbnail",
         "status",
       ],
-      relations: ["variants"],
+      relations: ["variants", "tags"],
     }
   )
 
@@ -73,7 +73,7 @@ export default async function productSearchIndexer({
     const { data: linked } = await query.graph({
       entity: "product",
       fields: [
-        "beer_styles.*",
+        "beer_style.*",
         "hops.*",
         "hops.country_code",
         "breweries.id",
@@ -82,7 +82,7 @@ export default async function productSearchIndexer({
       ],
       filters: { id: productId },
     })
-    const style = (linked?.[0] as any)?.beer_styles?.[0]
+    const style = (linked?.[0] as any)?.beer_style
     if (style) {
       styleName = style.name || styleName
       styleFamily = style.family || ""
@@ -118,13 +118,16 @@ export default async function productSearchIndexer({
           created_at_ts: product.created_at ? new Date(product.created_at).getTime() : 0,
           packaged_at_ts: meta.packaged_at
             ? new Date(meta.packaged_at).getTime()
-            : product.created_at
-              ? new Date(product.created_at).getTime()
-              : 0,
+            : meta.released_date
+              ? new Date(meta.released_date).getTime()
+              : product.created_at
+                ? new Date(product.created_at).getTime()
+                : 0,
           thumbnail: (product as any).thumbnail || null,
           is_collab: isCollab,
           hops: hopNames.length > 0 ? hopNames : Array.isArray(meta.hops) ? meta.hops : [],
           hop_countries: hopCountries,
+          tags: (product as any).tags?.map((t: any) => t.value).filter(Boolean) ?? [],
           inventory_qty: (product as any).variants?.[0]?.inventory_quantity || 0,
         },
       ],
