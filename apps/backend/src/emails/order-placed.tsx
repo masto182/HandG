@@ -18,6 +18,8 @@ export type OrderPlacedProps = {
   currencyCode: string
   isPickup: boolean
   payidAlias?: string
+  holdHours?: number
+  ordersEmail?: string
   storeUrl: string
 }
 
@@ -40,6 +42,8 @@ export default function OrderPlacedEmail({
   currencyCode = "aud",
   isPickup = false,
   payidAlias = "payments@hopsandglory.au",
+  holdHours = 24,
+  ordersEmail = "orders@hopsandglory.au",
   storeUrl = "https://hopsandglory.au",
 }: OrderPlacedProps) {
   return (
@@ -100,7 +104,12 @@ export default function OrderPlacedEmail({
           </Text>
           <Text style={payidRef}>{orderDisplayId}</Text>
           <Text style={payidNote}>
-            Your order will be held for 72 hours while we await payment.
+            Your order will be held for {holdHours} hours while we await payment. If you need extra
+            time, email{" "}
+            <a href={`mailto:${ordersEmail}`} style={{ color: "#A06A2C" }}>
+              {ordersEmail}
+            </a>
+            .
           </Text>
         </Section>
       ) : null}

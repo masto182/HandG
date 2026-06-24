@@ -1,6 +1,9 @@
 import "server-only"
 import { cache } from "react"
-import { PUBLIC_SITE_CONFIG_DEFAULTS, type PublicSiteConfig } from "@retail-example/shared-types"
+import {
+  PUBLIC_SITE_CONFIG_DEFAULTS,
+  type PublicSiteConfig,
+} from "@retail-example/shared-types"
 
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "http://localhost:9000"
@@ -15,7 +18,8 @@ const PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
 export const getPublicConfig = cache(async (): Promise<PublicSiteConfig> => {
   try {
     // sdk-exempt: SSR fetch with TTL caching; SDK client adds auth headers we don't need here
-    const res = await fetch(`${BACKEND_URL}/store/site-config/public`, { // sdk-exempt
+    const res = await fetch(`${BACKEND_URL}/store/site-config/public`, {
+      // sdk-exempt
       headers: { "x-publishable-api-key": PUBLISHABLE_KEY },
       next: { revalidate: 60 },
     })
@@ -30,4 +34,14 @@ export const getPublicConfig = cache(async (): Promise<PublicSiteConfig> => {
 export async function getPayidAlias(): Promise<string> {
   const cfg = await getPublicConfig()
   return cfg.payid_alias
+}
+
+export async function getPayidHoldHours(): Promise<number> {
+  const cfg = await getPublicConfig()
+  return cfg.payid_hold_hours
+}
+
+export async function getOrdersEmail(): Promise<string> {
+  const cfg = await getPublicConfig()
+  return cfg.email_orders_to
 }

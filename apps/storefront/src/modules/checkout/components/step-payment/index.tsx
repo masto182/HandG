@@ -9,9 +9,17 @@ type Props = {
   cart: HttpTypes.StoreCart
   paymentMethods: { id: string }[] | null
   isPickup: boolean
+  holdHours?: number
+  ordersEmail?: string
 }
 
-const StepPayment: React.FC<Props> = ({ cart, paymentMethods, isPickup }) => {
+const StepPayment: React.FC<Props> = ({
+  cart,
+  paymentMethods,
+  isPickup,
+  holdHours = 24,
+  ordersEmail,
+}) => {
   const activeSession = cart.payment_collection?.payment_sessions?.find(
     (s) => s.status === "pending",
   )
@@ -326,10 +334,12 @@ const StepPayment: React.FC<Props> = ({ cart, paymentMethods, isPickup }) => {
               <line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
             <p className="text-xs text-hg-text-secondary">
-              Your items are held for 24 hours while payment is processed. If
-              payment is received after this time, your items may still be
-              allocated but could be out of stock. Payment details will be
-              included in your order confirmation email.
+              Your items are held for {holdHours} hours while payment is
+              processed. If payment is received after this time, your items may
+              still be allocated but could be out of stock.
+              {ordersEmail
+                ? ` If you need extra time, email ${ordersEmail}.`
+                : ""}
             </p>
           </div>
         </div>
@@ -370,9 +380,9 @@ const StepPayment: React.FC<Props> = ({ cart, paymentMethods, isPickup }) => {
               <line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
             <p className="text-xs text-hg-text-secondary">
-              Your items are held for 24 hours. Please collect and pay within
-              this time. After 24 hours, items may still be available but could
-              be out of stock.
+              Your items are held for {holdHours} hours. Please collect and pay
+              within this time. After {holdHours} hours, items may still be
+              available but could be out of stock.
             </p>
           </div>
         </div>

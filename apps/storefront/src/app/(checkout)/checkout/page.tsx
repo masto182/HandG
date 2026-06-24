@@ -3,6 +3,7 @@ import { retrieveCustomer } from "@lib/data/customer"
 import { listCartShippingMethods } from "@lib/data/fulfillment"
 import { listCartPaymentMethods } from "@lib/data/payment"
 import { getHeatHold } from "@lib/data/heat-hold"
+import { getPayidHoldHours, getOrdersEmail } from "@lib/data/site-config"
 import { getPickupOptions } from "@lib/util/shipping"
 import PaymentWrapper from "@modules/checkout/components/payment-wrapper"
 import CheckoutProgress from "@modules/checkout/components/checkout-progress"
@@ -90,12 +91,18 @@ export default async function Checkout({
         const paymentMethods = await listCartPaymentMethods(
           cart.region?.id ?? "",
         )
+        const [payHoldHours, payOrdersEmail] = await Promise.all([
+          getPayidHoldHours(),
+          getOrdersEmail(),
+        ])
         return (
           <PaymentWrapper cart={cart}>
             <StepPayment
               cart={cart}
               paymentMethods={paymentMethods}
               isPickup={isPickup}
+              holdHours={payHoldHours}
+              ordersEmail={payOrdersEmail}
             />
           </PaymentWrapper>
         )
@@ -112,7 +119,17 @@ export default async function Checkout({
           <StepReview cart={cart} isPickup={isPickup} heatHold={heatHold} />
         )
       case "confirm":
-        return <StepConfirm cart={cart} />
+        const [confirmHoldHours, confirmOrdersEmail] = await Promise.all([
+          getPayidHoldHours(),
+          getOrdersEmail(),
+        ])
+        return (
+          <StepConfirm
+            cart={cart}
+            holdHours={confirmHoldHours}
+            ordersEmail={confirmOrdersEmail}
+          />
+        )
       default:
         return null
     }

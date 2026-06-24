@@ -8,9 +8,15 @@ import { HttpTypes } from "@medusajs/types"
 
 type PaymentDetailsProps = {
   order: HttpTypes.StoreOrder
+  holdHours?: number
+  ordersEmail?: string
 }
 
-const PaymentDetails = ({ order }: PaymentDetailsProps) => {
+const PaymentDetails = ({
+  order,
+  holdHours = 24,
+  ordersEmail,
+}: PaymentDetailsProps) => {
   const payment = order.payment_collections?.[0].payments?.[0]
   const providerId = payment?.provider_id ?? ""
   const isPayid = isPayId(providerId)
@@ -91,9 +97,13 @@ const PaymentDetails = ({ order }: PaymentDetailsProps) => {
                 </div>
                 <div className="pt-3 border-t border-hg-border">
                   <Text className="txt-small text-hg-text-secondary">
-                    Payment must be made within 24 hours. Your items are held
-                    during this time. If payment is received after 24 hours,
-                    items may still be allocated but could be out of stock.
+                    Payment must be made within {holdHours} hours. Your items
+                    are held during this time. If payment is received after{" "}
+                    {holdHours} hours, items may still be allocated but could be
+                    out of stock.
+                    {ordersEmail
+                      ? ` If you need extra time, email ${ordersEmail}.`
+                      : ""}
                   </Text>
                 </div>
               </div>

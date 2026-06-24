@@ -20,6 +20,24 @@ async function resolvePayidAlias(container: any): Promise<string | undefined> {
   }
 }
 
+async function resolveSiteConfigValues(
+  container: any
+): Promise<{ holdHours: number; ordersEmail: string }> {
+  const defaults = { holdHours: 24, ordersEmail: "orders@hopsandglory.au" }
+  try {
+    const svc = container.resolve("siteConfig") as {
+      get: <T>(key: string) => Promise<T>
+    }
+    const [holdHours, ordersEmail] = await Promise.all([
+      svc.get<number>("payid_hold_hours").catch(() => defaults.holdHours),
+      svc.get<string>("email_orders_to").catch(() => defaults.ordersEmail),
+    ])
+    return { holdHours, ordersEmail }
+  } catch {
+    return defaults
+  }
+}
+
 export default async function orderEmailHandler({
   event,
   container,
@@ -33,9 +51,7 @@ export default async function orderEmailHandler({
       relations: ["payment_collections.payments", "items"],
     } as any)
     if (!order?.email) {
-      logger.info(
-        `[Notification] Order ${event.data.id} has no email; skipping.`
-      )
+      logger.info(`[Notification] Order ${event.data.id} has no email; skipping.`)
       return
     }
 
@@ -52,13 +68,11 @@ export default async function orderEmailHandler({
       const total = (order as any).total ?? 0
       const currencyCode = (order as any).currency_code || "aud"
       const isPickup =
-        ((order as any).shipping_methods || []).some(
-          (sm: any) =>
-            (sm.shipping_option?.name || sm.name || "")
-              .toLowerCase()
-              .includes("pickup")
+        ((order as any).shipping_methods || []).some((sm: any) =>
+          (sm.shipping_option?.name || sm.name || "").toLowerCase().includes("pickup")
         ) || false
       const payidAlias = await resolvePayidAlias(container)
+      const { holdHours, ordersEmail } = await resolveSiteConfigValues(container)
 
       const result = await sendTemplate({
         to: order.email,
@@ -73,13 +87,13 @@ export default async function orderEmailHandler({
           currencyCode,
           isPickup,
           payidAlias,
+          holdHours,
+          ordersEmail,
           storeUrl,
         },
         container,
       })
-      logger.info(
-        `[Notification] order.placed email → ${order.email}: ${JSON.stringify(result)}`
-      )
+      logger.info(`[Notification] order.placed email → ${order.email}: ${JSON.stringify(result)}`)
       return
     }
 

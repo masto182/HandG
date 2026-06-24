@@ -9,8 +9,16 @@
 
 export type PublicSiteConfig = {
   payid_alias: string
+  payid_hold_hours: number
+  email_orders_to: string
   cash_pickup_enabled: boolean
-  vip_early_access_offsets_hours: { vip1: number; vip2: number; vip3: number; vip4: number; vip5: number }
+  vip_early_access_offsets_hours: {
+    vip1: number
+    vip2: number
+    vip3: number
+    vip4: number
+    vip5: number
+  }
   site_name: string
   store_url: string
   tagline: string
@@ -23,13 +31,14 @@ export type PublicSiteConfig = {
 
 export const PUBLIC_SITE_CONFIG_DEFAULTS: PublicSiteConfig = {
   payid_alias: "payments@example.com",
+  payid_hold_hours: 24,
+  email_orders_to: "orders@example.com",
   cash_pickup_enabled: true,
   vip_early_access_offsets_hours: { vip1: 0, vip2: 6, vip3: 12, vip4: 24, vip5: 48 },
   site_name: "Example Store",
   store_url: "https://example.com",
   tagline: "Reference Store",
-  hero_copy_public:
-    "An invite-only collection of rare and ephemeral beer for serious collectors.",
+  hero_copy_public: "An invite-only collection of rare and ephemeral beer for serious collectors.",
   hero_copy_member: "Welcome back. Here's what's just landed.",
   heat_hold_enabled: false,
   shipping_heat_hold_message:

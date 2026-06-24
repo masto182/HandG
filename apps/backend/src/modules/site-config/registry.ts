@@ -79,7 +79,7 @@ export const SITE_CONFIG_REGISTRY: Record<string, SiteConfigDefinition> = {
   payid_hold_hours: {
     key: "payid_hold_hours",
     type: "number",
-    isPublic: false,
+    isPublic: true,
     default: 24,
     group: "payments",
     label: "PayID hold window (hours)",
@@ -194,7 +194,7 @@ export const SITE_CONFIG_REGISTRY: Record<string, SiteConfigDefinition> = {
   email_orders_to: {
     key: "email_orders_to",
     type: "string",
-    isPublic: false,
+    isPublic: true,
     default: "orders@example.com",
     group: "email",
     label: "Orders inbox",

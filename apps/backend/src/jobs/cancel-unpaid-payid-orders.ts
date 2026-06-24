@@ -47,6 +47,7 @@ export default async function cancelUnpaidPayidOrders(container: MedusaContainer
         "status",
         "canceled_at",
         "created_at",
+        "metadata",
         "payment_status",
         "payment_collections.payments.provider_id",
         "payment_collections.payments.captured_at",
@@ -67,13 +68,17 @@ export default async function cancelUnpaidPayidOrders(container: MedusaContainer
         .flatMap((pc: any) => pc?.payments || [])
         .filter(Boolean)
 
-      const hasPayId = payments.some((p: any) =>
-        typeof p.provider_id === "string" && p.provider_id.startsWith("pp_payid")
+      const hasPayId = payments.some(
+        (p: any) => typeof p.provider_id === "string" && p.provider_id.startsWith("pp_payid")
       )
       if (!hasPayId) continue
 
       const anyCaptured = payments.some((p: any) => p.captured_at)
       if (anyCaptured) continue
+
+      // Honour per-order extension set by admin
+      const extendedUntil = (order.metadata as any)?.payid_extended_until
+      if (extendedUntil && new Date(extendedUntil) > new Date()) continue
 
       try {
         await workflow.run({ input: { order_id: order.id, no_notification: false } })
