@@ -36,14 +36,19 @@ describe("site-config registry", () => {
   it("vip_thresholds default has all 5 tiers", () => {
     const def = SITE_CONFIG_REGISTRY.vip_thresholds
     const v = def.default as Record<string, number>
-    expect(["vip1", "vip2", "vip3", "vip4", "vip5"].every((t) => typeof v[t] === "number")).toBe(true)
+    expect(["vip1", "vip2", "vip3", "vip4", "vip5"].every((t) => typeof v[t] === "number")).toBe(
+      true
+    )
   })
 
-  it("rejects non-public keys from the public list (security)", () => {
-    expect(PUBLIC_SITE_CONFIG_KEYS).not.toContain("payid_hold_hours")
+  it("rejects sensitive keys from the public list (security)", () => {
+    // payid_hold_hours and email_orders_to are intentionally public (hold window
+    // copy + customer contact address shown on storefront)
     expect(PUBLIC_SITE_CONFIG_KEYS).not.toContain("vip_thresholds")
     expect(PUBLIC_SITE_CONFIG_KEYS).not.toContain("email_from")
-    expect(PUBLIC_SITE_CONFIG_KEYS).not.toContain("email_orders_to")
+    // Confirm the two newly-public keys ARE in the list
+    expect(PUBLIC_SITE_CONFIG_KEYS).toContain("payid_hold_hours")
+    expect(PUBLIC_SITE_CONFIG_KEYS).toContain("email_orders_to")
   })
 })
 
