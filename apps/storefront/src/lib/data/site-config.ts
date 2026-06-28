@@ -18,11 +18,13 @@ const PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
 export const getPublicConfig = cache(async (): Promise<PublicSiteConfig> => {
   try {
     // SSR fetch with TTL caching; SDK client adds auth headers we don't need here
-    const res = await fetch(`${BACKEND_URL}/store/site-config/public`, {
-      // sdk-exempt
-      headers: { "x-publishable-api-key": PUBLISHABLE_KEY },
-      next: { revalidate: 60 },
-    })
+    const res = await fetch(
+      /* sdk-exempt */ `${BACKEND_URL}/store/site-config/public`,
+      {
+        headers: { "x-publishable-api-key": PUBLISHABLE_KEY },
+        next: { revalidate: 60 },
+      },
+    )
     if (!res.ok) return PUBLIC_SITE_CONFIG_DEFAULTS
     const data = (await res.json()) as { config: Partial<PublicSiteConfig> }
     return { ...PUBLIC_SITE_CONFIG_DEFAULTS, ...data.config }

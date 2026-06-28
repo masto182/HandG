@@ -14,10 +14,12 @@ export default async function Image({ params }: { params: { slug: string } }) {
   let location = ""
 
   try {
-    const res = await fetch(`${backendUrl}/store/breweries/${params.slug}`, {
-      // sdk-exempt
-      headers: { "x-publishable-api-key": pk },
-    })
+    const res = await fetch(
+      /* sdk-exempt */ `${backendUrl}/store/breweries/${params.slug}`,
+      {
+        headers: { "x-publishable-api-key": pk },
+      },
+    )
     if (res.ok) {
       const data = await res.json()
       if (data.brewery) {
