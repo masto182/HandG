@@ -49,7 +49,7 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
     payid_extended_until: extDate.toISOString(),
   }
 
-  await (orderModule as any).updateOrders([{ id: orderId, metadata: updatedMetadata }])
+  await (orderModule as any).updateOrders([{ id: orderId, metadata: updatedMetadata }]) // workflow-exempt: order metadata flag flip
 
   res.json({
     order: {

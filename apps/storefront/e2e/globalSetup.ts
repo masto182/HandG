@@ -64,6 +64,12 @@ async function globalSetup(_config: FullConfig) {
     exec("pnpm exec medusa exec ./src/scripts/seed-hops.ts")
     console.log("[globalSetup] Seeding E2E products...")
     exec("pnpm exec medusa exec ./src/scripts/seed-e2e-products.ts")
+    // Reindex AFTER hops + products are seeded so MeiliSearch facet data
+    // (notably hop_countries) reflects the freshly-created hop links. The
+    // filter panel's Hop Origin checkboxes are driven by this facet
+    // distribution, so a stale index renders zero origin chips.
+    console.log("[globalSetup] Reindexing search...")
+    exec("pnpm exec medusa exec ./src/scripts/reindex-search.ts")
   }
 
   console.log(`[globalSetup] Health-checking ${BACKEND_URL}/health ...`)
