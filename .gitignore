@@ -54,6 +54,9 @@ apps/backend/data/product-images-ranked/
 apps/backend/data/product-images-winners/
 apps/backend/data/product-images-visual/
 apps/backend/data/product-images-backup-*/
+apps/backend/data/image-selection-product/
+apps/backend/data/product-images-product/
+apps/backend/data/product-images-product-OLD-badcrop/
 apps/backend/data/brewery-logos/
 apps/backend/data/brewery-instagram-sources.json
 apps/backend/data/instagram-cache.json
