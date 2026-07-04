@@ -81,7 +81,7 @@ medusaIntegrationTestRunner({
         const productModule = container.resolve("product") as any
         const [product] = await productModule.listProducts(
           { title: "IT Bulk Test Beer" },
-          { relations: ["images"] }
+          { relations: ["images", "tags"] }
         )
         expect(product).toBeDefined()
         expect(product.metadata.brewery_name).toBe("Mountain Culture IT")
@@ -89,6 +89,7 @@ medusaIntegrationTestRunner({
         expect(product.metadata.style).toBe("Double IPA")
         expect(product.metadata.abv).toBe("8.0")
         expect(product.metadata.is_anniversary).toBe(true)
+        expect(product.tags.map((t: any) => t.value)).toContain("anniversary")
         expect(product.metadata.early_access_until).toBe(
           new Date("2030-06-01T18:00:00+10:00").toISOString()
         )

@@ -364,6 +364,35 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
     }
   }
 
+  // Apply the "anniversary" product tag based on the row's is_anniversary flag.
+  // Consumers (search filter, filter chips, product pill, search indexer) all key
+  // off a real product tag — metadata.is_anniversary alone is not enough. CSV is
+  // the source of truth: attach the tag when true, strip it when false.
+  async function applyAnniversaryTag(productId: string, isAnniversary: boolean): Promise<void> {
+    try {
+      const [existingProduct] = await productModule.listProducts(
+        { id: productId },
+        { relations: ["tags"] }
+      )
+      const currentTags: Array<{ id: string; value?: string }> = existingProduct?.tags || []
+      const hasTag = currentTags.some((t) => t.value === "anniversary")
+
+      if (isAnniversary && !hasTag) {
+        const [found] = await productModule.listProductTags({ value: "anniversary" })
+        const tag = found ?? (await productModule.createProductTags({ value: "anniversary" })) // workflow-exempt: CSV import anniversary tag sync
+        const attachTags = [...currentTags.map((t) => ({ id: t.id })), { id: tag.id }]
+        await productModule.updateProducts(productId, { tags: attachTags }) // workflow-exempt: CSV import anniversary tag sync
+      } else if (!isAnniversary && hasTag) {
+        const strippedTags = currentTags
+          .filter((t) => t.value !== "anniversary")
+          .map((t) => ({ id: t.id }))
+        await productModule.updateProducts(productId, { tags: strippedTags }) // workflow-exempt: CSV import anniversary tag sync
+      }
+    } catch (err: any) {
+      logger.warn(`[CSV Import] Anniversary tag update failed for ${productId}: ${err.message}`)
+    }
+  }
+
   let created = 0
   let updated = 0
   const errors: string[] = []
@@ -613,6 +642,11 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
           await applyBeerStyleLink(existing.id, row.style)
         }
 
+        // Anniversary tag: CSV is source of truth when the column is present
+        if (row.is_anniversary !== undefined) {
+          await applyAnniversaryTag(existing.id, row.is_anniversary)
+        }
+
         // Collab brewery links: only touch when populated
         if (row.collab_breweries.length > 0) {
           for (const cb of collabBreweries) {
@@ -770,6 +804,11 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
           // Beer style link
           if (row.style) {
             await applyBeerStyleLink(productId, row.style)
+          }
+
+          // Anniversary tag (only attach on create; nothing to strip yet)
+          if (row.is_anniversary) {
+            await applyAnniversaryTag(productId, true)
           }
 
           // Stock — set after createProductsWorkflow so the inventory item exists
