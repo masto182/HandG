@@ -3,6 +3,8 @@ import { notFound } from "next/navigation"
 
 import { getCategoryByHandle, listCategories } from "@lib/data/categories"
 import { listRegions } from "@lib/data/regions"
+import { getMembershipStatus, isApprovedMember } from "@lib/data/membership"
+import { getEarlyAccessConfig } from "@lib/data/early-access"
 import { HttpTypes, StoreRegion } from "@medusajs/types"
 import CategoryTemplate from "@modules/categories/templates"
 import { SortOptions } from "@modules/store/components/refinement-list/sort-products"
@@ -80,12 +82,20 @@ export default async function CategoryPage(props: Props) {
     notFound()
   }
 
+  const [membershipStatus, earlyAccess] = await Promise.all([
+    getMembershipStatus(),
+    getEarlyAccessConfig(),
+  ])
+
   return (
     <CategoryTemplate
       category={productCategory}
       sortBy={sortBy}
       page={page}
       countryCode={params.countryCode}
+      canSeePricing={isApprovedMember(membershipStatus)}
+      viewerTier={earlyAccess.viewerTier}
+      earlyAccessOffsets={earlyAccess.offsets}
     />
   )
 }

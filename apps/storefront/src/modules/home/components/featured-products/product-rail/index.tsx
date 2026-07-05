@@ -4,6 +4,7 @@ import { Text } from "@modules/common/components/ui"
 
 import InteractiveLink from "@modules/common/components/interactive-link"
 import ProductPreview from "@modules/products/components/product-preview"
+import { getMembershipStatus, isApprovedMember } from "@lib/data/membership"
 
 export default async function ProductRail({
   collection,
@@ -12,15 +13,20 @@ export default async function ProductRail({
   collection: HttpTypes.StoreCollection
   region: HttpTypes.StoreRegion
 }) {
+  const [membershipStatus, productsResult] = await Promise.all([
+    getMembershipStatus(),
+    listProducts({
+      regionId: region.id,
+      queryParams: {
+        collection_id: collection.id,
+        fields: "*variants.calculated_price",
+      },
+    }),
+  ])
+  const canSeePricing = isApprovedMember(membershipStatus)
   const {
     response: { products: pricedProducts },
-  } = await listProducts({
-    regionId: region.id,
-    queryParams: {
-      collection_id: collection.id,
-      fields: "*variants.calculated_price",
-    },
-  })
+  } = productsResult
 
   if (!pricedProducts) {
     return null
@@ -38,7 +44,12 @@ export default async function ProductRail({
         {pricedProducts &&
           pricedProducts.map((product) => (
             <li key={product.id}>
-              <ProductPreview product={product} region={region} isFeatured />
+              <ProductPreview
+                product={product}
+                region={region}
+                isFeatured
+                canSeePricing={canSeePricing}
+              />
             </li>
           ))}
       </ul>

@@ -3,6 +3,8 @@ import { notFound } from "next/navigation"
 
 import { getCollectionByHandle, listCollections } from "@lib/data/collections"
 import { listRegions } from "@lib/data/regions"
+import { getMembershipStatus, isApprovedMember } from "@lib/data/membership"
+import { getEarlyAccessConfig } from "@lib/data/early-access"
 import { StoreCollection, StoreRegion } from "@medusajs/types"
 import CollectionTemplate from "@modules/collections/templates"
 import { SortOptions } from "@modules/store/components/refinement-list/sort-products"
@@ -85,12 +87,20 @@ export default async function CollectionPage(props: Props) {
     notFound()
   }
 
+  const [membershipStatus, earlyAccess] = await Promise.all([
+    getMembershipStatus(),
+    getEarlyAccessConfig(),
+  ])
+
   return (
     <CollectionTemplate
       collection={collection}
       page={page}
       sortBy={sortBy}
       countryCode={params.countryCode}
+      canSeePricing={isApprovedMember(membershipStatus)}
+      viewerTier={earlyAccess.viewerTier}
+      earlyAccessOffsets={earlyAccess.offsets}
     />
   )
 }

@@ -103,7 +103,7 @@ export default async function Nav({
 
           <div className="flex items-center gap-6">
             <div className="hidden small:block">
-              <SearchBar />
+              <SearchBar canSeePricing={isApproved} />
             </div>
 
             <div className="hidden small:block">

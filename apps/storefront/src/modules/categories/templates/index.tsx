@@ -8,17 +8,27 @@ import { SortOptions } from "@modules/store/components/refinement-list/sort-prod
 import PaginatedProducts from "@modules/store/templates/paginated-products"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import { HttpTypes } from "@medusajs/types"
+import {
+  HOURS_BEFORE_PUBLIC_BY_TIER,
+  type Tier,
+} from "@retail-example/shared-types"
 
 export default function CategoryTemplate({
   category,
   sortBy,
   page,
   countryCode,
+  canSeePricing = true,
+  viewerTier = null,
+  earlyAccessOffsets,
 }: {
   category: HttpTypes.StoreProductCategory
   sortBy?: SortOptions
   page?: string
   countryCode: string
+  canSeePricing?: boolean
+  viewerTier?: Tier | null
+  earlyAccessOffsets?: typeof HOURS_BEFORE_PUBLIC_BY_TIER
 }) {
   const pageNumber = page ? parseInt(page) : 1
   const sort = sortBy || "created_at"
@@ -89,6 +99,9 @@ export default function CategoryTemplate({
             page={pageNumber}
             categoryId={category.id}
             countryCode={countryCode}
+            canSeePricing={canSeePricing}
+            viewerTier={viewerTier}
+            earlyAccessOffsets={earlyAccessOffsets}
           />
         </Suspense>
       </div>

@@ -7,6 +7,7 @@ import { getRegion } from "@lib/data/regions"
 import { getMembershipStatus, isApprovedMember } from "@lib/data/membership"
 import { getProductPrice } from "@lib/util/get-product-price"
 import Thumbnail from "@modules/products/components/thumbnail"
+import Icon from "@modules/common/components/icon"
 import AlertHopButton from "@modules/hops/components/alert-hop-button"
 
 type Props = {
@@ -254,11 +255,25 @@ export default async function HopDetailPage(props: Props) {
                   href={`/products/${product.handle}`}
                   className="group"
                 >
-                  <Thumbnail
-                    thumbnail={product.thumbnail}
-                    images={product.images}
-                    size="medium"
-                  />
+                  <div className="relative">
+                    <Thumbnail
+                      thumbnail={product.thumbnail}
+                      images={product.images}
+                      size="medium"
+                    />
+                    {!approved && (
+                      <div className="absolute inset-0 bg-hg-surface/60 backdrop-blur-[4px] z-10 flex flex-col items-center justify-center gap-2 rounded-lg">
+                        <Icon
+                          name="lock"
+                          size={28}
+                          className="text-hg-text-secondary"
+                        />
+                        <span className="text-[11px] font-bold text-hg-text-secondary uppercase tracking-widest">
+                          Members Only
+                        </span>
+                      </div>
+                    )}
+                  </div>
                   <div className="mt-3">
                     <p className="text-xs text-hg-accent font-medium uppercase tracking-wider">
                       {(product.metadata as any)?.brewery_name || ""}

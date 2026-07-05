@@ -14,7 +14,11 @@ type SearchHit = {
   thumbnail: string | null
 }
 
-export default function SearchBar() {
+export default function SearchBar({
+  canSeePricing = true,
+}: {
+  canSeePricing?: boolean
+}) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")
   const [results, setResults] = useState<SearchHit[]>([])
@@ -140,12 +144,14 @@ export default function SearchBar() {
                 onClick={() => handleSelect(hit.handle)}
                 className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-hg-gold/5 transition-colors text-left border-b border-hg-border/30 last:border-b-0"
               >
-                <div className="w-10 h-10 rounded-lg overflow-hidden bg-hg-bg border border-hg-border/50 flex-shrink-0 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-lg overflow-hidden bg-hg-bg border border-hg-border/50 flex-shrink-0 flex items-center justify-center relative">
                   {hit.thumbnail ? (
                     <img
                       src={hit.thumbnail}
                       alt=""
-                      className="w-full h-full object-cover"
+                      className={`w-full h-full object-cover ${
+                        canSeePricing ? "" : "blur-[4px]"
+                      }`}
                     />
                   ) : (
                     <svg
@@ -161,6 +167,29 @@ export default function SearchBar() {
                       <circle cx="8.5" cy="8.5" r="1.5" />
                       <path d="M21 15l-5-5L5 21" />
                     </svg>
+                  )}
+                  {!canSeePricing && hit.thumbnail && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-hg-surface/40">
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        className="text-hg-text-secondary"
+                      >
+                        <rect
+                          x="3"
+                          y="11"
+                          width="18"
+                          height="11"
+                          rx="2"
+                          ry="2"
+                        />
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                      </svg>
+                    </div>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
