@@ -99,7 +99,6 @@ jobs:
             git reset --hard origin/main
             export BACKEND_IMAGE="ghcr.io/masto182/backend:prod"
             export STOREFRONT_IMAGE="ghcr.io/masto182/storefront:prod"
-            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
             COMPOSE="docker compose -f docker-compose.prod.yml --env-file .env.production"
             echo "Docker disk usage before cleanup:"
             docker system df
@@ -143,9 +142,6 @@ jobs:
             docker builder prune -af || true
             echo "Docker disk usage after deploy cleanup:"
             docker system df
-        env:
-          GHCR_USER: ${{ github.repository_owner }}
-          GHCR_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
 
       - name: Production health probe
         timeout-minutes: 5
