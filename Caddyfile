@@ -39,7 +39,9 @@ www.{$DOMAIN} {
 	}
 
 	# Medusa REST API + Auth + webhooks
-	@backendApi path /store/* /admin* /auth* /webhooks* /files/*
+	# /troon* covers the obscured Medusa admin UI bundle (MEDUSA_ADMIN_PATH=/troon/admin
+	# baked into the backend image at build time) and its /troon/admin/assets/*.
+	@backendApi path /store/* /admin* /troon* /auth* /webhooks* /files/*
 	handle @backendApi {
 		reverse_proxy backend:9000
 	}

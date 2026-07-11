@@ -119,12 +119,24 @@ jobs:
             # 27245055317) that the standard migrator completes on this OCI host
             # with exit 0 and no external calls when invoked via the binary (not
             # npx) with --skip-scripts --skip-links. Links synced by the next step.
+            MEDUSA="./node_modules/.bin/medusa exec"
             if [ "${{ github.event.inputs.skip_migrations }}" != "true" ]; then
               $COMPOSE run --rm --no-deps backend ./node_modules/.bin/medusa db:migrate --skip-scripts --skip-links
               # Sync cross-module link tables (pivot tables between modules).
               $COMPOSE run --rm --no-deps backend ./node_modules/.bin/medusa db:sync-links
+              # Idempotent seed chain (mirrors deploy-staging.yml). Bootstraps a fresh
+              # DB; no-ops on an already-seeded prod DB via find-or-create / store-exists
+              # guards. Test fixtures are intentionally excluded (seed-e2e-products,
+              # seed-test-accounts, create-approved-member); seed.ts's demo accounts stay
+              # off because SEED_TEST_ACCOUNTS is unset in .env.production.
+              $COMPOSE run --rm --no-deps backend $MEDUSA ./src/migration-scripts/initial-data-seed.ts
+              $COMPOSE run --rm --no-deps backend $MEDUSA ./src/scripts/seed.ts
+              $COMPOSE run --rm --no-deps backend $MEDUSA ./src/scripts/seed-beer-styles.ts
+              $COMPOSE run --rm --no-deps backend $MEDUSA ./src/scripts/seed-hops.ts
+              $COMPOSE run --rm --no-deps backend $MEDUSA ./src/scripts/seed-vip-config.ts
+              $COMPOSE run --rm --no-deps backend $MEDUSA ./src/scripts/link-locations-to-sales-channel.ts
+              $COMPOSE run --rm --no-deps backend $MEDUSA ./src/scripts/link-products-to-channel.ts
             fi
-            MEDUSA="./node_modules/.bin/medusa exec"
             $COMPOSE run --rm --no-deps backend $MEDUSA ./src/scripts/reindex-search.ts
             $COMPOSE up -d --remove-orphans
             docker image prune -af

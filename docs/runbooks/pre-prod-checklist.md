@@ -11,11 +11,12 @@ the human-only infrastructure tasks required before go-live.
 - [ ] Create OCI Object Storage bucket `hopsandglory-backups` in the same region
 - [ ] Configure VCN: open port 80 + 443 only; block 9000, 5432, 6379, 6371 externally
 - [ ] Install Docker + Docker Compose on VM
-- [ ] Create directories:
+- [ ] Create directories (prod deploy dir MUST match deploy-prod.yml: `/opt/retail-example`):
   ```bash
-  sudo mkdir -p /opt/hopsandglory /opt/hopsandglory-staging
-  sudo chown ubuntu:ubuntu /opt/hopsandglory /opt/hopsandglory-staging
+  sudo mkdir -p /opt/retail-example /opt/hopsandglory-staging
+  sudo chown ubuntu:ubuntu /opt/retail-example /opt/hopsandglory-staging
   ```
+  Or just run `scripts/provision-host.sh` on the box, which does Docker + dirs + firewall + clone.
 
 ---
 
