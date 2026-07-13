@@ -2,6 +2,8 @@
  * Import in-stock US beers from data/us-beers-import.csv
  *
  * Idempotent: updates existing products by title match, creates new ones.
+ * Sale pricing uses Medusa SALE price lists (hg-sale-{handle}) so the
+ * storefront's calculated_price mechanism shows the strikethrough correctly.
  *
  * Usage:
  *   npx medusa exec ./src/scripts/import-us-beers.ts            # dry run (default)
@@ -9,7 +11,7 @@
  */
 import { ContainerRegistrationKeys, Modules, ProductStatus } from "@medusajs/framework/utils"
 import type { ExecArgs } from "@medusajs/framework/types"
-import { createProductsWorkflow, createInventoryLevelsWorkflow } from "@medusajs/medusa/core-flows"
+import { createProductsWorkflow, createPriceListsWorkflow } from "@medusajs/medusa/core-flows"
 import * as fs from "fs"
 import * as path from "path"
 
@@ -58,8 +60,8 @@ function parseLine(line: string): string[] {
 
 export default async function importProducts({ container }: ExecArgs) {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
-  const query = container.resolve(ContainerRegistrationKeys.QUERY)
   const productModule = container.resolve(Modules.PRODUCT) as any
+  const pricingModule = container.resolve(Modules.PRICING) as any
   const salesChannelModule = container.resolve(Modules.SALES_CHANNEL)
   const stockLocationModule = container.resolve(Modules.STOCK_LOCATION)
   const inventoryModule = container.resolve(Modules.INVENTORY) as any
@@ -155,6 +157,38 @@ export default async function importProducts({ container }: ExecArgs) {
     }
   }
 
+  // Helper: create or replace an hg-sale-{handle} SALE price list.
+  // When salePrice is null the price list is removed if it exists.
+  async function applyPriceList(handle: string, variantId: string, salePrice: number | null) {
+    const title = `hg-sale-${handle}`
+    try {
+      const existingLists = await pricingModule.listPriceLists({ type: "sale" })
+      const current = (existingLists as any[]).find((pl: any) => pl.title === title) || null
+      if (salePrice !== null) {
+        if (current) {
+          await pricingModule.deletePriceLists([current.id])
+        }
+        await createPriceListsWorkflow(container).run({
+          input: {
+            price_lists_data: [
+              {
+                title,
+                description: `Sale price for ${handle}`,
+                type: "sale",
+                status: "active",
+                prices: [{ variant_id: variantId, currency_code: "aud", amount: salePrice }],
+              },
+            ],
+          } as any,
+        })
+      } else if (current) {
+        await pricingModule.deletePriceLists([current.id])
+      }
+    } catch (e: any) {
+      logger.warn(`Price list update failed for ${handle}: ${e.message}`)
+    }
+  }
+
   const toCreate: typeof rows = []
   let updatedCount = 0
   let errors = 0
@@ -164,9 +198,14 @@ export default async function importProducts({ container }: ExecArgs) {
     const breweryName = row["Brewery"]?.trim()
     if (!title || !breweryName) continue
 
-    const price = parseFloat(row["Price"] || "0")
+    const rawPrice = parseFloat(row["Price"] || "0")
     const was = parseFloat(row["Was"] || "0")
-    const compareAt = was > price ? was : null
+    // When Was > Price, the product is on sale:
+    //   basePrice  = Was (shown as strikethrough)
+    //   salePrice  = Price (effective selling price via SALE price list)
+    const salePrice = was > rawPrice ? rawPrice : null
+    const basePrice = salePrice !== null ? was : rawPrice
+
     const stock = parseInt(row["Left"] || "0")
     const abv = parseFloat(row["ABV"]?.replace("%", "") || "0")
     const untappd = parseFloat(row["untappd"] || "0")
@@ -176,14 +215,7 @@ export default async function importProducts({ container }: ExecArgs) {
     const hops = row["Hops"] || ""
     const colab = row["Colab"] || ""
     const sku = `us-${slugify(breweryName)}-${slugify(title)}`.slice(0, 100)
-
-    const priceInput = [
-      {
-        currency_code: "aud",
-        amount: price,
-        ...(compareAt ? { compare_at_price: compareAt } : {}),
-      },
-    ]
+    const handle = slugify(`${breweryName}-${title}`)
 
     const metadata: Record<string, any> = {
       abv,
@@ -205,18 +237,20 @@ export default async function importProducts({ container }: ExecArgs) {
 
     if (existing) {
       const variant = existing.variants?.[0]
-      const saleLabel = compareAt ? ` (was $${compareAt})` : ""
+      const saleLabel = salePrice !== null ? ` (was $${was})` : ""
       if (dryRun) {
-        logger.info(`[update] ${breweryName} — ${title} @ $${price}${saleLabel}, stock=${stock}`)
+        logger.info(`[update] ${breweryName} — ${title} @ $${rawPrice}${saleLabel}, stock=${stock}`)
         continue
       }
 
       try {
         if (variant) {
           await productModule.updateProductVariants(variant.id, {
-            prices: priceInput,
+            prices: [{ currency_code: "aud", amount: basePrice }],
           })
           await applyStock(variant.id, sku, stock)
+          // Manage sale price list — uses existing.handle for reliable lookup
+          await applyPriceList(existing.handle || handle, variant.id, salePrice)
         }
         await productModule.updateProducts(existing.id, {
           metadata: { ...existing.metadata, ...metadata },
@@ -244,8 +278,8 @@ export default async function importProducts({ container }: ExecArgs) {
     } else {
       // Queue for batch create
       if (dryRun) {
-        const saleLabel = compareAt ? ` (was $${compareAt})` : ""
-        logger.info(`[create] ${breweryName} — ${title} @ $${price}${saleLabel}, stock=${stock}`)
+        const saleLabel = salePrice !== null ? ` (was $${was})` : ""
+        logger.info(`[create] ${breweryName} — ${title} @ $${rawPrice}${saleLabel}, stock=${stock}`)
         continue
       }
       toCreate.push(row)
@@ -265,9 +299,10 @@ export default async function importProducts({ container }: ExecArgs) {
       const workflowInput = batch.map((row) => {
         const title = row["Beer"].trim()
         const breweryName = row["Brewery"].trim()
-        const price = parseFloat(row["Price"] || "0")
+        const rawPrice = parseFloat(row["Price"] || "0")
         const was = parseFloat(row["Was"] || "0")
-        const compareAt = was > price ? was : null
+        const salePrice = was > rawPrice ? rawPrice : null
+        const basePrice = salePrice !== null ? was : rawPrice
         const abv = parseFloat(row["ABV"]?.replace("%", "") || "0")
         const untappd = parseFloat(row["untappd"] || "0")
         const style = row["Style"] || ""
@@ -276,6 +311,7 @@ export default async function importProducts({ container }: ExecArgs) {
         const hops = row["Hops"] || ""
         const colab = row["Colab"] || ""
         const sku = `us-${slugify(breweryName)}-${slugify(title)}`.slice(0, 100)
+        const handle = slugify(`${breweryName}-${title}`)
 
         const metadata: Record<string, any> = {
           abv,
@@ -293,7 +329,7 @@ export default async function importProducts({ container }: ExecArgs) {
 
         return {
           title,
-          handle: slugify(`${breweryName}-${title}`),
+          handle,
           description: [style, abv ? `${abv}% ABV` : "", comment || ""].filter(Boolean).join(" · "),
           status: ProductStatus.PUBLISHED,
           metadata,
@@ -304,13 +340,7 @@ export default async function importProducts({ container }: ExecArgs) {
               sku,
               manage_inventory: true,
               weight: 500,
-              prices: [
-                {
-                  currency_code: "aud",
-                  amount: price,
-                  ...(compareAt ? { compare_at_price: compareAt } : {}),
-                },
-              ],
+              prices: [{ currency_code: "aud", amount: basePrice }],
               options: { Format: "Can" },
             },
           ],
@@ -318,11 +348,15 @@ export default async function importProducts({ container }: ExecArgs) {
           _brewery_name: breweryName,
           _stock: parseInt(row["Left"] || "0"),
           _sku: sku,
+          _handle: handle,
+          _sale_price: salePrice,
         }
       })
 
       try {
-        const input = workflowInput.map(({ _brewery_name, _stock, _sku, ...product }) => product)
+        const input = workflowInput.map(
+          ({ _brewery_name, _stock, _sku, _handle, _sale_price, ...product }) => product
+        )
         const { result: products } = await createProductsWorkflow(container).run({
           input: { products: input },
         })
@@ -341,12 +375,19 @@ export default async function importProducts({ container }: ExecArgs) {
             }
           }
 
+          const newVariant = products[j].variants[0]
+
           // Set stock for new product
-          await applyStock(
-            products[j].variants[0].id,
-            workflowInput[j]._sku,
-            workflowInput[j]._stock
-          )
+          await applyStock(newVariant.id, workflowInput[j]._sku, workflowInput[j]._stock)
+
+          // Set sale price list if applicable
+          if (workflowInput[j]._sale_price !== null && newVariant) {
+            await applyPriceList(
+              products[j].handle || workflowInput[j]._handle,
+              newVariant.id,
+              workflowInput[j]._sale_price
+            )
+          }
         }
 
         createdCount += products.length

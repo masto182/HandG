@@ -1,6 +1,10 @@
 import { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys, Modules, ProductStatus } from "@medusajs/framework/utils"
-import { createInventoryLevelsWorkflow, createProductsWorkflow } from "@medusajs/medusa/core-flows"
+import {
+  createInventoryLevelsWorkflow,
+  createProductsWorkflow,
+  createPriceListsWorkflow,
+} from "@medusajs/medusa/core-flows"
 import { HOP_MODULE } from "../../../modules/hop"
 import { BEER_STYLE_MODULE } from "../../../modules/beer-style"
 import { createBreweryWorkflow } from "../../../workflows/manage-brewery"
@@ -22,6 +26,7 @@ const EXPORT_COLUMNS = [
   "style",
   "abv",
   "price",
+  "compare_at_price",
   "stock",
   "container",
   "volume_ml",
@@ -48,10 +53,29 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
 
     // Fetch products with linked hops (hops.* works from the product side via N:M link).
     // Beer style uses a reverse traversal below (same pattern as breweries).
+    const pricingModule = req.scope.resolve(Modules.PRICING) as any
+
+    // Pre-load all hg-sale price lists (one per discounted product)
+    const saleByHandle = new Map<string, number>()
+    try {
+      const saleLists = await pricingModule.listPriceLists(
+        { type: "sale" },
+        { relations: ["prices"] }
+      )
+      for (const pl of saleLists as any[]) {
+        if (pl.title?.startsWith("hg-sale-")) {
+          const handle = pl.title.slice("hg-sale-".length)
+          const audPrice = (pl.prices || []).find((p: any) => p.currency_code === "aud")
+          if (audPrice) saleByHandle.set(handle, Number(audPrice.amount))
+        }
+      }
+    } catch {}
+
     const { data: products } = await query.graph({
       entity: "product",
       fields: [
         "id",
+        "handle",
         "title",
         "description",
         "metadata",
@@ -121,14 +145,22 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
       const collabs = linked.filter((b) => b.slug !== primarySlug).map((b) => b.name)
 
       // lowest AUD price across variants
-      let price: number | null = null
+      let basePrice: number | null = null
       for (const v of p.variants || []) {
         for (const pr of (v as any).prices || []) {
           if (pr.currency_code === "aud") {
-            price = price == null ? Number(pr.amount) : Math.min(price, Number(pr.amount))
+            basePrice =
+              basePrice == null ? Number(pr.amount) : Math.min(basePrice, Number(pr.amount))
           }
         }
       }
+      // If a hg-sale price list exists for this product, the base price is the
+      // "was" price and the sale amount is the effective selling price.
+      const saleAmount = saleByHandle.get((p as any).handle || "")
+      const price =
+        saleAmount != null && basePrice != null && saleAmount < basePrice ? saleAmount : basePrice
+      const compareAtPrice =
+        saleAmount != null && basePrice != null && saleAmount < basePrice ? basePrice : null
 
       // Hops: prefer linked hops (link table), fall back to metadata variants
       const linkedHopNames = ((p as any).hops || []).map((h: any) => h.name).filter(Boolean)
@@ -157,6 +189,7 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
         style,
         abv: md.abv ?? "",
         price: price ?? "",
+        compare_at_price: compareAtPrice ?? "",
         stock: stock ?? "",
         container,
         volume_ml: md.volume_ml ?? "",
@@ -324,6 +357,44 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
       }
     } catch (err: any) {
       logger.warn(`[CSV Import] Stock update failed for variant ${variantId}: ${err.message}`)
+    }
+  }
+
+  // Create or replace the hg-sale-{handle} SALE price list for a product.
+  // When salePrice is null the price list is removed if it exists.
+  // Uses delete-then-recreate so the approach is always idempotent.
+  async function applyPriceList(
+    handle: string,
+    variantId: string,
+    salePrice: number | null
+  ): Promise<void> {
+    const pricingModule = req.scope.resolve(Modules.PRICING) as any
+    const title = `hg-sale-${handle}`
+    try {
+      const existingLists = await pricingModule.listPriceLists({ type: "sale" })
+      const current = (existingLists as any[]).find((pl: any) => pl.title === title) || null
+      if (salePrice !== null) {
+        if (current) {
+          await pricingModule.deletePriceLists([current.id])
+        }
+        await createPriceListsWorkflow(req.scope).run({
+          input: {
+            price_lists_data: [
+              {
+                title,
+                description: `Sale price for ${handle}`,
+                type: "sale",
+                status: "active",
+                prices: [{ variant_id: variantId, currency_code: "aud", amount: salePrice }],
+              },
+            ],
+          } as any,
+        })
+      } else if (current) {
+        await pricingModule.deletePriceLists([current.id])
+      }
+    } catch (err: any) {
+      logger.warn(`[CSV Import] Price list update failed for ${handle}: ${err.message}`)
     }
   }
 
@@ -566,6 +637,7 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
             messages: rowMsgs,
             changes: {
               price: row.price,
+              compare_at_price: row.compare_at_price || undefined,
               style: row.style,
               abv: row.abv,
               brewery: brewery.name,
@@ -575,6 +647,13 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
           })
           continue
         }
+
+        // Resolve sale pricing: base price = Was (compare_at_price) when on sale,
+        // else base price = current price. A SALE price list holds the discounted amount.
+        const compareAt = row.compare_at_price ? parseFloat(row.compare_at_price) : null
+        const rawPrice = parseFloat(row.price) || 0
+        const salePrice = compareAt && compareAt > rawPrice ? rawPrice : null
+        const basePrice = salePrice !== null ? compareAt! : rawPrice
 
         // Update product variant price + product metadata/images via a
         // compensatable workflow — rolls back both if either step fails.
@@ -594,10 +673,12 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
             input: {
               product_id: existing.id,
               variant_id: variant.id,
-              price_aud: parseFloat(row.price) || 0,
+              price_aud: basePrice,
               product_update: updateInput,
             },
           })
+          // Manage SALE price list after base price is set
+          await applyPriceList(existing.handle, variant.id, salePrice)
         }
 
         // Hops links: clear all existing links then add the new set so the
@@ -703,6 +784,7 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
             messages: rowMsgs,
             changes: {
               price: row.price,
+              compare_at_price: row.compare_at_price || undefined,
               style: row.style,
               abv: row.abv,
               brewery: brewery.name,
@@ -712,6 +794,13 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
           })
           continue
         }
+
+        // Resolve sale pricing for new products
+        const createCompareAt = row.compare_at_price ? parseFloat(row.compare_at_price) : null
+        const createRawPrice = parseFloat(row.price) || 0
+        const createSalePrice =
+          createCompareAt && createCompareAt > createRawPrice ? createRawPrice : null
+        const createBasePrice = createSalePrice !== null ? createCompareAt! : createRawPrice
 
         const productInput: Record<string, any> = {
           title: row.name,
@@ -726,7 +815,7 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
               title: `${row.name} — ${containerValue}`,
               sku: handle,
               manage_inventory: true,
-              prices: [{ currency_code: "aud", amount: parseFloat(row.price) || 0 }],
+              prices: [{ currency_code: "aud", amount: createBasePrice }],
               options: { Size: containerValue },
             },
           ],
@@ -816,6 +905,11 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
             // Small delay to let createProductsWorkflow's inventory setup complete
             await new Promise((r) => setTimeout(r, 200))
             await applyStock(newVariant.id, stockQty)
+          }
+
+          // SALE price list — set after inventory delay so price_set is fully established
+          if (createSalePrice !== null && newVariant) {
+            await applyPriceList(handle, newVariant.id, createSalePrice)
           }
 
           // Re-trigger reindex now that all links exist. product.created fires

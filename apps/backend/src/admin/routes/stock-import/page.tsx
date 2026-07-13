@@ -66,10 +66,10 @@ type ValidateResult = {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const COLUMNS =
-  "name, brewery, style, abv, price, stock, container, volume_ml, comment, collab_breweries, hops, images, release_at, is_anniversary"
+  "name, brewery, style, abv, price, compare_at_price, stock, container, volume_ml, comment, collab_breweries, hops, images, release_at, is_anniversary"
 
 const SAMPLE =
-  'name,brewery,style,abv,price,stock,container,volume_ml,collab_breweries,hops,images,release_at,is_anniversary\nStatus Quo DIPA,Mountain Culture Beer Co,Double IPA,8.0,15,24,Can 440ml,440,,"Citra,Mosaic","https://cdn.example.com/sq.jpg",2026-06-01T18:00:00+10:00,false'
+  'name,brewery,style,abv,price,compare_at_price,stock,container,volume_ml,collab_breweries,hops,images,release_at,is_anniversary\nStatus Quo DIPA,Mountain Culture Beer Co,Double IPA,8.0,12,15,24,Can 440ml,440,,"Citra,Mosaic","https://cdn.example.com/sq.jpg",2026-06-01T18:00:00+10:00,false'
 
 const ACTION_BADGE: Record<string, { label: string; color: "green" | "blue" | "red" }> = {
   create: { label: "Create", color: "green" },
@@ -652,7 +652,7 @@ const StockImportPage = () => {
                         </Table.Cell>
                         <Table.Cell className="text-xs text-ui-fg-subtle">
                           {r.changes
-                            ? `${r.changes.brewery} · ${r.changes.style} · ${r.changes.abv}% · $${r.changes.price}`
+                            ? `${r.changes.brewery} · ${r.changes.style} · ${r.changes.abv}% · $${r.changes.price}${r.changes.compare_at_price ? ` (was $${r.changes.compare_at_price})` : ""}`
                             : "—"}
                         </Table.Cell>
                         <Table.Cell className="text-xs text-ui-fg-muted">

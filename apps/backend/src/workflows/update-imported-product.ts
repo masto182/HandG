@@ -81,13 +81,16 @@ const updateImportedProductStep = createStep(
     if (!compensation) return
     const productModule = container.resolve(Modules.PRODUCT) as any
 
-    // Restore prices
+    // Restore prices — only restore non-price-list prices so a rollback never
+    // re-adds sale price list entries as base prices.
     if (compensation.prevPrices.length) {
       await productModule.updateProductVariants(compensation.variant_id, {
-        prices: compensation.prevPrices.map((p: any) => ({
-          currency_code: p.currency_code,
-          amount: p.amount,
-        })),
+        prices: compensation.prevPrices
+          .filter((p: any) => !p.price_list_id)
+          .map((p: any) => ({
+            currency_code: p.currency_code,
+            amount: p.amount,
+          })),
       })
     }
 

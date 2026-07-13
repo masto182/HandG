@@ -15,6 +15,7 @@ export type ParsedRow = {
   images: string[]
   release_at?: string
   is_anniversary?: boolean
+  compare_at_price?: string
   extras: Record<string, string>
   parseErrors: string[]
 }
@@ -34,6 +35,7 @@ export const KNOWN_COLUMNS = new Set([
   "images",
   "release_at",
   "is_anniversary",
+  "compare_at_price",
 ])
 
 export function slugify(str: string): string {
@@ -86,6 +88,15 @@ export function parseStockImportCsv(text: string): ParsedRow[] {
       }
     }
 
+    if (rec.compare_at_price && rec.compare_at_price !== "") {
+      const cap = parseFloat(rec.compare_at_price)
+      if (isNaN(cap) || cap < 0) {
+        parseErrors.push(
+          `"${rec.name}": compare_at_price must be a non-negative number (got "${rec.compare_at_price}")`
+        )
+      }
+    }
+
     const extras: Record<string, string> = {}
     for (const [k, v] of Object.entries(rec)) {
       if (!KNOWN_COLUMNS.has(k) && v !== undefined && v !== "") {
@@ -108,6 +119,7 @@ export function parseStockImportCsv(text: string): ParsedRow[] {
       images: splitMulti(rec.images || ""),
       release_at: rec.release_at && rec.release_at !== "" ? rec.release_at : undefined,
       is_anniversary: parseBoolean(rec.is_anniversary),
+      compare_at_price: rec.compare_at_price || "",
       extras,
       parseErrors,
     })
