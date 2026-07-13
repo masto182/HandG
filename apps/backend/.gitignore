@@ -24,3 +24,5 @@ build
 !.yarn/versions
 
 .medusa
+# One-off import inputs — not tracked artifacts
+data/us-beers-import.csv

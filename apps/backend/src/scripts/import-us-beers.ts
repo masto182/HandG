@@ -1,3 +1,12 @@
+/**
+ * Import in-stock US beers from data/us-beers-import.csv
+ *
+ * Idempotent: updates existing products by title match, creates new ones.
+ *
+ * Usage:
+ *   npx medusa exec ./src/scripts/import-us-beers.ts            # dry run (default)
+ *   DRY_RUN=false npx medusa exec ./src/scripts/import-us-beers.ts  # commit
+ */
 import { ContainerRegistrationKeys, Modules, ProductStatus } from "@medusajs/framework/utils"
 import type { ExecArgs } from "@medusajs/framework/types"
 import { createProductsWorkflow, createInventoryLevelsWorkflow } from "@medusajs/medusa/core-flows"
@@ -11,210 +20,351 @@ function slugify(str: string): string {
     .replace(/^-|-$/g, "")
 }
 
-function parseCSV(filePath: string) {
+function parseCSV(filePath: string): Record<string, string>[] {
   const content = fs.readFileSync(filePath, "utf-8")
   const lines = content.split("\n").filter((l) => l.trim())
-  const headers = lines[0].split(",")
+  const headers = parseLine(lines[0])
 
   const rows: Record<string, string>[] = []
   for (let i = 1; i < lines.length; i++) {
-    const values: string[] = []
-    let current = ""
-    let inQuotes = false
-
-    for (const char of lines[i]) {
-      if (char === '"') {
-        inQuotes = !inQuotes
-      } else if (char === "," && !inQuotes) {
-        values.push(current.trim())
-        current = ""
-      } else {
-        current += char
-      }
-    }
-    values.push(current.trim())
-
+    const values = parseLine(lines[i])
     const row: Record<string, string> = {}
     headers.forEach((h, idx) => {
-      row[h.trim()] = values[idx] || ""
+      row[h.trim()] = (values[idx] || "").trim()
     })
     rows.push(row)
   }
   return rows
 }
 
+function parseLine(line: string): string[] {
+  const values: string[] = []
+  let current = ""
+  let inQuotes = false
+
+  for (const char of line) {
+    if (char === '"') {
+      inQuotes = !inQuotes
+    } else if (char === "," && !inQuotes) {
+      values.push(current)
+      current = ""
+    } else {
+      current += char
+    }
+  }
+  values.push(current)
+  return values
+}
+
 export default async function importProducts({ container }: ExecArgs) {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
+  const productModule = container.resolve(Modules.PRODUCT) as any
   const salesChannelModule = container.resolve(Modules.SALES_CHANNEL)
   const stockLocationModule = container.resolve(Modules.STOCK_LOCATION)
+  const inventoryModule = container.resolve(Modules.INVENTORY) as any
   const link = container.resolve(ContainerRegistrationKeys.LINK)
   const breweryService = container.resolve("brewery") as any
 
-  logger.info("Starting US beer import...")
+  const dryRun = process.env.DRY_RUN !== "false"
 
-  const csvPath = path.resolve(__dirname, "../../data/us-beers-current.csv")
+  logger.info(`Starting US beer import (${dryRun ? "DRY RUN" : "COMMIT"})...`)
+
+  const csvPath = process.env.IMPORT_CSV
+    ? path.resolve(process.env.IMPORT_CSV)
+    : path.join(process.cwd(), "data", "us-beers-import.csv")
   if (!fs.existsSync(csvPath)) {
     logger.error(`CSV file not found at ${csvPath}`)
-    logger.error("Place the CSV at apps/backend/data/us-beers-current.csv")
+    logger.error("Copy the CSV to data/us-beers-import.csv or set IMPORT_CSV=/path/to/file")
     return
   }
 
   const rows = parseCSV(csvPath)
-  logger.info(`Parsed ${rows.length} products from CSV`)
+  logger.info(`Parsed ${rows.length} rows from CSV`)
 
-  const salesChannels = await salesChannelModule.listSalesChannels({})
-  if (!salesChannels.length) {
-    logger.error("No sales channel found. Run the base seed first.")
+  // Find the canonical H&G sales channel — not just [0] to avoid the orphan Default channel
+  const allChannels = await salesChannelModule.listSalesChannels({})
+  const salesChannel =
+    allChannels.find(
+      (c) => c.name.toLowerCase().includes("hops") || c.name.toLowerCase().includes("glory")
+    ) || allChannels[0]
+  if (!salesChannel) {
+    logger.error("No sales channel found — run the base seed first")
     return
   }
-  const salesChannel = salesChannels[0]
+  logger.info(`Using sales channel: ${salesChannel.name}`)
 
-  const stockLocations = await stockLocationModule.listStockLocations({})
-  if (!stockLocations.length) {
-    logger.error("No stock location found. Run the base seed first.")
+  // Find the warehouse stock location
+  const locations = await stockLocationModule.listStockLocations({})
+  const warehouse =
+    locations.find(
+      (l) => l.name.toLowerCase().includes("glory") || l.name.toLowerCase().includes("warehouse")
+    ) || locations[0]
+  if (!warehouse) {
+    logger.error("No stock location found — run the base seed first")
     return
   }
-  const stockLocation = stockLocations[0]
 
-  const uniqueBreweries = [...new Set(rows.map((r) => r["Brewery"]).filter(Boolean))]
-  logger.info(`Found ${uniqueBreweries.length} unique breweries`)
-
-  const breweryMap: Record<string, any> = {}
+  // Pre-load brewery map
   const existingBreweries = await breweryService.listBreweries({})
-
-  for (const existing of existingBreweries) {
-    breweryMap[existing.name.toLowerCase()] = existing
+  const breweryMap: Record<string, any> = {}
+  for (const b of existingBreweries) {
+    breweryMap[b.name.toLowerCase()] = b
   }
 
+  // Ensure all breweries exist
+  const uniqueBreweries = [...new Set(rows.map((r) => r["Brewery"]).filter(Boolean))]
   for (const breweryName of uniqueBreweries) {
     if (breweryMap[breweryName.toLowerCase()]) continue
-
-    const brewery = await breweryService.createBreweries({
+    if (dryRun) {
+      logger.info(`[dry run] Would create brewery: ${breweryName}`)
+      continue
+    }
+    const b = await breweryService.createBreweries({
       name: breweryName,
       slug: slugify(breweryName),
       location: "United States",
       description: `${breweryName} — featured producer in the Hops & Glory private collection.`,
     })
-    breweryMap[breweryName.toLowerCase()] = brewery
+    breweryMap[breweryName.toLowerCase()] = b
     logger.info(`Created brewery: ${breweryName}`)
   }
 
-  const productsInput = rows.map((row) => {
-    const title = row["Beer"] || "Untitled"
-    const brewery = row["Brewery"] || "Unknown"
+  // Helper: update or create inventory level
+  async function applyStock(variantId: string, sku: string, qty: number) {
+    if (!warehouse || qty <= 0) return
+    try {
+      const items = await inventoryModule.listInventoryItems({ sku })
+      const item = items?.[0]
+      if (!item) return
+      const levels = await inventoryModule.listInventoryLevels({
+        inventory_item_id: item.id,
+        location_id: warehouse.id,
+      })
+      if (levels?.length) {
+        await inventoryModule.updateInventoryLevels([{ id: levels[0].id, stocked_quantity: qty }])
+      } else {
+        await inventoryModule.createInventoryLevels({
+          inventory_item_id: item.id,
+          location_id: warehouse.id,
+          stocked_quantity: qty,
+        })
+      }
+    } catch (e: any) {
+      logger.warn(`Stock update failed for ${sku}: ${e.message}`)
+    }
+  }
+
+  const toCreate: typeof rows = []
+  let updatedCount = 0
+  let errors = 0
+
+  for (const row of rows) {
+    const title = row["Beer"]?.trim()
+    const breweryName = row["Brewery"]?.trim()
+    if (!title || !breweryName) continue
+
+    const price = parseFloat(row["Price"] || "0")
+    const was = parseFloat(row["Was"] || "0")
+    const compareAt = was > price ? was : null
+    const stock = parseInt(row["Left"] || "0")
     const abv = parseFloat(row["ABV"]?.replace("%", "") || "0")
     const untappd = parseFloat(row["untappd"] || "0")
     const style = row["Style"] || ""
     const comment = row["Comment"] || ""
-    const stock = parseInt(row["Left"] || "0")
     const releasedDate = row["Released Date"] || ""
+    const hops = row["Hops"] || ""
+    const colab = row["Colab"] || ""
+    const sku = `us-${slugify(breweryName)}-${slugify(title)}`.slice(0, 100)
 
-    const sku = `us-${slugify(brewery)}-${slugify(title)}`.slice(0, 100)
-
-    return {
-      title,
-      handle: slugify(`${brewery}-${title}`),
-      description: [style, abv ? `${abv}% ABV` : "", comment ? comment : ""]
-        .filter(Boolean)
-        .join(" · "),
-      status: ProductStatus.PUBLISHED,
-      metadata: {
-        abv,
-        untappd_score: untappd,
-        brewery,
-        style,
-        released_date: releasedDate,
-        comment: comment || null,
-        origin: "US",
+    const priceInput = [
+      {
+        currency_code: "aud",
+        amount: price,
+        ...(compareAt ? { compare_at_price: compareAt } : {}),
       },
-      options: [{ title: "Format", values: ["Can"] }],
-      variants: [
-        {
-          title: `${title} — Can`,
-          sku,
-          manage_inventory: true,
-          weight: 500,
-          prices: [{ currency_code: "aud", amount: 15 }],
-          options: { Format: "Can" },
-        },
-      ],
-      sales_channels: [{ id: salesChannel.id }],
-      _stock: stock,
-      _brewery_name: brewery,
+    ]
+
+    const metadata: Record<string, any> = {
+      abv,
+      untappd_score: untappd,
+      brewery: breweryName,
+      brewery_name: breweryName,
+      brewery_slug: slugify(breweryName),
+      style,
+      released_date: releasedDate,
+      comment: comment || null,
+      origin: "US",
     }
-  })
+    if (hops) metadata.hop_names = hops
+    if (colab) metadata.collab_partner = colab
 
-  const BATCH_SIZE = 10
-  let createdCount = 0
+    // Check if product already exists
+    const existingArr = await productModule.listProducts({ title })
+    const existing = existingArr.find((p: any) => p.title === title && p.status === "published")
 
-  for (let i = 0; i < productsInput.length; i += BATCH_SIZE) {
-    const batch = productsInput.slice(i, i + BATCH_SIZE)
+    if (existing) {
+      const variant = existing.variants?.[0]
+      const saleLabel = compareAt ? ` (was $${compareAt})` : ""
+      if (dryRun) {
+        logger.info(`[update] ${breweryName} — ${title} @ $${price}${saleLabel}, stock=${stock}`)
+        continue
+      }
 
-    const workflowInput = batch.map(({ _stock, _brewery_name, ...product }) => product)
+      try {
+        if (variant) {
+          await productModule.updateProductVariants(variant.id, {
+            prices: priceInput,
+          })
+          await applyStock(variant.id, sku, stock)
+        }
+        await productModule.updateProducts(existing.id, {
+          metadata: { ...existing.metadata, ...metadata },
+        })
 
-    try {
-      const { result: products } = await createProductsWorkflow(container).run({
-        input: { products: workflowInput },
-      })
-
-      for (let j = 0; j < products.length; j++) {
-        const breweryName = batch[j]._brewery_name
+        // Brewery link (skip if already linked)
         const brewery = breweryMap[breweryName.toLowerCase()]
         if (brewery) {
           try {
             await link.create({
               brewery: { brewery_id: brewery.id },
-              [Modules.PRODUCT]: { product_id: products[j].id },
+              [Modules.PRODUCT]: { product_id: existing.id },
             })
-          } catch (e: any) {
-            logger.warn(`Link failed for ${batch[j].title}: ${e.message}`)
+          } catch {
+            // link already exists — ignore
           }
         }
-      }
 
-      createdCount += products.length
-      logger.info(
-        `Batch ${Math.floor(i / BATCH_SIZE) + 1}: Created ${products.length} products (${createdCount}/${productsInput.length})`
-      )
-    } catch (e: any) {
-      logger.error(`Batch ${Math.floor(i / BATCH_SIZE) + 1} failed: ${e.message}`)
-    }
-  }
-
-  logger.info("Setting inventory levels...")
-  const { data: inventoryItems } = await query.graph({
-    entity: "inventory_item",
-    fields: ["id", "sku"],
-  })
-
-  const skuToStock: Record<string, number> = {}
-  for (const row of productsInput) {
-    const sku = `us-${slugify(row._brewery_name)}-${slugify(row.title)}`.slice(0, 100)
-    skuToStock[sku] = row._stock || 1
-  }
-
-  const newLevels = inventoryItems
-    .filter((item: any) => item.sku?.startsWith("us-"))
-    .map((item: any) => ({
-      location_id: stockLocation.id,
-      stocked_quantity: skuToStock[item.sku] || 1,
-      inventory_item_id: item.id,
-    }))
-
-  if (newLevels.length > 0) {
-    for (let i = 0; i < newLevels.length; i += BATCH_SIZE) {
-      const batch = newLevels.slice(i, i + BATCH_SIZE)
-      try {
-        await createInventoryLevelsWorkflow(container).run({
-          input: { inventory_levels: batch },
-        })
+        updatedCount++
+        logger.info(`Updated: ${breweryName} — ${title}`)
       } catch (e: any) {
-        logger.warn(`Inventory batch failed: ${e.message}`)
+        logger.error(`Update failed for ${title}: ${e.message}`)
+        errors++
       }
+    } else {
+      // Queue for batch create
+      if (dryRun) {
+        const saleLabel = compareAt ? ` (was $${compareAt})` : ""
+        logger.info(`[create] ${breweryName} — ${title} @ $${price}${saleLabel}, stock=${stock}`)
+        continue
+      }
+      toCreate.push(row)
     }
-    logger.info(`Set inventory for ${newLevels.length} items`)
   }
 
-  logger.info(`Import complete! Created ${createdCount} products from US beer list.`)
+  // Batch create new products
+  if (!dryRun && toCreate.length > 0) {
+    logger.info(`Creating ${toCreate.length} new products...`)
+
+    const BATCH_SIZE = 10
+    let createdCount = 0
+
+    for (let i = 0; i < toCreate.length; i += BATCH_SIZE) {
+      const batch = toCreate.slice(i, i + BATCH_SIZE)
+
+      const workflowInput = batch.map((row) => {
+        const title = row["Beer"].trim()
+        const breweryName = row["Brewery"].trim()
+        const price = parseFloat(row["Price"] || "0")
+        const was = parseFloat(row["Was"] || "0")
+        const compareAt = was > price ? was : null
+        const abv = parseFloat(row["ABV"]?.replace("%", "") || "0")
+        const untappd = parseFloat(row["untappd"] || "0")
+        const style = row["Style"] || ""
+        const comment = row["Comment"] || ""
+        const releasedDate = row["Released Date"] || ""
+        const hops = row["Hops"] || ""
+        const colab = row["Colab"] || ""
+        const sku = `us-${slugify(breweryName)}-${slugify(title)}`.slice(0, 100)
+
+        const metadata: Record<string, any> = {
+          abv,
+          untappd_score: untappd,
+          brewery: breweryName,
+          brewery_name: breweryName,
+          brewery_slug: slugify(breweryName),
+          style,
+          released_date: releasedDate,
+          comment: comment || null,
+          origin: "US",
+        }
+        if (hops) metadata.hop_names = hops
+        if (colab) metadata.collab_partner = colab
+
+        return {
+          title,
+          handle: slugify(`${breweryName}-${title}`),
+          description: [style, abv ? `${abv}% ABV` : "", comment || ""].filter(Boolean).join(" · "),
+          status: ProductStatus.PUBLISHED,
+          metadata,
+          options: [{ title: "Format", values: ["Can"] }],
+          variants: [
+            {
+              title: `${title} — Can`,
+              sku,
+              manage_inventory: true,
+              weight: 500,
+              prices: [
+                {
+                  currency_code: "aud",
+                  amount: price,
+                  ...(compareAt ? { compare_at_price: compareAt } : {}),
+                },
+              ],
+              options: { Format: "Can" },
+            },
+          ],
+          sales_channels: [{ id: salesChannel.id }],
+          _brewery_name: breweryName,
+          _stock: parseInt(row["Left"] || "0"),
+          _sku: sku,
+        }
+      })
+
+      try {
+        const input = workflowInput.map(({ _brewery_name, _stock, _sku, ...product }) => product)
+        const { result: products } = await createProductsWorkflow(container).run({
+          input: { products: input },
+        })
+
+        for (let j = 0; j < products.length; j++) {
+          const breweryName = workflowInput[j]._brewery_name
+          const brewery = breweryMap[breweryName.toLowerCase()]
+          if (brewery) {
+            try {
+              await link.create({
+                brewery: { brewery_id: brewery.id },
+                [Modules.PRODUCT]: { product_id: products[j].id },
+              })
+            } catch (e: any) {
+              logger.warn(`Brewery link failed for ${workflowInput[j].title}: ${e.message}`)
+            }
+          }
+
+          // Set stock for new product
+          await applyStock(
+            products[j].variants[0].id,
+            workflowInput[j]._sku,
+            workflowInput[j]._stock
+          )
+        }
+
+        createdCount += products.length
+        logger.info(
+          `Batch ${Math.floor(i / BATCH_SIZE) + 1}: created ${products.length} (${createdCount}/${toCreate.length})`
+        )
+      } catch (e: any) {
+        logger.error(`Create batch ${Math.floor(i / BATCH_SIZE) + 1} failed: ${e.message}`)
+        errors++
+      }
+    }
+
+    logger.info(`Created ${createdCount} new products`)
+  }
+
+  if (dryRun) {
+    logger.info(`Dry run complete — ${rows.length} rows parsed (use DRY_RUN=false to commit)`)
+  } else {
+    logger.info(`Import complete — updated: ${updatedCount}, errors: ${errors}`)
+  }
 }
