@@ -121,6 +121,25 @@ const StockImportPage = () => {
   // Tab state
   const [activeTab, setActiveTab] = useState<"csv" | "images">("csv")
 
+  // ── Reindex state ──────────────────────────────────────────────────────────
+  const [reindexing, setReindexing] = useState(false)
+
+  async function handleReindex() {
+    setReindexing(true)
+    try {
+      const res = await sdk.client.fetch("/admin/reindex", { method: "POST" })
+      if ((res as any).success) {
+        toast.success("Catalogue reindex complete — storefront will update shortly")
+      } else {
+        toast.error("Reindex failed: " + ((res as any).message || "unknown error"))
+      }
+    } catch (err: any) {
+      toast.error("Reindex failed: " + (err.message || "unknown error"))
+    } finally {
+      setReindexing(false)
+    }
+  }
+
   // ── CSV Import state ────────────────────────────────────────────────────────
   const [step, setStep] = useState<"source" | "preview" | "done">("source")
   const [csv, setCsv] = useState("")
@@ -423,9 +442,14 @@ const StockImportPage = () => {
       <Heading level="h1" className="mb-1">
         Stock Import
       </Heading>
-      <Text size="small" className="text-ui-fg-subtle mb-4 block">
-        Import stock and product data via CSV, or bulk-associate product images.
-      </Text>
+      <div className="flex items-center justify-between mb-4">
+        <Text size="small" className="text-ui-fg-subtle">
+          Import stock and product data via CSV, or bulk-associate product images.
+        </Text>
+        <Button variant="secondary" size="small" onClick={handleReindex} isLoading={reindexing}>
+          Reindex Catalogue
+        </Button>
+      </div>
 
       {/* Tab bar */}
       <div className="flex gap-0 border-b border-ui-border-base mb-6">
