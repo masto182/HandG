@@ -48,7 +48,7 @@ async function fetchFilteredProductIds(
   if (filterParams.abv) params.set("abv", filterParams.abv)
   if (filterParams.hop_country)
     params.set("hop_country", filterParams.hop_country)
-  if (filterParams.available) params.set("available", filterParams.available)
+  params.set("available", filterParams.available ?? "true")
   const meiliSort = sortBy ? MEILI_SORT_MAP[sortBy] : undefined
   if (meiliSort) params.set("sort", meiliSort)
   params.set("limit", "200")
@@ -193,19 +193,7 @@ async function fallbackFilterByMetadata(
 
 function hasActiveFilters(filterParams?: FilterParams): boolean {
   if (!filterParams) return false
-  return !!(
-    filterParams.q ||
-    filterParams.brewery ||
-    filterParams.style ||
-    filterParams.hops ||
-    filterParams.freshness ||
-    filterParams.collab ||
-    filterParams.tags ||
-    filterParams.abv ||
-    filterParams.on_sale ||
-    filterParams.hop_country ||
-    filterParams.available === "false"
-  )
+  return true
 }
 
 export default async function PaginatedProducts({

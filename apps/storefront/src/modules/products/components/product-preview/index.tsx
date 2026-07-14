@@ -41,15 +41,25 @@ function getAbv(product: HttpTypes.StoreProduct): string {
 function getStockStatus(product: HttpTypes.StoreProduct): {
   label: string
   dotClass: string
+  soldOut: boolean
 } {
-  if (!product.variants) return { label: "IN STOCK", dotClass: "bg-hl-accent" }
+  if (!product.variants)
+    return { label: "IN STOCK", dotClass: "bg-hl-accent", soldOut: false }
   const total = product.variants.reduce(
     (sum: number, v: any) => sum + (v.inventory_quantity ?? 0),
     0,
   )
-  if (total <= 2) return { label: "VERY LOW STOCK", dotClass: "bg-hl-error" }
-  if (total <= 6) return { label: "LOW STOCK", dotClass: "bg-hl-warning" }
-  return { label: "IN STOCK", dotClass: "bg-hl-accent" }
+  if (total <= 0)
+    return {
+      label: "SOLD OUT",
+      dotClass: "bg-hg-text-secondary/40",
+      soldOut: true,
+    }
+  if (total <= 2)
+    return { label: "VERY LOW STOCK", dotClass: "bg-hl-error", soldOut: false }
+  if (total <= 6)
+    return { label: "LOW STOCK", dotClass: "bg-hl-warning", soldOut: false }
+  return { label: "IN STOCK", dotClass: "bg-hl-accent", soldOut: false }
 }
 
 export default async function ProductPreview({
@@ -77,6 +87,7 @@ export default async function ProductPreview({
   const abv = canSeePricing ? getAbv(product) : ""
   const stock = getStockStatus(product)
   const variantId = product.variants?.[0]?.id
+  const soldOut = stock.soldOut
   const meta = product.metadata as any
   const releaseAt = (meta?.release_at as string | undefined) ?? null
   const earlyAccessUntil =
@@ -164,7 +175,11 @@ export default async function ProductPreview({
                 </span>
               </div>
             </div>
-            {hasEarlyAccess ? (
+            {soldOut ? (
+              <span className="px-3 py-2 rounded-sm font-bold text-[11px] uppercase tracking-wider text-hg-text-secondary/60 border border-hg-border/30 text-nowrap">
+                Sold Out
+              </span>
+            ) : hasEarlyAccess ? (
               variantId ? (
                 <AddToCartButton variantId={variantId} compact />
               ) : (
