@@ -147,7 +147,10 @@ export default function FilterPanel({
     if (!initialFetchDone.current) {
       const ctrl = new AbortController()
       sdk.client
-        .fetch<any>("/store/search?", { method: "GET", signal: ctrl.signal })
+        .fetch<any>("/store/search?available=true", {
+          method: "GET",
+          signal: ctrl.signal,
+        })
         .then((d) => {
           if (!ctrl.signal.aborted) {
             setBaseFacets(d.facetDistribution)
@@ -167,6 +170,7 @@ export default function FilterPanel({
     abortRef.current = ctrl
     const params = new URLSearchParams(searchParams.toString())
     params.delete("page")
+    if (!params.has("available")) params.set("available", "true")
     sdk.client
       .fetch<any>(`/store/search?${params.toString()}`, {
         method: "GET",
