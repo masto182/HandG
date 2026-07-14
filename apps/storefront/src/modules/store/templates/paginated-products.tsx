@@ -308,8 +308,29 @@ export default async function PaginatedProducts({
       count = filtered.length
       const start = (page - 1) * 12
       products = filtered.slice(start, start + 12)
+    } else if (filterParams?.available !== "false") {
+      // Hide sold-out by default: over-fetch from Medusa (hydrated inventory is
+      // accurate; MeiliSearch inventory_qty data can be stale), JS-filter, paginate.
+      const batchIds = allIds.slice(0, 200)
+      const { response: batch } = await listProductsWithSort({
+        page: 1,
+        queryParams: { ...queryParams, limit: 200, id: batchIds } as any,
+        sortBy,
+        countryCode,
+      })
+      const filtered = batch.products.filter((p: any) => {
+        const stock =
+          p.variants?.reduce(
+            (sum: number, v: any) => sum + (v.inventory_quantity ?? 0),
+            0,
+          ) ?? 1
+        return stock > 0
+      })
+      count = filtered.length
+      const start = (page - 1) * 12
+      products = filtered.slice(start, start + 12)
     } else {
-      // Use the full ID list for accurate count + proper pagination.
+      // available=false: include sold-out products — standard pagination.
       count = allIds.length
       const pageIds = allIds.slice((page - 1) * 12, page * 12)
       if (pageIds.length === 0) {

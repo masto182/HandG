@@ -138,10 +138,6 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     filters.push(`(${tagFilters.join(" AND ")})`)
   }
 
-  if (available !== "false") {
-    filters.push("inventory_qty > 0")
-  }
-
   const parsedLimit = safeInt(limit, 20, 1, MAX_LIMIT)
   const parsedOffset = safeInt(offset, 0, 0, MAX_OFFSET)
   const safeQ = safeText(q, MAX_QUERY_LEN)
