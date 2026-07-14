@@ -33,7 +33,15 @@ export default async function RelatedProducts({
   let products: HttpTypes.StoreProduct[] = []
   try {
     const { response } = await listProducts({ queryParams, countryCode })
-    products = response.products.filter((p) => p.id !== product.id)
+    products = response.products.filter((p) => {
+      if (p.id === product.id) return false
+      const stock =
+        p.variants?.reduce(
+          (sum: number, v: any) => sum + (v.inventory_quantity ?? 0),
+          0,
+        ) ?? 1
+      return stock > 0
+    })
   } catch {
     return null
   }

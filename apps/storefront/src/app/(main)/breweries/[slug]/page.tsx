@@ -77,7 +77,14 @@ export default async function BreweryDetailPage(props: Props) {
         queryParams: { id: product_ids, limit: product_ids.length },
         countryCode: "au",
       })
-      products = linkedProducts || []
+      products = (linkedProducts || []).filter((p: any) => {
+        const stock =
+          p.variants?.reduce(
+            (sum: number, v: any) => sum + (v.inventory_quantity ?? 0),
+            0,
+          ) ?? 1
+        return stock > 0
+      })
     } catch {}
   }
 
