@@ -322,22 +322,21 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
 
   // Apply stocked_quantity to the first variant of a product. Finds or creates
   // the inventory level for the default warehouse, then sets stocked_quantity.
+  // Note: listInventoryItems({ variant_id }) throws in Medusa v2 because
+  // InventoryItem has no variant_id property — SKU lookup is the reliable path.
   async function applyStock(variantId: string, qty: number): Promise<void> {
     if (!defaultWarehouse) return
     try {
-      const items = await inventoryModule.listInventoryItems({ variant_id: variantId })
-      let item = items?.[0]
-      if (!item) {
-        // fall back: look up via SKU
-        const variant = await productModule.retrieveProductVariant(variantId)
-        if (variant?.sku) {
-          const bySku = await inventoryModule.listInventoryItems({ sku: variant.sku })
-          item = bySku?.[0]
-        }
+      const variant = await productModule.retrieveProductVariant(variantId)
+      if (!variant?.sku) {
+        logger.warn(`[CSV Import] No SKU for variant ${variantId} — stock not updated`)
+        return
       }
+      const items = await inventoryModule.listInventoryItems({ sku: variant.sku })
+      const item = items?.[0]
       if (!item) {
         logger.warn(
-          `[CSV Import] No inventory item found for variant ${variantId} — stock not updated`
+          `[CSV Import] No inventory item found for SKU ${variant.sku} — stock not updated`
         )
         return
       }
@@ -348,12 +347,11 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
       if (levels?.length) {
         await inventoryModule.updateInventoryLevels([{ id: levels[0].id, stocked_quantity: qty }]) // workflow-exempt
       } else {
-        const newLevel = {
+        await inventoryModule.createInventoryLevels({
           inventory_item_id: item.id,
           location_id: defaultWarehouse.id,
           stocked_quantity: qty,
-        }
-        await inventoryModule.createInventoryLevels(newLevel) // workflow-exempt: bulk inventory import utility
+        }) // workflow-exempt: bulk inventory import utility
       }
     } catch (err: any) {
       logger.warn(`[CSV Import] Stock update failed for variant ${variantId}: ${err.message}`)
