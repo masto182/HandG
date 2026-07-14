@@ -9,12 +9,16 @@ type AvatarUploadProps = {
   initial: string
 }
 
-export default function AvatarUpload({ currentUrl, initial }: AvatarUploadProps) {
+export default function AvatarUpload({
+  currentUrl,
+  initial,
+}: AvatarUploadProps) {
   const [avatarUrl, setAvatarUrl] = useState(currentUrl || null)
   const [uploading, setUploading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const backendUrl = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "http://localhost:9000"
+  const backendUrl =
+    process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "http://localhost:9000"
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -26,11 +30,13 @@ export default function AvatarUpload({ currentUrl, initial }: AvatarUploadProps)
 
     try {
       // sdk-exempt: SDK client does not support multipart/form-data uploads cleanly
-      const res = await fetch(`${backendUrl}/store/customers/me/avatar`, { // sdk-exempt
+      const res = await fetch(`${backendUrl}/store/customers/me/avatar`, {
+        // sdk-exempt
         method: "POST",
         credentials: "include",
         headers: {
-          "x-publishable-api-key": process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || "",
+          "x-publishable-api-key":
+            process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || "",
         },
         body: formData,
       })
@@ -63,7 +69,9 @@ export default function AvatarUpload({ currentUrl, initial }: AvatarUploadProps)
           <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full bg-primary-container flex items-center justify-center">
-            <span className="text-xl font-bold text-on-primary-container">{initial}</span>
+            <span className="text-xl font-bold text-on-primary-container">
+              {initial}
+            </span>
           </div>
         )}
         <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -84,7 +92,11 @@ export default function AvatarUpload({ currentUrl, initial }: AvatarUploadProps)
           disabled={uploading}
           className="text-body-sm text-primary font-medium hover:underline text-left"
         >
-          {uploading ? "Uploading..." : avatarUrl ? "Change photo" : "Upload photo"}
+          {uploading
+            ? "Uploading..."
+            : avatarUrl
+              ? "Change photo"
+              : "Upload photo"}
         </button>
         {avatarUrl && (
           <button

@@ -21,11 +21,11 @@ const DiscountCode: React.FC<DiscountCodeProps> = ({ cart }) => {
   const { promotions = [] } = cart
   const removePromotionCode = async (code: string) => {
     const validPromotions = promotions.filter(
-      (promotion) => promotion.code !== code
+      (promotion) => promotion.code !== code,
     )
 
     await applyPromotions(
-      validPromotions.filter((p) => p.code !== undefined).map((p) => p.code!)
+      validPromotions.filter((p) => p.code !== undefined).map((p) => p.code!),
     )
   }
 

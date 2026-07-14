@@ -12,7 +12,7 @@ const enabled = !!process.env.NEXT_PUBLIC_SENTRY_DSN
 
 export function captureException(
   error: Error | unknown,
-  context?: Record<string, unknown>
+  context?: Record<string, unknown>,
 ): void {
   if (enabled) {
     Sentry.captureException(error, context ? { extra: context } : undefined)
@@ -24,7 +24,7 @@ export function captureException(
 
 export function captureMessage(
   message: string,
-  level: "info" | "warning" | "error" = "info"
+  level: "info" | "warning" | "error" = "info",
 ): void {
   if (enabled) {
     Sentry.captureMessage(message, level)

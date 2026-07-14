@@ -23,7 +23,7 @@ const CartDropdown = ({
   cart?: HttpTypes.StoreCart | null
 }) => {
   const [activeTimer, setActiveTimer] = useState<NodeJS.Timer | undefined>(
-    undefined
+    undefined,
   )
   const [cartDropdownOpen, setCartDropdownOpen] = useState(false)
 
@@ -164,7 +164,9 @@ const CartDropdown = ({
                 </div>
                 <div className="px-5 py-5 flex flex-col gap-4 border-t border-hg-border/50">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-hg-text-secondary">Total</span>
+                    <span className="text-sm text-hg-text-secondary">
+                      Total
+                    </span>
                     <span
                       className="text-sm font-bold text-hg-text"
                       data-testid="cart-subtotal"
@@ -192,9 +194,13 @@ const CartDropdown = ({
                 <div className="bg-hg-surface border border-hg-border text-xs flex items-center justify-center w-8 h-8 rounded-full text-hg-text-secondary font-semibold">
                   0
                 </div>
-                <span className="text-sm text-hg-text-secondary">Your cart is empty</span>
+                <span className="text-sm text-hg-text-secondary">
+                  Your cart is empty
+                </span>
                 <LocalizedClientLink href="/store">
-                  <Button onClick={close} className="text-sm h-9">Explore products</Button>
+                  <Button onClick={close} className="text-sm h-9">
+                    Explore products
+                  </Button>
                 </LocalizedClientLink>
               </div>
             )}

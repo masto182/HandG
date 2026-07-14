@@ -20,10 +20,12 @@ export default function EmailChangeConfirm({ token }: { token: string }) {
     }
     setState({ kind: "loading" })
     sdk.client
-      .fetch<{ ok: boolean; email?: string; reason?: string; warning?: string }>(
-        "/store/email-change/confirm",
-        { method: "POST", body: { token } }
-      )
+      .fetch<{
+        ok: boolean
+        email?: string
+        reason?: string
+        warning?: string
+      }>("/store/email-change/confirm", { method: "POST", body: { token } })
       .then((res) => {
         if (res.ok && res.email) {
           setState({ kind: "success", email: res.email })

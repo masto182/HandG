@@ -6,7 +6,7 @@ export async function listAnnouncements(): Promise<any[]> {
   try {
     const data = await sdk.client.fetch<{ announcements: any[] }>(
       "/store/announcements",
-      { method: "GET" }
+      { method: "GET" },
     )
     return data.announcements || []
   } catch {

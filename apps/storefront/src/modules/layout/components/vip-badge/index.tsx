@@ -15,7 +15,11 @@ export default function VipBadge({ tier }: { tier: MembershipStatus }) {
   if (!config) return null
 
   return (
-    <LocalizedClientLink href="/account/vip" data-testid="vip-badge" className="relative flex h-[60px] w-[60px] items-center justify-center hover:scale-110 transition-transform">
+    <LocalizedClientLink
+      href="/account/vip"
+      data-testid="vip-badge"
+      className="relative flex h-[60px] w-[60px] items-center justify-center hover:scale-110 transition-transform"
+    >
       <img
         src={config.image}
         alt={`${config.label} Badge`}

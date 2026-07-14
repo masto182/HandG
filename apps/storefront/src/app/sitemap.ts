@@ -6,10 +6,30 @@ const STORE_URL = process.env.NEXT_PUBLIC_STORE_URL || "https://example.com"
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = [
-    { url: `${STORE_URL}`, lastModified: new Date(), changeFrequency: "weekly", priority: 1 },
-    { url: `${STORE_URL}/store`, lastModified: new Date(), changeFrequency: "daily", priority: 0.9 },
-    { url: `${STORE_URL}/apply`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.7 },
-    { url: `${STORE_URL}/breweries`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.8 },
+    {
+      url: `${STORE_URL}`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 1,
+    },
+    {
+      url: `${STORE_URL}/store`,
+      lastModified: new Date(),
+      changeFrequency: "daily",
+      priority: 0.9,
+    },
+    {
+      url: `${STORE_URL}/apply`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${STORE_URL}/breweries`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
   ]
 
   let productRoutes: MetadataRoute.Sitemap = []
@@ -18,7 +38,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const data = await sdk.client.fetch<{ products: any[] }>(
       "/store/products?limit=200&fields=handle,updated_at",
-      { method: "GET", next: { revalidate: 3600 } }
+      { method: "GET", next: { revalidate: 3600 } },
     )
     productRoutes = (data.products || []).map((p: any) => ({
       url: `${STORE_URL}/products/${p.handle}`,

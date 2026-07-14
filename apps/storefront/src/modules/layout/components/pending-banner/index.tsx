@@ -4,7 +4,8 @@ const PendingBanner = () => {
       <div className="content-container flex items-center justify-center gap-3">
         <span className="w-2 h-2 rounded-lg bg-hg-gold animate-pulse" />
         <p className="text-sm text-hg-gold font-medium">
-          Your application is under review — we&apos;ll notify you by email when there&apos;s an update.
+          Your application is under review — we&apos;ll notify you by email when
+          there&apos;s an update.
         </p>
       </div>
     </div>

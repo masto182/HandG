@@ -24,7 +24,9 @@ const ItemsTemplate = ({ cart, inventoryMap = {} }: ItemsTemplateProps) => {
                   key={item.id}
                   item={item}
                   currencyCode={cart?.currency_code}
-                  maxStock={item.variant_id ? inventoryMap[item.variant_id] : undefined}
+                  maxStock={
+                    item.variant_id ? inventoryMap[item.variant_id] : undefined
+                  }
                 />
               )
             })

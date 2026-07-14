@@ -7,7 +7,10 @@ type WishlistButtonProps = {
   variant?: "card" | "detail"
 }
 
-export default function WishlistButton({ productId, variant = "card" }: WishlistButtonProps) {
+export default function WishlistButton({
+  productId,
+  variant = "card",
+}: WishlistButtonProps) {
   const { isWishlisted, toggle, loading } = useWishlist()
   const wishlisted = isWishlisted(productId)
   const isLoading = loading === productId

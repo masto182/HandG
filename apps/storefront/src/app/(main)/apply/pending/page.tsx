@@ -13,7 +13,9 @@ export default function ApplyPendingPage() {
         <div className="bg-primary-container/20 border border-primary/20 rounded-2xl p-10 w-full">
           <div className="flex items-center justify-center gap-4 mb-8">
             <div className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/30 opacity-50">
-              <span className="w-5 h-5 rounded-full bg-primary text-on-primary text-[10px] font-bold flex items-center justify-center">✓</span>
+              <span className="w-5 h-5 rounded-full bg-primary text-on-primary text-[10px] font-bold flex items-center justify-center">
+                ✓
+              </span>
               <span className="text-label-caps text-primary">Applied</span>
             </div>
             <div className="h-px w-6 bg-primary/30" />
@@ -23,15 +25,26 @@ export default function ApplyPendingPage() {
             </div>
             <div className="h-px w-6 bg-outline-variant/30" />
             <div className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-outline-variant/30 opacity-50">
-              <span className="w-5 h-5 rounded-full bg-surface-container-high text-on-surface-variant text-[10px] font-bold flex items-center justify-center">3</span>
-              <span className="text-label-caps text-on-surface-variant">Welcome</span>
+              <span className="w-5 h-5 rounded-full bg-surface-container-high text-on-surface-variant text-[10px] font-bold flex items-center justify-center">
+                3
+              </span>
+              <span className="text-label-caps text-on-surface-variant">
+                Welcome
+              </span>
             </div>
           </div>
 
-          <Icon name="hourglass_top" size={40} className="text-primary mb-4 mx-auto" />
-          <h1 className="text-h2 text-on-surface mb-3">Application under review</h1>
+          <Icon
+            name="hourglass_top"
+            size={40}
+            className="text-primary mb-4 mx-auto"
+          />
+          <h1 className="text-h2 text-on-surface mb-3">
+            Application under review
+          </h1>
           <p className="text-body-md text-on-surface-variant mb-8">
-            We&apos;re reviewing your membership application. You&apos;ll hear from us by email when there&apos;s an update.
+            We&apos;re reviewing your membership application. You&apos;ll hear
+            from us by email when there&apos;s an update.
           </p>
 
           <Link

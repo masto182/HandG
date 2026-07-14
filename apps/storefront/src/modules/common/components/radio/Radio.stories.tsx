@@ -12,8 +12,12 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Unchecked: Story = { args: { label: "Standard shipping" } }
-export const Checked: Story = { args: { label: "Express shipping", checked: true } }
-export const Disabled: Story = { args: { label: "Same-day (unavailable)", disabled: true } }
+export const Checked: Story = {
+  args: { label: "Express shipping", checked: true },
+}
+export const Disabled: Story = {
+  args: { label: "Same-day (unavailable)", disabled: true },
+}
 export const Group: Story = {
   render: () => (
     <div className="flex flex-col gap-3">

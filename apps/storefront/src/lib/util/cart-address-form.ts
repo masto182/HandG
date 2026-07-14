@@ -1,6 +1,8 @@
 import type { SetAddressesAddress, SetAddressesInput } from "@lib/data/cart"
 
-export function setAddressesInputFromFormData(formData: FormData): SetAddressesInput {
+export function setAddressesInputFromFormData(
+  formData: FormData,
+): SetAddressesInput {
   const get = (k: string) => (formData.get(k) ?? "") as string
   const shipping_address: SetAddressesAddress = {
     first_name: get("shipping_address.first_name"),

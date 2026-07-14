@@ -25,7 +25,7 @@ export default function Checkbox({
       className={clx(
         "flex items-center gap-3 cursor-pointer",
         disabled && "opacity-40 pointer-events-none",
-        className
+        className,
       )}
     >
       <input
@@ -41,7 +41,7 @@ export default function Checkbox({
           "w-5 h-5 rounded flex items-center justify-center border-2 transition-all duration-[160ms] ease-out",
           checked || indeterminate
             ? "border-primary bg-primary"
-            : "border-outline-variant hover:border-outline"
+            : "border-outline-variant hover:border-outline",
         )}
       >
         {checked && <Icon name="check" size={14} className="text-on-primary" />}

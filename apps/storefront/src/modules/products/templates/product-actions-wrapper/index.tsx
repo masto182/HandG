@@ -20,5 +20,11 @@ export default async function ProductActionsWrapper({
     return null
   }
 
-  return <ProductActions product={product} region={region} existingRestockAlertId={existingRestockAlertId} />
+  return (
+    <ProductActions
+      product={product}
+      region={region}
+      existingRestockAlertId={existingRestockAlertId}
+    />
+  )
 }

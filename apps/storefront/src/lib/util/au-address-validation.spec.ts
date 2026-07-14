@@ -12,7 +12,7 @@ describe("AU Address Validation", () => {
       "accepts %s",
       (state) => {
         expect(isValidAUState(state)).toBe(true)
-      }
+      },
     )
 
     it("accepts lowercase", () => {

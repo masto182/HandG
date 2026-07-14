@@ -28,12 +28,26 @@ export default function TierLadder({ tiers, currentTier }: Props) {
         const isNext = reversedIdx === tierIdx + 1
 
         return (
-          <div key={tier.key} data-testid={`tier-row-${tier.key}`} data-state={
-            isCurrent ? "current" : isNext ? "next" : isBelow ? "below" : "future"
-          }>
+          <div
+            key={tier.key}
+            data-testid={`tier-row-${tier.key}`}
+            data-state={
+              isCurrent
+                ? "current"
+                : isNext
+                  ? "next"
+                  : isBelow
+                    ? "below"
+                    : "future"
+            }
+          >
             <span>{tier.label}</span>
-            {isCurrent && <span data-testid={`tier-current-${tier.key}`}>YOU ARE HERE</span>}
-            {isNext && <span data-testid={`tier-next-${tier.key}`}>NEXT LEVEL</span>}
+            {isCurrent && (
+              <span data-testid={`tier-current-${tier.key}`}>YOU ARE HERE</span>
+            )}
+            {isNext && (
+              <span data-testid={`tier-next-${tier.key}`}>NEXT LEVEL</span>
+            )}
             <span>{tier.points}</span>
             <p data-testid={`tier-perk-${tier.key}`}>{tier.perk}</p>
           </div>

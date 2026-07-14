@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useActionState } from "react";
+import React, { useEffect, useActionState } from "react"
 import { toast } from "sonner"
 import { sdk } from "@lib/config"
 
@@ -18,9 +18,11 @@ const ProfileEmail: React.FC<MyInformationProps> = ({ customer }) => {
 
   const updateCustomerEmail = async (
     _currentState: { error: string | null; success: boolean },
-    formData: FormData
+    formData: FormData,
   ) => {
-    const newEmail = String(formData.get("email") || "").trim().toLowerCase()
+    const newEmail = String(formData.get("email") || "")
+      .trim()
+      .toLowerCase()
     if (!newEmail || newEmail === customer.email) {
       return { success: false, error: "Enter a new email address" }
     }
@@ -30,11 +32,12 @@ const ProfileEmail: React.FC<MyInformationProps> = ({ customer }) => {
         body: { new_email: newEmail },
       })
       toast.success(
-        `A confirmation link has been sent to ${newEmail}. Click it within 24 hours to complete the change.`
+        `A confirmation link has been sent to ${newEmail}. Click it within 24 hours to complete the change.`,
       )
       return { success: true, error: null }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to start email change"
+      const msg =
+        err instanceof Error ? err.message : "Failed to start email change"
       toast.error(msg)
       return { success: false, error: msg }
     }

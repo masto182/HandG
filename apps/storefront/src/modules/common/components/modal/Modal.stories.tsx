@@ -70,7 +70,9 @@ export const LargeWithFooter: Story = {
     footer: (
       <div className="flex justify-end gap-2">
         <button className="rounded border px-4 py-2">Cancel</button>
-        <button className="rounded bg-primary px-4 py-2 text-on-primary">Confirm</button>
+        <button className="rounded bg-primary px-4 py-2 text-on-primary">
+          Confirm
+        </button>
       </div>
     ),
   },

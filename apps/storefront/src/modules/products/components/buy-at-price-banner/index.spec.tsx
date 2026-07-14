@@ -5,11 +5,7 @@ import BuyAtPriceBanner from "./index"
 describe("BuyAtPriceBanner", () => {
   it("renders offer price formatted correctly", () => {
     render(
-      <BuyAtPriceBanner
-        offerPrice={75}
-        currencyCode="AUD"
-        expiresAt={null}
-      />
+      <BuyAtPriceBanner offerPrice={75} currencyCode="AUD" expiresAt={null} />,
     )
     expect(screen.getByTestId("buy-at-price-banner")).toBeInTheDocument()
     expect(screen.getByText("$75.00")).toBeInTheDocument()
@@ -18,39 +14,35 @@ describe("BuyAtPriceBanner", () => {
 
   it("shows expiry text when expiresAt is set", () => {
     const threeDaysFromNow = new Date(
-      Date.now() + 3 * 24 * 60 * 60 * 1000
+      Date.now() + 3 * 24 * 60 * 60 * 1000,
     ).toISOString()
     render(
       <BuyAtPriceBanner
         offerPrice={50}
         currencyCode="AUD"
         expiresAt={threeDaysFromNow}
-      />
+      />,
     )
     expect(screen.getByText("Expires in 3d")).toBeInTheDocument()
   })
 
   it("shows 'Expires today' when less than 1 day remains", () => {
     const halfDayFromNow = new Date(
-      Date.now() + 6 * 60 * 60 * 1000
+      Date.now() + 6 * 60 * 60 * 1000,
     ).toISOString()
     render(
       <BuyAtPriceBanner
         offerPrice={50}
         currencyCode="AUD"
         expiresAt={halfDayFromNow}
-      />
+      />,
     )
     expect(screen.getByText(/expires/i)).toBeInTheDocument()
   })
 
   it("does not show expiry when expiresAt is null", () => {
     render(
-      <BuyAtPriceBanner
-        offerPrice={50}
-        currencyCode="AUD"
-        expiresAt={null}
-      />
+      <BuyAtPriceBanner offerPrice={50} currencyCode="AUD" expiresAt={null} />,
     )
     expect(screen.queryByText(/expires/i)).not.toBeInTheDocument()
   })

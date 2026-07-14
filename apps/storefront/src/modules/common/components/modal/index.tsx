@@ -15,7 +15,11 @@ type ModalProps = {
   footer?: ReactNode
 }
 
-const sizeMap = { sm: "max-w-[400px]", md: "max-w-[560px]", lg: "max-w-[720px]" }
+const sizeMap = {
+  sm: "max-w-[400px]",
+  md: "max-w-[560px]",
+  lg: "max-w-[720px]",
+}
 
 export default function Modal({
   isOpen,
@@ -54,7 +58,7 @@ export default function Modal({
             <Dialog.Panel
               className={clx(
                 "w-full bg-surface-container-high rounded-t-2xl sm:rounded-2xl border border-white/10 overflow-hidden flex flex-col max-h-[90vh] shadow-2xl",
-                sizeMap[size]
+                sizeMap[size],
               )}
             >
               {/* Mobile pill handle */}

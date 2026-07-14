@@ -26,12 +26,16 @@ const baseProps = {
 describe("RestockAlertButton", () => {
   it("renders idle state with subscribe CTA", () => {
     render(<RestockAlertButton {...baseProps} />)
-    expect(screen.getByTestId("restock-alert-idle")).toHaveTextContent(/Notify me when available/i)
+    expect(screen.getByTestId("restock-alert-idle")).toHaveTextContent(
+      /Notify me when available/i,
+    )
   })
 
   it("renders subscribed state when initialAlertId is provided", () => {
     render(<RestockAlertButton {...baseProps} initialAlertId="ra_1" />)
-    expect(screen.getByTestId("restock-alert-subscribed")).toHaveTextContent(/Subscribed/i)
+    expect(screen.getByTestId("restock-alert-subscribed")).toHaveTextContent(
+      /Subscribed/i,
+    )
     expect(screen.getByText(/Unsubscribe/i)).toBeInTheDocument()
   })
 
@@ -40,9 +44,15 @@ describe("RestockAlertButton", () => {
     const user = userEvent.setup()
     render(<RestockAlertButton {...baseProps} />)
     await user.click(screen.getByTestId("restock-alert-idle"))
-    await waitFor(() => expect(screen.getByTestId("restock-alert-subscribed")).toBeInTheDocument())
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("restock-alert-subscribed"),
+      ).toBeInTheDocument(),
+    )
     expect(mockFetch).toHaveBeenCalledTimes(1)
-    expect(mockFetch.mock.calls[0][0]).toBe("/store/customers/me/restock-alerts")
+    expect(mockFetch.mock.calls[0][0]).toBe(
+      "/store/customers/me/restock-alerts",
+    )
     expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: "POST" })
   })
 
@@ -51,9 +61,13 @@ describe("RestockAlertButton", () => {
     const user = userEvent.setup()
     render(<RestockAlertButton {...baseProps} initialAlertId="ra_existing" />)
     await user.click(screen.getByText(/Unsubscribe/i))
-    await waitFor(() => expect(screen.getByTestId("restock-alert-idle")).toBeInTheDocument())
+    await waitFor(() =>
+      expect(screen.getByTestId("restock-alert-idle")).toBeInTheDocument(),
+    )
     expect(mockFetch).toHaveBeenCalledTimes(1)
-    expect(mockFetch.mock.calls[0][0]).toBe("/store/customers/me/restock-alerts/ra_existing")
+    expect(mockFetch.mock.calls[0][0]).toBe(
+      "/store/customers/me/restock-alerts/ra_existing",
+    )
     expect(mockFetch.mock.calls[0][1]).toMatchObject({ method: "DELETE" })
   })
 
@@ -62,7 +76,9 @@ describe("RestockAlertButton", () => {
     const user = userEvent.setup()
     render(<RestockAlertButton {...baseProps} />)
     await user.click(screen.getByTestId("restock-alert-idle"))
-    await waitFor(() => expect(screen.getByTestId("restock-alert-error")).toBeInTheDocument())
+    await waitFor(() =>
+      expect(screen.getByTestId("restock-alert-error")).toBeInTheDocument(),
+    )
     expect(screen.getByText(/Network down/i)).toBeInTheDocument()
     expect(screen.getByText(/Try again/i)).toBeInTheDocument()
   })
@@ -74,8 +90,14 @@ describe("RestockAlertButton", () => {
     const user = userEvent.setup()
     render(<RestockAlertButton {...baseProps} />)
     await user.click(screen.getByTestId("restock-alert-idle"))
-    await waitFor(() => expect(screen.getByTestId("restock-alert-error")).toBeInTheDocument())
+    await waitFor(() =>
+      expect(screen.getByTestId("restock-alert-error")).toBeInTheDocument(),
+    )
     await user.click(screen.getByText(/Try again/i))
-    await waitFor(() => expect(screen.getByTestId("restock-alert-subscribed")).toBeInTheDocument())
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("restock-alert-subscribed"),
+      ).toBeInTheDocument(),
+    )
   })
 })

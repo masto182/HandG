@@ -23,24 +23,26 @@ export type CustomerOfferDTO = {
  * Wrapped in React `cache()` so multiple components in the same request share
  * one round-trip. Returns [] if the customer is not authenticated.
  */
-export const getCustomerOffers = cache(async (): Promise<CustomerOfferDTO[]> => {
-  try {
-    const headers = await getAuthHeaders()
-    if (!("authorization" in headers) && !("x-medusa-cache-id" in headers)) {
+export const getCustomerOffers = cache(
+  async (): Promise<CustomerOfferDTO[]> => {
+    try {
+      const headers = await getAuthHeaders()
+      if (!("authorization" in headers) && !("x-medusa-cache-id" in headers)) {
+        return []
+      }
+      const res = await sdk.client.fetch<{ offers: CustomerOfferDTO[] }>(
+        `/store/customers/me/wishlist/offers`,
+        { method: "GET", headers, next: { revalidate: 0 } },
+      )
+      return res.offers || []
+    } catch {
       return []
     }
-    const res = await sdk.client.fetch<{ offers: CustomerOfferDTO[] }>(
-      `/store/customers/me/wishlist/offers`,
-      { method: "GET", headers, next: { revalidate: 0 } }
-    )
-    return res.offers || []
-  } catch {
-    return []
-  }
-})
+  },
+)
 
 export async function getCustomerOfferForProduct(
-  productId: string
+  productId: string,
 ): Promise<CustomerOfferDTO | null> {
   const offers = await getCustomerOffers()
   return offers.find((o) => o.product_id === productId) || null

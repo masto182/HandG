@@ -20,7 +20,12 @@ export const Discounted: Story = {
 }
 
 export const Tight: Story = {
-  args: { currencyCode: "usd", originalPrice: 6000, adjustedPrice: 4200, style: "tight" },
+  args: {
+    currencyCode: "usd",
+    originalPrice: 6000,
+    adjustedPrice: 4200,
+    style: "tight",
+  },
 }
 
 export const HighValue: Story = {

@@ -8,7 +8,10 @@ type WishlistModeSelectorProps = {
   currentPrice?: number
 }
 
-export default function WishlistModeSelector({ productId, currentPrice }: WishlistModeSelectorProps) {
+export default function WishlistModeSelector({
+  productId,
+  currentPrice,
+}: WishlistModeSelectorProps) {
   const { isWishlisted, toggle, loading } = useWishlist()
   const wishlisted = isWishlisted(productId)
   const isLoading = loading === productId
@@ -17,7 +20,10 @@ export default function WishlistModeSelector({ productId, currentPrice }: Wishli
   const [targetPrice, setTargetPrice] = useState<string>("")
 
   const handleSave = async () => {
-    const priceValue = mode === "buy_at_price" && targetPrice ? parseFloat(targetPrice) : undefined
+    const priceValue =
+      mode === "buy_at_price" && targetPrice
+        ? parseFloat(targetPrice)
+        : undefined
     await toggle(productId, mode, priceValue)
     setOpen(false)
   }
@@ -36,7 +42,14 @@ export default function WishlistModeSelector({ productId, currentPrice }: Wishli
           onClick={() => setOpen(true)}
           className="flex items-center gap-2 px-4 py-2 rounded border border-hg-gold bg-hg-gold/10 text-hg-gold text-sm transition-colors"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
             <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
           </svg>
           Saved
@@ -52,7 +65,14 @@ export default function WishlistModeSelector({ productId, currentPrice }: Wishli
         disabled={isLoading}
         className="flex items-center gap-2 px-4 py-2 rounded border border-hg-border text-hg-text-secondary hover:border-hg-gold/50 hover:text-hg-gold text-sm transition-colors"
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
           <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
         </svg>
         Save
@@ -64,10 +84,23 @@ export default function WishlistModeSelector({ productId, currentPrice }: Wishli
     <div className="relative">
       <div className="p-4 bg-hg-surface border border-hg-border rounded-lg shadow-md w-[280px]">
         <div className="flex items-center justify-between mb-3">
-          <h4 className="text-sm font-semibold text-hg-text">Add to Wishlist</h4>
-          <button onClick={() => setOpen(false)} className="text-hg-text-secondary hover:text-hg-text p-1">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+          <h4 className="text-sm font-semibold text-hg-text">
+            Add to Wishlist
+          </h4>
+          <button
+            onClick={() => setOpen(false)}
+            className="text-hg-text-secondary hover:text-hg-text p-1"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
         </div>
@@ -84,7 +117,9 @@ export default function WishlistModeSelector({ productId, currentPrice }: Wishli
             />
             <div>
               <p className="text-sm text-hg-text">Buy Later</p>
-              <p className="text-[11px] text-hg-text-secondary">Save for when you're ready</p>
+              <p className="text-[11px] text-hg-text-secondary">
+                Save for when you're ready
+              </p>
             </div>
           </label>
 
@@ -99,7 +134,9 @@ export default function WishlistModeSelector({ productId, currentPrice }: Wishli
             />
             <div>
               <p className="text-sm text-hg-text">Low Stock Alert</p>
-              <p className="text-[11px] text-hg-text-secondary">Notify me at 2 or fewer left</p>
+              <p className="text-[11px] text-hg-text-secondary">
+                Notify me at 2 or fewer left
+              </p>
             </div>
           </label>
 
@@ -114,7 +151,9 @@ export default function WishlistModeSelector({ productId, currentPrice }: Wishli
             />
             <div>
               <p className="text-sm text-hg-text">Buy at Price</p>
-              <p className="text-[11px] text-hg-text-secondary">Alert me at my target price</p>
+              <p className="text-[11px] text-hg-text-secondary">
+                Alert me at my target price
+              </p>
             </div>
           </label>
 
@@ -126,7 +165,9 @@ export default function WishlistModeSelector({ productId, currentPrice }: Wishli
                   type="text"
                   inputMode="decimal"
                   value={targetPrice}
-                  onChange={(e) => setTargetPrice(e.target.value.replace(/[^0-9.]/g, ""))}
+                  onChange={(e) =>
+                    setTargetPrice(e.target.value.replace(/[^0-9.]/g, ""))
+                  }
                   placeholder={currentPrice ? currentPrice.toFixed(2) : "0.00"}
                   className="w-24 px-3 py-1.5 bg-hg-bg border border-hg-border rounded text-sm text-hg-text placeholder:text-hg-text-muted [appearance:textfield]"
                 />

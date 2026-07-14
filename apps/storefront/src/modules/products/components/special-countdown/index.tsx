@@ -39,9 +39,7 @@ export default function SpecialCountdown({
   if (variant === "banner") {
     return (
       <div className="w-full px-4 py-3 mb-4 border-l-4 border-amber-500 bg-amber-900/10 rounded-r-lg">
-        <p className="text-sm font-medium text-amber-200">
-          Ends in {timeLeft}
-        </p>
+        <p className="text-sm font-medium text-amber-200">Ends in {timeLeft}</p>
       </div>
     )
   }

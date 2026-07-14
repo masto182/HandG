@@ -38,7 +38,10 @@ const StepLayout: React.FC<StepLayoutProps> = ({
 
       <div className="flex items-center justify-between pt-4 border-t border-outline-variant">
         {backHref ? (
-          <LocalizedClientLink href={backHref} className="text-body-sm text-on-surface-variant hover:text-on-surface flex items-center gap-x-1 transition-colors">
+          <LocalizedClientLink
+            href={backHref}
+            className="text-body-sm text-on-surface-variant hover:text-on-surface flex items-center gap-x-1 transition-colors"
+          >
             <Icon name="arrow_back" size={16} />
             {backLabel}
           </LocalizedClientLink>
@@ -52,7 +55,11 @@ const StepLayout: React.FC<StepLayoutProps> = ({
             className="bg-primary text-on-primary font-bold px-8 py-3 rounded-xl hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-40 disabled:pointer-events-none flex items-center gap-2"
           >
             {continueLoading ? (
-              <Icon name="progress_activity" size={18} className="animate-spin" />
+              <Icon
+                name="progress_activity"
+                size={18}
+                className="animate-spin"
+              />
             ) : (
               <>
                 {continueLabel}

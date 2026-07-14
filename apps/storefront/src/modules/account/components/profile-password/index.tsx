@@ -11,7 +11,9 @@ type MyInformationProps = {
   customer: HttpTypes.StoreCustomer
 }
 
-const ProfilePassword: React.FC<MyInformationProps> = ({ customer: _customer }) => {
+const ProfilePassword: React.FC<MyInformationProps> = ({
+  customer: _customer,
+}) => {
   const [successState, setSuccessState] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -106,7 +108,11 @@ const ProfilePassword: React.FC<MyInformationProps> = ({ customer: _customer }) 
             Forgot your current password?
           </a>
         </div>
-        <input type="hidden" name="_submitting" value={submitting ? "1" : "0"} />
+        <input
+          type="hidden"
+          name="_submitting"
+          value={submitting ? "1" : "0"}
+        />
       </AccountInfo>
     </form>
   )

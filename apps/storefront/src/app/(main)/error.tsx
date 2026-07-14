@@ -39,7 +39,9 @@ export default function GlobalError({
       </div>
       {error.digest && (
         <div className="mt-16">
-          <span className="text-label-caps text-on-surface-variant uppercase tracking-[0.2em]">{error.digest}</span>
+          <span className="text-label-caps text-on-surface-variant uppercase tracking-[0.2em]">
+            {error.digest}
+          </span>
         </div>
       )}
     </div>

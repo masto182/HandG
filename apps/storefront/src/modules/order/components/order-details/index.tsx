@@ -17,10 +17,7 @@ const OrderDetails = ({ order, showStatus }: OrderDetailsProps) => {
     <div>
       <Text>
         We have sent the order confirmation details to{" "}
-        <span
-          className="text-hg-text font-semibold"
-          data-testid="order-email"
-        >
+        <span className="text-hg-text font-semibold" data-testid="order-email">
           {order.email}
         </span>
         .
@@ -39,14 +36,24 @@ const OrderDetails = ({ order, showStatus }: OrderDetailsProps) => {
         {showStatus && (
           <div className="flex items-center gap-x-6">
             <div className="flex flex-col">
-              <span className="text-xs uppercase tracking-wide text-hg-text-secondary">Order status</span>
-              <span className="text-sm font-medium text-hg-text" data-testid="order-status">
+              <span className="text-xs uppercase tracking-wide text-hg-text-secondary">
+                Order status
+              </span>
+              <span
+                className="text-sm font-medium text-hg-text"
+                data-testid="order-status"
+              >
                 {formatStatus(order.fulfillment_status)}
               </span>
             </div>
             <div className="flex flex-col">
-              <span className="text-xs uppercase tracking-wide text-hg-text-secondary">Payment status</span>
-              <span className="text-sm font-medium text-hg-text" data-testid="order-payment-status">
+              <span className="text-xs uppercase tracking-wide text-hg-text-secondary">
+                Payment status
+              </span>
+              <span
+                className="text-sm font-medium text-hg-text"
+                data-testid="order-payment-status"
+              >
                 {formatStatus(order.payment_status)}
               </span>
             </div>

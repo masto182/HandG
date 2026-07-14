@@ -8,13 +8,13 @@ export const isPickupShippingOption = (o: any): boolean => {
 }
 
 export const getPickupOptions = (
-  options: HttpTypes.StoreCartShippingOption[] | null
+  options: HttpTypes.StoreCartShippingOption[] | null,
 ) => {
   return (options ?? []).filter((o: any) => isPickupShippingOption(o))
 }
 
 export const getDeliveryOptions = (
-  options: HttpTypes.StoreCartShippingOption[] | null
+  options: HttpTypes.StoreCartShippingOption[] | null,
 ) => {
   return (options ?? []).filter((o: any) => !isPickupShippingOption(o))
 }

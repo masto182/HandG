@@ -24,7 +24,9 @@ export default function RestockAlertButton({
   initialAlertId,
 }: RestockAlertButtonProps) {
   const [state, setState] = useState<State>(
-    initialAlertId ? { kind: "subscribed", alertId: initialAlertId } : { kind: "idle" }
+    initialAlertId
+      ? { kind: "subscribed", alertId: initialAlertId }
+      : { kind: "idle" },
   )
 
   const subscribe = async () => {
@@ -35,8 +37,12 @@ export default function RestockAlertButton({
         {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: { product_id: productId, beer_name: beerName, brewery_name: breweryName },
-        }
+          body: {
+            product_id: productId,
+            beer_name: beerName,
+            brewery_name: breweryName,
+          },
+        },
       )
       const alertId = res?.restock_alert?.id
       if (!alertId) throw new Error("No alert id in response")
@@ -66,9 +72,19 @@ export default function RestockAlertButton({
 
   if (state.kind === "subscribed") {
     return (
-      <div className="flex items-center gap-3" data-testid="restock-alert-subscribed">
+      <div
+        className="flex items-center gap-3"
+        data-testid="restock-alert-subscribed"
+      >
         <span className="flex items-center gap-2 px-4 py-2.5 bg-hl-primary-soft border border-hg-border rounded-xl text-sm text-hg-gold">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+          >
             <polyline points="20 6 9 17 4 12" />
           </svg>
           Subscribed
@@ -115,11 +131,20 @@ export default function RestockAlertButton({
       className="flex items-center gap-2 px-4 py-2 rounded-xl bg-hg-gold text-white text-sm font-medium hover:bg-hg-gold-hover transition-colors disabled:opacity-50"
       data-testid="restock-alert-idle"
     >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      >
         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
         <path d="M13.73 21a2 2 0 0 1-3.46 0" />
       </svg>
-      {state.kind === "subscribing" ? "Subscribing…" : "Notify me when available"}
+      {state.kind === "subscribing"
+        ? "Subscribing…"
+        : "Notify me when available"}
     </button>
   )
 }

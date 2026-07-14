@@ -73,7 +73,10 @@ const MobileActions: React.FC<MobileActionsProps> = ({
             data-testid="mobile-actions"
           >
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-on-surface truncate" data-testid="mobile-title">
+              <p
+                className="text-sm font-semibold text-on-surface truncate"
+                data-testid="mobile-title"
+              >
                 {product.title}
               </p>
               {selectedPrice && (
@@ -100,7 +103,11 @@ const MobileActions: React.FC<MobileActionsProps> = ({
               data-testid="mobile-cart-button"
             >
               {isAdding ? (
-                <Icon name="progress_activity" size={18} className="animate-spin" />
+                <Icon
+                  name="progress_activity"
+                  size={18}
+                  className="animate-spin"
+                />
               ) : !variant ? (
                 "Select"
               ) : !inStock ? (

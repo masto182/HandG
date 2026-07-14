@@ -18,7 +18,7 @@ export async function getMembershipStatus(): Promise<MembershipStatus> {
       {
         method: "GET",
         headers,
-      }
+      },
     )
     return (status as MembershipStatus) || "public"
   } catch (err: any) {

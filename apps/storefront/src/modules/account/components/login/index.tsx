@@ -18,7 +18,9 @@ const Login = ({ setCurrentView }: Props) => {
       data-testid="login-page"
     >
       <div className="text-center mb-8">
-        <h1 className="text-xl font-black tracking-tighter text-primary mb-1">HOPS &amp; GLORY</h1>
+        <h1 className="text-xl font-black tracking-tighter text-primary mb-1">
+          HOPS &amp; GLORY
+        </h1>
         <p className="text-label-caps uppercase tracking-[0.15em] text-on-surface-variant">
           The Collector&apos;s Portal
         </p>
@@ -60,7 +62,10 @@ const Login = ({ setCurrentView }: Props) => {
       <div className="mt-8 pt-6 border-t border-outline-variant text-center">
         <p className="text-body-sm text-on-surface-variant">
           Not a member yet?{" "}
-          <a href="/apply" className="text-primary font-semibold hover:underline transition-colors">
+          <a
+            href="/apply"
+            className="text-primary font-semibold hover:underline transition-colors"
+          >
             Apply for membership
           </a>
         </p>

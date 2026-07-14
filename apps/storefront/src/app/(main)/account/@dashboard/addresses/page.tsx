@@ -44,7 +44,9 @@ export default async function Addresses() {
       {region ? (
         <AddressBook customer={customer} region={region} />
       ) : (
-        <p className="text-sm text-hg-text-secondary">Unable to load regions. Please refresh.</p>
+        <p className="text-sm text-hg-text-secondary">
+          Unable to load regions. Please refresh.
+        </p>
       )}
     </div>
   )
