@@ -169,6 +169,13 @@ medusaIntegrationTestRunner({
 
         it("POST upserts on re-subscribe (200)", async () => {
           if (!hopId) return
+          // Medusa 2.17 restores the DB snapshot before each test, so the alert
+          // created in the previous test is gone. Create it here first.
+          await api.post(
+            "/store/customers/me/hop-alerts",
+            { hop_id: hopId, channel_email: false, channel_inapp: true },
+            { headers: authHeaders() }
+          )
           const res = await api.post(
             "/store/customers/me/hop-alerts",
             { hop_id: hopId, channel_email: true, channel_inapp: true },
@@ -179,6 +186,17 @@ medusaIntegrationTestRunner({
 
         it("GET after subscribe shows exactly 1 alert for hop", async () => {
           if (!hopId) return
+          // Fresh DB: seed then upsert, verify exactly 1 alert with latest prefs.
+          await api.post(
+            "/store/customers/me/hop-alerts",
+            { hop_id: hopId, channel_email: false, channel_inapp: true },
+            { headers: authHeaders() }
+          )
+          await api.post(
+            "/store/customers/me/hop-alerts",
+            { hop_id: hopId, channel_email: true, channel_inapp: true },
+            { headers: authHeaders() }
+          )
           const res = await api.get(`/store/customers/me/hop-alerts?hop_id=${hopId}`, {
             headers: authHeaders(),
           })
