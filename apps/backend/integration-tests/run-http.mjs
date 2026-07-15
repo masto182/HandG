@@ -40,7 +40,7 @@ for (const spec of specs) {
         ...process.env,
         TEST_TYPE: "integration:http",
         NODE_ENV: "test",
-        NODE_OPTIONS: process.env.NODE_OPTIONS ?? "",
+        NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ""} --experimental-vm-modules`.trim(),
       },
     }
   )
