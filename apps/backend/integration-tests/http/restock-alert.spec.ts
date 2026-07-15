@@ -49,11 +49,13 @@ medusaIntegrationTestRunner({
         })
 
         expect(result.created).toBe(false)
-        const rows = await svc.listRestockAlerts({
+        // Fetch all alerts for this (customer, product) pair; filter notified_at
+        // IS NULL in JS to avoid MikroORM 6.6+ null-filter quirks.
+        const allRows = await svc.listRestockAlerts({
           customer_id: customerId,
           product_id: "prod_restock_1",
-          notified_at: null,
         })
+        const rows = allRows.filter((r: any) => !r.notified_at)
         expect(rows.length).toBe(1)
       })
 

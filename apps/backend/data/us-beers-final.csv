@@ -1,0 +1,103 @@
+name,brewery,style,abv,price,compare_at_price,stock,container,volume_ml,collab_breweries,hops,release_at,is_anniversary
+Medalist,Bakes Brewing,IPA,6.80,19.25,35,1,Can 473ml,473,,,2026-03-26,false
+El Dia De Los Seises,Brujos,West Coast IPA,6.66,48,,3,Can 473ml,473,,,2026-06-06,false
+Jiangshi,Brujos,Double IPA,8.60,52,,1,Can 473ml,473,,,2026-06-06,false
+No Better Times,Brujos,West Coast IPA,6.50,31.50,45,1,Can 473ml,473,,,2026-04-07,false
+Populus w/ Citra 2026,Brujos,IPA,7.50,50,,5,Can 473ml,473,,,2026-06-25,false
+Señor Murcielago (2026),Brujos,NEIPA,7.50,33.75,45,3,Can 473ml,473,,,2026-04-15,false
+The Staff III,Brujos,West Coast IPA,6.70,45,,3,Can 473ml,473,,,2026-06-26,false
+Upon the Dragon's Spine,Brujos,Triple IPA,10.00,55,,2,Can 473ml,473,,,2026-06-06,false
+Fairy Ring,Fidens,Double IPA,8.50,17.10,38,1,Can 473ml,473,,,2026-03-12,false
+Orchid with Garston Nelson,Fidens,Double IPA,8.00,42,,4,Can 473ml,473,,Nelson,2026-06-12,false
+Orchid with Guava,Fidens,Double IPA,8.00,33.60,42,2,Can 473ml,473,,Nelson,2026-04-27,false
+Akko,Lolev,NEIPA,7.00,36,45,2,Can 473ml,473,,"Citra, Galaxy, Comet",2026-04-24,false
+Capex II,Lolev,IPA,9.00,27.30,42,2,Can 473ml,473,,,2026-03-31,false
+Harvest II,Lolev,IPA,8.30,33.75,45,4,Can 473ml,473,,,2026-04-11,false
+Parabellum,Lolev,IPA,9.30,37.50,50,2,Can 473ml,473,Off Script,,2026-04-11,false
+Waves II,Lolev,IPA,8.70,18.90,42,1,Can 473ml,473,,,2026-03-19,false
+Flip Fly Flows,Monkish,Double IPA,8.60,20.90,38,5,Can 473ml,473,,,2026-03-28,false
+Taste Bud,Monkish,Triple IPA,10.60,25.35,39,4,Can 473ml,473,,,2026-04-03,false
+Lucid Brilliance,Noble Savage,IPA,7.60,42,,2,Can 473ml,473,,,2026-06-04,false
+Cloudcaster,North Park,Double IPA,8.40,25.35,39,5,Can 473ml,473,,,2026-04-06,false
+Fast Talking,Root + Branch,Triple IPA,9.50,33.75,45,3,Can 473ml,473,North Park,"Citra, Comet, Simcoe, Riwaka",2026-04-23,false
+Guilty of What (June 2026 / Batch 6),Root + Branch,IPA,6.50,39,,3,Can 473ml,473,,Motueka,2026-06-06,false
+Life and Fate XLV,Root + Branch,Double IPA,8.00,42,,3,Can 473ml,473,,"Citra, Galaxy, Motueka",2026-06-03,false
+We Suffer,Root + Branch,Triple IPA,10.00,40.50,45,4,Can 473ml,473,Troon,"Citra, Peacharine, Riwaka, Peacharine Subzero Hop Kief",2026-05-13,false
+You Suffer,Root + Branch,Sour,8.00,40.50,45,4,Can 473ml,473,Troon,Peacharine,2026-05-13,false
+DDH Pliny the Elder (2026),Russian River,West Coast IPA,8.00,45,,3,Can 473ml,473,,,2026-06-05,false
+Pliny the Elder,Russian River,West Coast IPA,8.00,45.50,65,10,Bottle 510ml,510,,,2026-04-09,false
+Upgrade your green matter,Tall Trees,Double IPA,9.30,50,,4,Can 473ml,473,,,2026-05-18,false
+Echo in the Memory,Test,Triple IPA,10.00,35.70,42,4,Can 473ml,473,,"Citra, Cryo-Fresh Krush",2026-05-09,false
+"Eternal Echoes (2nd Edition, 2026)",Test,NEIPA,8.00,42,,4,Can 473ml,473,,,2026-06-06,false
+Holography,Test,NEIPA,7.00,42,,3,Can 473ml,473,,Freestyle Riwaka,2026-06-20,false
+XLVIII. Still Learning Without You,Threat,Double IPA,8.20,36,60,1,Can 473ml,473,,,2026-04-17,false
+10th Anniversary King JJJuliusss,Tree House,Double IPA,8.20,45,,3,Can 473ml,473,,,2026-05-27,false
+Almighty Julius,Tree House,Triple IPA,9.40,45,,4,Can 473ml,473,,,2026-05-31,false
+Emperor Julius,Tree House,Double IPA,8.80,42,,2,Can 473ml,473,,,2026-05-26,false
+Empress Julius,Tree House,Double IPA,8.40,40,,3,Can 473ml,473,,,2026-05-22,false
+Green,Tree House,IPA,7.50,40,,3,Can 473ml,473,,,2026-05-22,false
+Guardian of the Green,Tree House,Double IPA,8.20,40,,4,Can 473ml,473,,,2026-06-02,false
+Haze Against the Machine,Tree House,Double IPA,8.40,32,40,1,Can 473ml,473,,,2026-05-05,false
+Incredible Machine,Tree House,Double IPA,8.80,42,,2,Can 473ml,473,,,2026-06-02,false
+Infinite Haze,Tree House,Double IPA,10.70,34,40,1,Can 473ml,473,,,2026-05-06,false
+JJJuice Project Citra Mosaic,Tree House,Double IPA,8.70,34,40,3,Can 473ml,473,,"Citra, Mosaic",2026-05-11,false
+King Fern,Tree House,Double IPA,8.60,42,,3,Can 473ml,473,,,2026-05-25,false
+King Julius,Tree House,Double IPA,8.20,37.80,42,1,Can 473ml,473,,,2026-05-14,false
+Super Mega,Tree House,Double IPA,8.20,29.40,42,2,Can 473ml,473,,,2026-04-08,false
+The Pineappliest Green,Tree House,Double IPA,8.80,42,,4,Can 473ml,473,,,2026-06-03,false
+Very HHHazyyy,Tree House,Double IPA,8.80,42,,4,Can 473ml,473,,,2026-05-29,false
+Westy,Tree House,Double IPA,7.80,26.60,38,3,Can 473ml,473,,,2026-04-06,false
+Rabbit The Club,Trillium,West Coast IPA,8.00,13.50,45,1,Can 473ml,473,,,2026-03-03,false
+slumbering wraith,Troon,IPA,8.20,90,150,2,Crowler 950ml,950,,,2026-03-10,false
+Pepp Bois Presents Transcendence of Pie,Veil,Gose,5.00,26.60,38,1,Can 473ml,473,"Root + Branch, Test, Omnipollo",,2026-04-09,true
+Tefnut Mega Margarita Colada Crusher Xtreme,Veil,Gose,10.00,36,40,5,Can 473ml,473,Omnipollo,,2026-05-13,true
+Trapped in the Void,Veil,Triple IPA,10.00,30,40,5,Can 473ml,473,"Troon, Root + Branch, Brujos","Riwaka Amplifire, Krush LupoMax, Citra, Citra Cryo, Nelson Sauvin",2026-04-13,true
+Snappy Buckets,Bakes Brewing,Double IPA,8.8,28.5,,0,Can 473ml,473,,,2026-03-26,false
+Satan to the Masses,Brujos,IPA,10.1,38.5,,0,Can 473ml,473,Troon,,2026-03-06,true
+Verba Volant,Brujos,Double IPA,8.6,35,,0,Can 473ml,473,Lyric,,2026-03-11,true
+El Sacerdote Araña,Brujos,IPA,9.4,32.5,,0,Can 473ml,473,RaR,,2026-03-04,true
+Kaosophia,Brujos,Triple IPA,10,35,,0,Can 473ml,473,Black Goat,,2026-03-12,true
+Populas,Brujos,NEIPA,7.5,36,,0,Can 473ml,473,,,2026-03-27,false
+Entombed,Brujos,West Coast IPA,6.9,31.5,,0,Can 473ml,473,Ghost Town,,2026-03-12,true
+Witches Watch,Deep Fried Beers,NEIPA,9.2,43,,0,Can 473ml,473,,"Yakima Chief Simcoe,Citra Incognito,Freestyle Nelson Sauvin,Freestyle Rakau,Abstrax Citra,Abstrax Nelson Quantums,Clayton Nelson Sauvin Amplifire Oil,Yakima Chief Citra,Nelson Sauvin Subzero Hop Kief",2026-04-28,false
+Experimental #23,Fallside,IPA,7.5,96,,0,Crowler 950ml,950,,,2026-04-11,false
+Parliament,Fidens,Double IPA,8.8,32.5,,0,Can 473ml,473,Troon,,2026-03-05,false
+Complacent,Fidens,Double IPA,8.5,24.75,,0,Can 473ml,473,,,2026-02-27,false
+Te Horokaou,Fidens,Double IPA,8.5,45,,0,Can 473ml,473,,"Nelson,Motueka,Rakau",2026-05-06,false
+Monumental Something,Fidens,Triple IPA,11,42,,0,Can 473ml,473,,"Citra,Waimea,Superdelic,Nelson,Rakau",2026-03-24,false
+Stare,Fidens,Double IPA,8.8,33.75,,0,Can 473ml,473,Troon,,2026-03-23,false
+Wisdom,Fidens,Double IPA,8.8,31.5,,0,Can 473ml,473,Troon,,2026-03-18,false
+Cosmic Something,Fidens,Double IPA,9,42,,0,Can 473ml,473,,"Citra,Waimea,Superdelic,Nelson",2026-03-24,false
+Colossal Something,Fidens,Triple IPA,13,42,,0,Can 473ml,473,,"Citra,Waimea,Nelson,Rakau,Riwaka,Superdelic",2026-03-24,false
+Bleak (2026),Freak Folk,Double IPA,8.3,32.9,,0,Can 473ml,473,,,2026-03-17,false
+Yodel,Freak Folk,Double IPA,8.3,31.5,,0,Can 473ml,473,,,2026-03-17,false
+Society & Solitude #6,Hill Farmstead,Double IPA,8,22.5,,0,Can 473ml,473,,,2026-03-03,false
+Collective: Citra Eggers SPX,Human Robot,NEIPA,6.9,28.5,,0,Can 473ml,473,,,2026-03-24,false
+Single Axis,Human Robot,NEIPA,6.8,24.7,,0,Can 473ml,473,,,2026-03-10,false
+Tiger,Lolev,IPA,8,45,,0,Can 473ml,473,,,2026-04-08,false
+Zebra,Lolev,IPA,8.2,31.5,,0,Can 473ml,473,,,2026-03-24,false
+Heads Nor Tails,Monkish,Triple IPA,10.5,31.2,,0,Can 473ml,473,,,2026-03-28,false
+Art3,North Park,,10.2,22.5,,0,Can 473ml,473,,,2026-02-18,false
+Deja-Fu!,North Park,West Coast IPA,6.8,38,,0,Can 473ml,473,,,2026-04-06,false
+Saturated confluence,Obercreek,IPA,8.5,45,,0,Can 473ml,473,RaR,"Peacharine,Riwaka,Nelson,Nectaron,Riwaka SubZero Hop Kief : freestylehops,Nelson SubZero Hop Kief : freestylehops",2026-03-23,false
+We're Not Worthy Hazy,Off Script,Double IPA,8.7,45.5,,0,Can 473ml,473,,,2026-04-10,false
+All green Everything,Other Half,Triple IPA,10,26.6,,0,Can 473ml,473,,,2026-03-05,false
+National Broccoli Day,Other Half,NEIPA,8.5,30,,0,Can 473ml,473,,"Simcoe,Mosaic Cryo,Riwaka,HBC1019,Citra,Citra Incognito",2026-03-14,false
+Last Week F$#@*D Around And Got A Triple Double,Other Half,Double IPA,8.5,24.7,,0,Can 473ml,473,Short Throw,,2026-03-10,false
+TDH Raining Threes,Other Half,Double IPA,8.5,28,,0,Can 473ml,473,Short Throw,,2026-03-03,false
+Eternal Prankster,RaR,Double IPA,8,29.25,,0,Can 473ml,473,Brujos,,2026-03-19,false
+Personal Plague,RaR,Double IPA,8.5,25.35,,0,Can 473ml,473,Brujos,,2026-03-18,false
+Flower Myth,Test,Triple IPA,10.5,24.75,,0,Can 473ml,473,Fidens,,2026-01-31,false
+Heady Topper,The Alchemist,Double IPA,8,31.5,,0,Can 473ml,473,,,2026-03-12,false
+Juice Machine,Tree House,Double IPA,8.2,45,,0,Can 473ml,473,,,2026-04-10,false
+Platinum Fern,Tree House,Triple IPA,9.4,42,,0,Can 473ml,473,,,2026-04-02,false
+Moment of Clarity Barrel Blend,Tree House,Imperial Stout,8.2,50,,0,Can 473ml,473,,,2026-01-30,false
+Grail,Tree House,Double IPA,8,42,,0,Can 473ml,473,,,2026-04-03,false
+Haze Marshmallow,Tree House,Double IPA,8.2,40,,0,Can 473ml,473,,,2026-05-05,false
+Twice Daily Serving: Raspberry,Trillium,Berliner Weisse,7,22.5,,0,Can 473ml,473,,,2026-03-02,false
+can time be stopped?,Troon,IPA,7.6,96,,0,Crowler 950ml,950,,,2026-02-27,false
+praying with anger,Troon,IPA,7.8,93,,0,Crowler 950ml,950,,,2026-03-18,false
+free beer for a year,Troon,IPA,6.8,93,,0,Crowler 950ml,950,,,2026-04-04,false
+cususcating flame,Troon,Porter,8.4,96,,0,Crowler 950ml,950,,,2026-01-20,false
+Mello Hello,Veil,Triple IPA,10,42,,0,Can 473ml,473,"Monkish, Other Half, Trillium","Peacharine,Strata,Nectaron,Peacharine Subzero Hop Kief,Mosaic",2026-04-08,true
+Luxurious Luxury: X,Veil,Gose,10,42,,0,Can 473ml,473,Evil Twin,,2026-04-04,true

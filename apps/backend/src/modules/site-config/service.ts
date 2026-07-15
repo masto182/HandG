@@ -185,11 +185,13 @@ class SiteConfigModuleService extends MedusaService({
 
   async getHistory(key: string, limit = 20): Promise<any[]> {
     this.getDefinition(key)
-    const rows = await (this as any).listSiteConfigHistories(
-      { key },
-      { take: limit, order: { created_at: "DESC" } }
-    )
-    return rows
+    // Avoid passing order/take options: Medusa 2.17 / MikroORM 6.6 changed how
+    // list options are applied on auto-generated module services. Sort + slice in
+    // JS to guarantee correct ordering regardless of version behaviour.
+    const rows = await (this as any).listSiteConfigHistories({ key })
+    return (rows as any[])
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, limit)
   }
 
   // ---------- internals ----------

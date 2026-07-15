@@ -1,0 +1,54 @@
+name,brewery,style,abv,price,compare_at_price,stock,container,volume_ml,collab_breweries,hops,release_at,is_anniversary
+Medalist,Bakes Brewing,IPA,6.80,19.25,35,1,Can 440ml,440,,,2026-03-26,false
+El Dia De Los Seises,Brujos,TDH WCIPA,6.66,48,,3,Can 440ml,440,,,2026-06-06,false
+Jiangshi,Brujos,DDH IIPA,8.60,52,,1,Can 440ml,440,,,2026-06-06,false
+No Better Times,Brujos,DDH West Coast IPA,6.50,31.50,45,1,Can 440ml,440,,,2026-04-07,false
+Populus w/ Citra 2026,Brujos,DDH IPA,7.50,50,,5,Can 440ml,440,,,2026-06-25,false
+Señor Murcielago (2026),Brujos,DDH Hazy IPA,7.50,33.75,45,3,Can 440ml,440,,,2026-04-15,false
+The Staff III,Brujos,NZ WCIPA,6.70,45,,3,Can 440ml,440,,,2026-06-26,false
+Upon the Dragon's Spine,Brujos,TDH TIPA,10.00,55,,2,Can 440ml,440,,,2026-06-06,false
+Fairy Ring,Fidens,Double IPA,8.50,17.10,38,1,Can 440ml,440,,,2026-03-12,false
+Orchid with Garston Nelson,Fidens,DIPA,8.00,42,,4,Can 440ml,440,,Nelson,2026-06-12,false
+Orchid with Guava,Fidens,Double IPA,8.00,33.60,42,2,Can 440ml,440,,Nelson,2026-04-27,false
+Akko,Lolev,Hazy IPA,7.00,36,45,2,Can 440ml,440,,"Citra, Galaxy, Comet",2026-04-24,false
+Capax II,Lolev,Ultra Hopped Ale,9.00,27.30,42,2,Can 440ml,440,,,2026-03-31,false
+Harvest II,Lolev,Ultra Hopped Ale,8.30,33.75,45,4,Can 440ml,440,,,2026-04-11,false
+Parabellum,Lolev,Ultra Hopped Ale,9.30,37.50,50,2,Can 440ml,440,Off Script,,2026-04-11,false
+Waves II,Lolev,Ultra Hopped Ale,8.70,18.90,42,1,Can 440ml,440,,,2026-03-19,false
+Flip Fly Flows,Monkish,Double IPA,8.60,20.90,38,5,Can 440ml,440,,,2026-03-28,false
+Taste Bud,Monkish,Triple IPA,10.60,25.35,39,4,Can 440ml,440,,,2026-04-03,false
+Lucid Brilliance,Noble Savage,IPA,7.60,42,,2,Can 440ml,440,,,2026-06-04,false
+Cloudcaster,North Park,TDH Hazy DIPA,8.40,25.35,39,5,Can 440ml,440,,,2026-04-06,false
+Fast Talking,Root + Branch,Triple IPA,9.50,33.75,45,3,Can 440ml,440,North Park,"Citra, Comet, Simcoe, Riwaka",2026-04-23,false
+Guilty of What (June 2026 / Batch 6),Root + Branch,IPA,6.50,39,,3,Can 440ml,440,,Motueka,2026-06-06,false
+Life and Fate XLV,Root + Branch,Double IPA,8.00,42,,3,Can 440ml,440,,"Citra, Galaxy, Motueka",2026-06-03,false
+We Suffer,Root + Branch,Triple IPA,10.00,40.50,45,4,Can 440ml,440,Troon,"Citra, Peacharine, Riwaka, Peacharine Subzero Hop Kief",2026-05-13,false
+You Suffer,Root + Branch,Sour Cold DIPA,8.00,40.50,45,4,Can 440ml,440,Troon,Peacharine,2026-05-13,false
+DDH Pliny the Elder (2026),Russian River,DDH West Coast DIPA,8.00,45,,3,Can 440ml,440,,,2026-06-05,false
+Pliny the Elder,Russian River,West Coast DIPA,8.00,45.50,65,10,Can 440ml,440,,,2026-04-09,false
+Upgrade your green matter,Tall Trees,NE DIPA,9.30,50,,4,Can 440ml,440,,,2026-05-18,false
+Echo in the Memory,Test,Triple IPA,10.00,35.70,42,4,Can 440ml,440,,"Citra, Cryo-Fresh Krush",2026-05-09,false
+"Eternal Echoes (2nd Edition, 2026)",Test,Double NEIPA,8.00,42,,4,Can 440ml,440,,,2026-06-06,false
+Holography,Test,NEIPA,7.00,42,,3,Can 440ml,440,,Freestyle Riwaka,2026-06-20,false
+XLVIII. Still Learning Without You,Threat,Double IPA,8.20,36,60,1,Can 440ml,440,,,2026-04-17,false
+10th Anniversary King JJJuliusss,Tree House,Tree House DIPA,8.20,45,,3,Can 440ml,440,,,2026-05-27,false
+Almighty Julius,Tree House,Tree House TIPA,9.40,45,,4,Can 440ml,440,,,2026-05-31,false
+Emperor Julius,Tree House,Tree House DIPA,8.80,42,,2,Can 440ml,440,,,2026-05-26,false
+Empress Julius,Tree House,Tree House DIPA,8.40,40,,3,Can 440ml,440,,,2026-05-22,false
+Green,Tree House,Tree House IPA,7.50,40,,3,Can 440ml,440,,,2026-05-22,false
+Guardian of the Green,Tree House,Tree House Double IPA,8.20,40,,4,Can 440ml,440,,,2026-06-02,false
+Haze Against the Machine,Tree House,Tree House Double IPA,8.40,32,40,1,Can 440ml,440,,,2026-05-05,false
+Incredible Machine,Tree House,Tree House Double IPA,8.80,42,,2,Can 440ml,440,,,2026-06-02,false
+Infinite Haze,Tree House,Tree House Double IPA,10.70,34,40,1,Can 440ml,440,,,2026-05-06,false
+JJJuice Project Citra Mosaic,Tree House,Tree House DIPA,8.70,34,40,3,Can 440ml,440,,"Citra, Mosaic",2026-05-11,false
+King Fern,Tree House,Tree House DIPA,8.60,42,,3,Can 440ml,440,,,2026-05-25,false
+King Julius,Tree House,Tree House DIPA,8.20,37.80,42,1,Can 440ml,440,,,2026-05-14,false
+Super Mega,Tree House,Tree House Double IPA,8.20,29.40,42,2,Can 440ml,440,,,2026-04-08,false
+The Pineappliest Green,Tree House,Tree House DIPA,8.80,42,,4,Can 440ml,440,,,2026-06-03,false
+Very HHHazyyy,Tree House,Tree House Double IPA,8.80,42,,4,Can 440ml,440,,,2026-05-29,false
+Westy,Tree House,Tree House Double IPA,7.80,26.60,38,3,Can 440ml,440,,,2026-04-06,false
+Rabbit The Club,Trillium,West Coast DIPA,8.00,13.50,45,1,Can 440ml,440,,,2026-03-03,false
+slumbering wraith,Troon,Hoppy Ale,8.20,90,150,2,Can 440ml,440,,,2026-03-10,false
+Pepp Bois Presents Transcendence of Pie,Veil,Gose,5.00,26.60,38,1,Can 440ml,440,"Root + Branch, Test, Omnipollo",,2026-04-09,true
+Tefnut Mega Margarita Colada Crusher Xtreme,Veil,Fruited Gose,10.00,36,40,5,Can 440ml,440,Omnipollo,,2026-05-13,true
+Trapped in the Void,Veil,Hazy TIPA,10.00,30,40,5,Can 440ml,440,"Troon, Root + Branch, Brujos","Riwaka Amplifire, Krush LupoMax, Citra, Citra Cryo, Nelson Sauvin",2026-04-13,true

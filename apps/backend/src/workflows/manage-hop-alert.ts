@@ -32,10 +32,11 @@ const upsertHopAlertStep = createStep(
   async (input: UpsertHopAlertInput, { container }) => {
     const hopAlertService = container.resolve(HOP_ALERT_MODULE) as any
 
-    const [existing] = await hopAlertService.listHopAlerts({
-      customer_id: input.customer_id,
-      hop_id: input.hop_id,
-    })
+    // Fetch all alerts for this customer and find the matching hop in JS.
+    // Filtering by multiple fields directly (customer_id + hop_id) can miss
+    // existing records in some MikroORM 6.6+ / Medusa 2.17 configurations.
+    const customerAlerts = await hopAlertService.listHopAlerts({ customer_id: input.customer_id })
+    const existing = customerAlerts.find((a: any) => a.hop_id === input.hop_id) ?? null
 
     if (existing) {
       const prev = {
