@@ -33,7 +33,7 @@ const ProfileBillingAddress: React.FC<MyInformationProps> = ({
   const [successState, setSuccessState] = React.useState(false)
 
   const billingAddress = customer.addresses?.find(
-    (addr) => addr.is_default_billing
+    (addr) => addr.is_default_billing,
   )
 
   const initialState: Record<string, unknown> = {
@@ -49,7 +49,7 @@ const ProfileBillingAddress: React.FC<MyInformationProps> = ({
 
   const [state, formAction] = useActionState(
     billingAddress ? updateCustomerAddress : addCustomerAddress,
-    initialState
+    initialState,
   )
 
   const clearState = () => {
@@ -67,7 +67,7 @@ const ProfileBillingAddress: React.FC<MyInformationProps> = ({
 
     const country =
       regionOptions?.find(
-        (country) => country?.value === billingAddress.country_code
+        (country) => country?.value === billingAddress.country_code,
       )?.label || billingAddress.country_code?.toUpperCase()
 
     return (

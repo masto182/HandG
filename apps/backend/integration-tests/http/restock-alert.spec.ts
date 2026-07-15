@@ -39,6 +39,19 @@ medusaIntegrationTestRunner({
         const container = getContainer()
         const svc = container.resolve("restockAlert") as any
 
+        // Medusa 2.17 restores the DB snapshot before each test (beforeEach),
+        // so we must create the first alert inside this test — not rely on the
+        // previous test's data which has been wiped.
+        await createRestockAlertWorkflow(container).run({
+          input: {
+            customer_id: customerId,
+            product_id: "prod_restock_1",
+            beer_name: "Hazy Days IPA",
+            brewery_name: "Test Brewery",
+          },
+        })
+
+        // Second invocation with identical input should dedup — created: false.
         const { result } = await createRestockAlertWorkflow(container).run({
           input: {
             customer_id: customerId,
@@ -49,11 +62,13 @@ medusaIntegrationTestRunner({
         })
 
         expect(result.created).toBe(false)
-        const rows = await svc.listRestockAlerts({
+        // Fetch all alerts for this (customer, product) pair; filter notified_at
+        // IS NULL in JS to avoid MikroORM 6.6+ null-filter quirks.
+        const allRows = await svc.listRestockAlerts({
           customer_id: customerId,
           product_id: "prod_restock_1",
-          notified_at: null,
         })
+        const rows = allRows.filter((r: any) => !r.notified_at)
         expect(rows.length).toBe(1)
       })
 

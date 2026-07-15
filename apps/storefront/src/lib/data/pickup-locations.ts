@@ -35,7 +35,8 @@ export type PickupLocationDTO = {
 export const getPickupLocations = cache(
   async (): Promise<PickupLocationDTO[]> => {
     try {
-      const res = await fetch(`${BACKEND_URL}/store/pickup-locations`, { // sdk-exempt
+      const res = await fetch(`${BACKEND_URL}/store/pickup-locations`, {
+        // sdk-exempt
         headers: { "x-publishable-api-key": PUBLISHABLE_KEY },
         next: { revalidate: 60 },
       })
@@ -45,5 +46,5 @@ export const getPickupLocations = cache(
     } catch {
       return []
     }
-  }
+  },
 )

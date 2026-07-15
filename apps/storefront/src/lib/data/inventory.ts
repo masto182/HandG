@@ -13,7 +13,7 @@ import { getAuthHeaders } from "./cookies"
  * can default to "stock unknown" rather than crashing.
  */
 export async function getVariantInventory(
-  variantIds: string[]
+  variantIds: string[],
 ): Promise<Record<string, number>> {
   if (!variantIds.length) return {}
 
@@ -35,7 +35,12 @@ export async function getVariantInventory(
 }
 
 type ProductWithVariants = {
-  variants?: Array<{ id?: string; inventory_quantity?: number | null } & Record<string, unknown>> | null
+  variants?: Array<
+    { id?: string; inventory_quantity?: number | null } & Record<
+      string,
+      unknown
+    >
+  > | null
 } & Record<string, unknown>
 
 /**
@@ -44,7 +49,7 @@ type ProductWithVariants = {
  * inventory endpoint. Safe no-op if no variants or on fetch failure.
  */
 export async function hydrateInventoryQuantity<T extends ProductWithVariants>(
-  products: T[]
+  products: T[],
 ): Promise<T[]> {
   const ids: string[] = []
   for (const p of products) {

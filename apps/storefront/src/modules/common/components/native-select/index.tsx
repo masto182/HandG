@@ -20,15 +20,25 @@ export type NativeSelectProps = {
 
 const NativeSelect = forwardRef<HTMLSelectElement, NativeSelectProps>(
   (
-    { placeholder = "Select...", defaultValue, className, children, label, error, helperText, disabled, ...props },
-    ref
+    {
+      placeholder = "Select...",
+      defaultValue,
+      className,
+      children,
+      label,
+      error,
+      helperText,
+      disabled,
+      ...props
+    },
+    ref,
   ) => {
     const innerRef = useRef<HTMLSelectElement>(null)
     const [isPlaceholder, setIsPlaceholder] = useState(false)
 
     useImperativeHandle<HTMLSelectElement | null, HTMLSelectElement | null>(
       ref,
-      () => innerRef.current
+      () => innerRef.current,
     )
 
     useEffect(() => {
@@ -59,7 +69,7 @@ const NativeSelect = forwardRef<HTMLSelectElement, NativeSelectProps>(
               "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-0",
               "disabled:opacity-40 disabled:pointer-events-none",
               isPlaceholder ? "text-on-surface-variant" : "text-on-surface",
-              hasError && "ring-1 ring-error/20"
+              hasError && "ring-1 ring-error/20",
             )}
             onChange={(e) => {
               setIsPlaceholder(e.target.value === "")
@@ -79,13 +89,18 @@ const NativeSelect = forwardRef<HTMLSelectElement, NativeSelectProps>(
           />
         </div>
         {(helperText || error) && (
-          <p className={clx("text-body-sm", hasError ? "text-error" : "text-on-surface-variant")}>
+          <p
+            className={clx(
+              "text-body-sm",
+              hasError ? "text-error" : "text-on-surface-variant",
+            )}
+          >
             {error || helperText}
           </p>
         )}
       </div>
     )
-  }
+  },
 )
 
 NativeSelect.displayName = "NativeSelect"

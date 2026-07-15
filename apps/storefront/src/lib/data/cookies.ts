@@ -34,7 +34,7 @@ export const getCacheTag = async (tag: string): Promise<string> => {
 }
 
 export const getCacheOptions = async (
-  tag: string
+  tag: string,
 ): Promise<{ tags: string[] } | Record<string, never>> => {
   if (typeof window !== "undefined") {
     return {}
@@ -65,8 +65,7 @@ export const removeAuthToken = async () => {
     cookies.set("_medusa_jwt", "", {
       maxAge: -1,
     })
-  } catch {
-  }
+  } catch {}
 }
 
 export const getCartId = async () => {

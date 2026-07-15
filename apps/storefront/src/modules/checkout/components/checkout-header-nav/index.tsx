@@ -2,7 +2,14 @@
 
 import { useSearchParams } from "next/navigation"
 
-const STEPS = ["fulfilment", "address", "shipping", "payment", "review", "success"]
+const STEPS = [
+  "fulfilment",
+  "address",
+  "shipping",
+  "payment",
+  "review",
+  "success",
+]
 
 export default function CheckoutHeaderNav() {
   const searchParams = useSearchParams()

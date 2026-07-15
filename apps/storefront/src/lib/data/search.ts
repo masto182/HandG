@@ -5,7 +5,7 @@ import { sdk } from "@lib/config"
 export async function searchProducts(
   query: string,
   filters?: Record<string, string>,
-  limit?: number
+  limit?: number,
 ): Promise<any> {
   try {
     const params = new URLSearchParams()
@@ -19,7 +19,7 @@ export async function searchProducts(
 
     const data = await sdk.client.fetch<any>(
       `/store/search?${params.toString()}`,
-      { method: "GET" }
+      { method: "GET" },
     )
     return data
   } catch {

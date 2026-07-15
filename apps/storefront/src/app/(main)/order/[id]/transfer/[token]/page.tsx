@@ -17,9 +17,9 @@ export default async function TransferPage({
           Transfer request for order {id}
         </Heading>
         <Text className="text-hg-text-secondary">
-          You&#39;ve received a request to transfer ownership of your order ({id}).
-          If you agree to this request, you can approve the transfer by clicking
-          the button below.
+          You&#39;ve received a request to transfer ownership of your order (
+          {id}). If you agree to this request, you can approve the transfer by
+          clicking the button below.
         </Text>
         <div className="w-full h-px bg-hg-border" />
         <Text className="text-hg-text-secondary">

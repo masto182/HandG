@@ -22,7 +22,7 @@ export type GoalProps = Record<string, string | number | boolean>
 
 type PlausibleFn = (
   name: string,
-  options?: { props?: GoalProps; callback?: () => void }
+  options?: { props?: GoalProps; callback?: () => void },
 ) => void
 
 export function trackGoal(name: GoalName, props?: GoalProps): void {

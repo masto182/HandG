@@ -25,7 +25,9 @@ export const Scale: Story = {
     <div className="flex flex-col gap-6">
       {SCALE.map((s) => (
         <div key={s.name} className="flex items-baseline gap-6">
-          <span className="w-32 text-sm text-on-surface-variant font-mono">{s.name}</span>
+          <span className="w-32 text-sm text-on-surface-variant font-mono">
+            {s.name}
+          </span>
           <span className={s.className}>The quick brown fox</span>
         </div>
       ))}

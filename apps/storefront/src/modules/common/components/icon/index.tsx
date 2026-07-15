@@ -7,12 +7,17 @@ type IconProps = {
   filled?: boolean
 }
 
-export default function Icon({ name, className, size = 24, filled = false }: IconProps) {
+export default function Icon({
+  name,
+  className,
+  size = 24,
+  filled = false,
+}: IconProps) {
   return (
     <span
       className={clx(
         "material-symbols-outlined select-none align-middle leading-none",
-        className
+        className,
       )}
       style={{
         fontSize: `${size}px`,

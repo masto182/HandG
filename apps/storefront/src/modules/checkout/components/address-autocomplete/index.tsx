@@ -17,7 +17,9 @@ type Props = {
 
 const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""
 
-function extractAddressComponents(place: google.maps.places.PlaceResult): ParsedAddress {
+function extractAddressComponents(
+  place: google.maps.places.PlaceResult,
+): ParsedAddress {
   const components = place.address_components || []
   let streetNumber = ""
   let route = ""
@@ -87,7 +89,9 @@ export default function AddressAutocomplete({
       return
     }
 
-    const existingScript = document.querySelector(`script[src*="maps.googleapis.com/maps/api/js"]`)
+    const existingScript = document.querySelector(
+      `script[src*="maps.googleapis.com/maps/api/js"]`,
+    )
     if (!existingScript) {
       const script = document.createElement("script")
       script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&libraries=places`

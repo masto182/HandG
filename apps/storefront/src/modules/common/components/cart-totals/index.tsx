@@ -15,8 +15,14 @@ type CartTotalsProps = {
 }
 
 export default function CartTotals({ totals }: CartTotalsProps) {
-  const { currency_code = "aud", total, subtotal, item_subtotal, shipping_total, discount_total } =
-    totals
+  const {
+    currency_code = "aud",
+    total,
+    subtotal,
+    item_subtotal,
+    shipping_total,
+    discount_total,
+  } = totals
 
   const productSubtotal = item_subtotal ?? subtotal
 
@@ -39,7 +45,9 @@ export default function CartTotals({ totals }: CartTotalsProps) {
 
       <div className="flex justify-between text-body-md text-on-surface">
         <span className="text-on-surface-variant">Shipping</span>
-        <span>{shipping_total ? fmt(shipping_total) : "Calculated next step"}</span>
+        <span>
+          {shipping_total ? fmt(shipping_total) : "Calculated next step"}
+        </span>
       </div>
 
       <Divider />

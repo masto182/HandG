@@ -36,7 +36,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       className,
       ...props
     },
-    ref
+    ref,
   ) => {
     const inputRef = React.useRef<HTMLInputElement>(null)
     const [showPassword, setShowPassword] = useState(false)
@@ -80,7 +80,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
               "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-0",
               "disabled:opacity-40 disabled:pointer-events-none",
               hasError && "ring-1 ring-error/20",
-              (type === "password" || trailingIcon) && "pr-12"
+              (type === "password" || trailingIcon) && "pr-12",
             )}
             {...props}
             ref={inputRef}
@@ -91,7 +91,10 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
               onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface transition-colors"
             >
-              <Icon name={showPassword ? "visibility" : "visibility_off"} size={20} />
+              <Icon
+                name={showPassword ? "visibility" : "visibility_off"}
+                size={20}
+              />
             </button>
           )}
           {trailingIcon && type !== "password" && (
@@ -115,7 +118,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           <p
             className={clx(
               "text-body-sm",
-              hasError ? "text-error" : "text-on-surface-variant"
+              hasError ? "text-error" : "text-on-surface-variant",
             )}
           >
             {error || helperText}
@@ -123,7 +126,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         )}
       </div>
     )
-  }
+  },
 )
 
 Input.displayName = "Input"

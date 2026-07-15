@@ -8,7 +8,10 @@ export default function StoreLoading() {
               <div className="h-4 w-16 bg-hg-surface rounded animate-pulse mb-3" />
               <div className="space-y-2">
                 {[1, 2, 3, 4].map((j) => (
-                  <div key={j} className="h-4 w-full bg-hg-surface rounded animate-pulse" />
+                  <div
+                    key={j}
+                    className="h-4 w-full bg-hg-surface rounded animate-pulse"
+                  />
                 ))}
               </div>
             </div>
@@ -19,7 +22,10 @@ export default function StoreLoading() {
         <div className="h-8 w-32 bg-hg-surface rounded animate-pulse mb-8" />
         <div className="grid grid-cols-2 small:grid-cols-3 medium:grid-cols-4 gap-x-6 gap-y-8">
           {Array.from({ length: 12 }).map((_, i) => (
-            <div key={i} className="bg-hg-surface border border-hg-border rounded-lg overflow-hidden">
+            <div
+              key={i}
+              className="bg-hg-surface border border-hg-border rounded-lg overflow-hidden"
+            >
               <div className="aspect-square bg-hg-border/30 animate-pulse" />
               <div className="p-3 space-y-2">
                 <div className="h-4 w-3/4 bg-hg-border/30 rounded animate-pulse" />

@@ -23,5 +23,8 @@ export const ShortLabel: Story = {
 }
 
 export const LongLabel: Story = {
-  args: { href: "/account/orders", children: "Track every order from your account" },
+  args: {
+    href: "/account/orders",
+    children: "Track every order from your account",
+  },
 }

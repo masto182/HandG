@@ -50,21 +50,26 @@ const Item: React.FC<AccordionItemProps> = ({
       className={clx(
         "border-outline-variant group border-t last:mb-0 last:border-b",
         "py-4",
-        className
+        className,
       )}
     >
       <AccordionPrimitive.Header className="px-1">
         <div className="flex flex-col">
           <div className="flex w-full items-center justify-between">
             <div className="flex items-center gap-3">
-              <Text className="text-on-surface font-semibold text-body-md">{title}</Text>
+              <Text className="text-on-surface font-semibold text-body-md">
+                {title}
+              </Text>
             </div>
             <AccordionPrimitive.Trigger className="text-on-surface-variant hover:text-on-surface transition-colors">
               {customTrigger || <ChevronTrigger />}
             </AccordionPrimitive.Trigger>
           </div>
           {subtitle && (
-            <Text as="span" className="mt-1 text-body-sm text-on-surface-variant">
+            <Text
+              as="span"
+              className="mt-1 text-body-sm text-on-surface-variant"
+            >
               {subtitle}
             </Text>
           )}
@@ -73,11 +78,15 @@ const Item: React.FC<AccordionItemProps> = ({
       <AccordionPrimitive.Content
         forceMount={forceMountContent}
         className={clx(
-          "radix-state-closed:animate-accordion-close radix-state-open:animate-accordion-open radix-state-closed:pointer-events-none px-1"
+          "radix-state-closed:animate-accordion-close radix-state-open:animate-accordion-open radix-state-closed:pointer-events-none px-1",
         )}
       >
         <div className="pt-3">
-          {description && <Text className="text-body-sm text-on-surface-variant">{description}</Text>}
+          {description && (
+            <Text className="text-body-sm text-on-surface-variant">
+              {description}
+            </Text>
+          )}
           <div className="w-full">{children}</div>
         </div>
       </AccordionPrimitive.Content>

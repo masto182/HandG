@@ -51,7 +51,8 @@ const PlaceOrderButton = ({
   const [submitting, setSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
-  const label = providerKind === "payid" ? "I Have Made the Payment" : "Place Order"
+  const label =
+    providerKind === "payid" ? "I Have Made the Payment" : "Place Order"
 
   const handlePayment = async () => {
     if (submitting) return
@@ -59,7 +60,9 @@ const PlaceOrderButton = ({
     try {
       await placeOrder()
     } catch (err: any) {
-      setErrorMessage(err?.message || "Something went wrong placing your order.")
+      setErrorMessage(
+        err?.message || "Something went wrong placing your order.",
+      )
     } finally {
       setSubmitting(false)
     }

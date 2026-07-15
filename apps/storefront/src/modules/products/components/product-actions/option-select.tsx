@@ -26,10 +26,7 @@ const OptionSelect: React.FC<OptionSelectProps> = ({
       <span className="text-label-caps uppercase tracking-[0.05em] text-on-surface-variant">
         {title}
       </span>
-      <div
-        className="flex flex-wrap gap-2"
-        data-testid={dataTestId}
-      >
+      <div className="flex flex-wrap gap-2" data-testid={dataTestId}>
         {filteredOptions.map((v) => {
           const isSelected = v === current
           return (
@@ -43,7 +40,7 @@ const OptionSelect: React.FC<OptionSelectProps> = ({
                   "bg-surface-container border-outline-variant text-on-surface hover:border-outline":
                     !isSelected && !disabled,
                   "opacity-40 cursor-not-allowed": disabled,
-                }
+                },
               )}
               disabled={disabled}
               data-testid="option-button"

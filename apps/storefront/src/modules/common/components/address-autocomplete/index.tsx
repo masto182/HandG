@@ -56,15 +56,18 @@ export default function AddressAutocomplete({
         if (!place.address_components) return
 
         const get = (type: string) =>
-          place.address_components?.find((c) => c.types.includes(type))?.long_name || ""
+          place.address_components?.find((c) => c.types.includes(type))
+            ?.long_name || ""
         const getShort = (type: string) =>
-          place.address_components?.find((c) => c.types.includes(type))?.short_name || ""
+          place.address_components?.find((c) => c.types.includes(type))
+            ?.short_name || ""
 
         const streetNumber = get("street_number")
         const route = get("route")
 
         if (inputRef.current) {
-          inputRef.current.value = place.formatted_address || `${streetNumber} ${route}`.trim()
+          inputRef.current.value =
+            place.formatted_address || `${streetNumber} ${route}`.trim()
         }
 
         callbackRef.current?.({
@@ -85,7 +88,11 @@ export default function AddressAutocomplete({
         return
       }
 
-      if (!document.querySelector(`script[src*="maps.googleapis.com/maps/api/js"]`)) {
+      if (
+        !document.querySelector(
+          `script[src*="maps.googleapis.com/maps/api/js"]`,
+        )
+      ) {
         const script = document.createElement("script")
         script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_KEY}&libraries=places`
         script.async = true

@@ -13,7 +13,11 @@ type Props = {
  * Fires the Plausible `order_placed` goal exactly once per order id, even if
  * the user refreshes the confirmation page or navigates back.
  */
-export default function OrderPlacedTracker({ orderId, total, currencyCode }: Props) {
+export default function OrderPlacedTracker({
+  orderId,
+  total,
+  currencyCode,
+}: Props) {
   const sent = useRef<string | null>(null)
 
   useEffect(() => {

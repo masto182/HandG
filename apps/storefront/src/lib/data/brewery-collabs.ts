@@ -11,11 +11,13 @@ export type CollabProduct = {
   primary_brewery_name: string
 }
 
-export async function getBreweryCollabs(slug: string): Promise<CollabProduct[]> {
+export async function getBreweryCollabs(
+  slug: string,
+): Promise<CollabProduct[]> {
   try {
     const data = await sdk.client.fetch<{ collabs: CollabProduct[] }>(
       `/store/breweries/${slug}/collabs`,
-      { method: "GET", next: { revalidate: 60 } }
+      { method: "GET", next: { revalidate: 60 } },
     )
     return data.collabs || []
   } catch {

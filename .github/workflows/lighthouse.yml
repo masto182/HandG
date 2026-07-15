@@ -19,8 +19,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: "20.20.2"
-  PNPM_VERSION: "10.33.2"
+  NODE_VERSION: "24.18.0"
+  PNPM_VERSION: "11.13.0"
 
 jobs:
   lighthouse:
@@ -40,6 +40,9 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+
+      - name: Build shared-types
+        run: pnpm --filter ./packages/shared-types build
 
       - name: Build storefront
         env:

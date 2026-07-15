@@ -40,7 +40,10 @@ export function useSearch(q: string, filters?: Record<string, string>) {
     queryKey: ["search", q, filters],
     queryFn: () =>
       sdk.client
-        .fetch<{ hits: any[]; facetDistribution?: any }>(`/store/search?${queryString}`, { method: "GET" })
+        .fetch<{
+          hits: any[]
+          facetDistribution?: any
+        }>(`/store/search?${queryString}`, { method: "GET" })
         .then((d) => d),
     enabled: !!q,
     staleTime: 30 * 1000,
@@ -52,7 +55,9 @@ export function useAnnouncements() {
     queryKey: ["announcements"],
     queryFn: () =>
       sdk.client
-        .fetch<{ announcements: any[] }>("/store/announcements", { method: "GET" })
+        .fetch<{
+          announcements: any[]
+        }>("/store/announcements", { method: "GET" })
         .then((d) => d.announcements || []),
     staleTime: 5 * 60 * 1000,
   })
@@ -61,7 +66,8 @@ export function useAnnouncements() {
 export function useVipStatus() {
   return useQuery({
     queryKey: ["vip", "status"],
-    queryFn: () => sdk.client.fetch<any>("/store/customers/me/vip", { method: "GET" }),
+    queryFn: () =>
+      sdk.client.fetch<any>("/store/customers/me/vip", { method: "GET" }),
     staleTime: 30 * 1000,
   })
 }
@@ -69,7 +75,10 @@ export function useVipStatus() {
 export function useMembership() {
   return useQuery({
     queryKey: ["membership"],
-    queryFn: () => sdk.client.fetch<any>("/store/customers/me/membership", { method: "GET" }),
+    queryFn: () =>
+      sdk.client.fetch<any>("/store/customers/me/membership", {
+        method: "GET",
+      }),
     staleTime: 60 * 1000,
   })
 }
@@ -79,7 +88,9 @@ export function useRestockAlerts() {
     queryKey: ["restock-alerts"],
     queryFn: () =>
       sdk.client
-        .fetch<{ restock_alerts: any[] }>("/store/customers/me/restock-alerts", { method: "GET" })
+        .fetch<{
+          restock_alerts: any[]
+        }>("/store/customers/me/restock-alerts", { method: "GET" })
         .then((d) => d.restock_alerts || []),
     staleTime: 30 * 1000,
   })
@@ -118,7 +129,9 @@ export function useToggleLike() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (productId: string) =>
-      sdk.client.fetch(`/store/products/${productId}/likes`, { method: "POST" }),
+      sdk.client.fetch(`/store/products/${productId}/likes`, {
+        method: "POST",
+      }),
     onSuccess: (_, productId) => {
       queryClient.invalidateQueries({ queryKey: ["likes", productId] })
       queryClient.invalidateQueries({ queryKey: ["likes"] })
@@ -129,7 +142,11 @@ export function useToggleLike() {
 export function useCreateRestockAlert() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (body: { product_id?: string; beer_name: string; brewery_name: string }) =>
+    mutationFn: (body: {
+      product_id?: string
+      beer_name: string
+      brewery_name: string
+    }) =>
       sdk.client.fetch("/store/customers/me/restock-alerts", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -145,7 +162,9 @@ export function useDeleteRestockAlert() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (id: string) =>
-      sdk.client.fetch(`/store/customers/me/restock-alerts/${id}`, { method: "DELETE" }),
+      sdk.client.fetch(`/store/customers/me/restock-alerts/${id}`, {
+        method: "DELETE",
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["restock-alerts"] })
     },

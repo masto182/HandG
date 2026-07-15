@@ -16,7 +16,9 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Default: Story = { args: { name: "shopping_cart", size: 32 } }
-export const Filled: Story = { args: { name: "favorite", size: 32, filled: true } }
+export const Filled: Story = {
+  args: { name: "favorite", size: 32, filled: true },
+}
 export const Large: Story = { args: { name: "storefront", size: 64 } }
 export const Common: Story = {
   render: () => (
@@ -37,7 +39,9 @@ export const Common: Story = {
       ].map((name) => (
         <div key={name} className="flex flex-col items-center gap-1">
           <Icon name={name} size={32} />
-          <span className="font-mono text-xs text-on-surface-variant">{name}</span>
+          <span className="font-mono text-xs text-on-surface-variant">
+            {name}
+          </span>
         </div>
       ))}
     </div>

@@ -28,12 +28,21 @@ export const WithHelper: Story = {
 }
 
 export const WithError: Story = {
-  args: { name: "email", label: "Email", error: "That email is already taken." },
+  args: {
+    name: "email",
+    label: "Email",
+    error: "That email is already taken.",
+  },
   decorators: [wrap],
 }
 
 export const Disabled: Story = {
-  args: { name: "email", label: "Email", disabled: true, defaultValue: "foo@bar.com" },
+  args: {
+    name: "email",
+    label: "Email",
+    disabled: true,
+    defaultValue: "foo@bar.com",
+  },
   decorators: [wrap],
 }
 

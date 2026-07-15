@@ -28,9 +28,11 @@ const createRestockAlertStep = createStep(
     // Dedupe against pending (not-yet-notified) alerts. Prefer product_id when
     // present; otherwise fall back to (beer_name, brewery_name) for ad-hoc
     // subscriptions to products not in our catalog.
+    // Note: filtering by notified_at: null in the DB query is avoided because
+    // MikroORM 6.6+ may generate IS NULL incorrectly for nullable dateTime
+    // columns in some contexts. We filter in JS instead.
     const dedupeFilter: Record<string, unknown> = {
       customer_id: input.customer_id,
-      notified_at: null,
     }
     if (input.product_id) {
       dedupeFilter.product_id = input.product_id
@@ -39,7 +41,23 @@ const createRestockAlertStep = createStep(
       dedupeFilter.brewery_name = input.brewery_name
     }
 
-    const existing = await restockAlertService.listRestockAlerts(dedupeFilter)
+    const allMatches = await restockAlertService.listRestockAlerts(
+      dedupeFilter,
+      // Explicit select: Medusa 2.17 / MikroORM 6.6 can return only "id" by
+      // default in workflow-step context. We need notified_at for the JS filter.
+      {
+        select: [
+          "id",
+          "customer_id",
+          "product_id",
+          "beer_name",
+          "brewery_name",
+          "notified_at",
+          "tier_at_notification",
+        ],
+      }
+    )
+    const existing = allMatches.filter((a: any) => !a.notified_at)
     if (existing.length) {
       // Nothing created -> no compensation payload.
       return new StepResponse({ alert: existing[0], created: false }, null)

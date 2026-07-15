@@ -10,7 +10,9 @@ export default function AccountError({
   return (
     <div className="min-h-[40vh] flex items-center justify-center px-6">
       <div className="text-center max-w-md">
-        <h2 className="text-xl font-bold text-hg-text mb-2">Account unavailable</h2>
+        <h2 className="text-xl font-bold text-hg-text mb-2">
+          Account unavailable
+        </h2>
         <p className="text-sm text-hg-text-secondary mb-6">
           We couldn&apos;t load your account information. Please try again.
         </p>

@@ -23,7 +23,10 @@ export default function BreweryDescription({ text }: { text: string }) {
       </p>
       {clamped && !expanded && (
         <button
-          onClick={(e) => { e.preventDefault(); setExpanded(true) }}
+          onClick={(e) => {
+            e.preventDefault()
+            setExpanded(true)
+          }}
           className="text-xs text-hg-gold hover:text-hg-gold-hover transition-colors mt-1"
         >
           More
@@ -31,7 +34,10 @@ export default function BreweryDescription({ text }: { text: string }) {
       )}
       {expanded && (
         <button
-          onClick={(e) => { e.preventDefault(); setExpanded(false) }}
+          onClick={(e) => {
+            e.preventDefault()
+            setExpanded(false)
+          }}
           className="text-xs text-hg-text-secondary hover:text-hg-text transition-colors mt-1"
         >
           Less

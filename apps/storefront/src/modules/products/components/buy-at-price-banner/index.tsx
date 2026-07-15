@@ -22,8 +22,8 @@ export default function BuyAtPriceBanner({
     const days = Math.max(
       0,
       Math.ceil(
-        (new Date(expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-      )
+        (new Date(expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+      ),
     )
     expiresLabel = days === 0 ? "Expires today" : `Expires in ${days}d`
   }

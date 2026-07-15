@@ -4,7 +4,11 @@ import { usePathname } from "next/navigation"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import { breweryLabel } from "@lib/util/brewery-label"
 
-export default function NavLinks({ isApproved = false }: { isApproved?: boolean }) {
+export default function NavLinks({
+  isApproved = false,
+}: {
+  isApproved?: boolean
+}) {
   const pathname = usePathname()
 
   const links = [
@@ -15,7 +19,10 @@ export default function NavLinks({ isApproved = false }: { isApproved?: boolean 
   return (
     <div className="hidden small:flex items-center gap-8">
       {links.map((link) => {
-        const isActive = pathname === link.href || pathname.startsWith(link.href + "/") || (link.href === "/store" && pathname === "/store")
+        const isActive =
+          pathname === link.href ||
+          pathname.startsWith(link.href + "/") ||
+          (link.href === "/store" && pathname === "/store")
         return (
           <LocalizedClientLink
             key={link.href}

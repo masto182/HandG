@@ -76,6 +76,10 @@ medusaIntegrationTestRunner({
       })
 
       it("GET /admin/site-config/:key/history shows the prior set", async () => {
+        // Medusa 2.17 restores the DB snapshot before each test, so the override
+        // and history row written in the PATCH test are gone. Re-run the PATCH
+        // here so the history entry exists when we read it.
+        await api.patch("/admin/site-config/payid_alias", { value: "alias@override.au" }, adminAuth)
         const res = await api.get("/admin/site-config/payid_alias/history", adminAuth)
         expect(res.status).toBe(200)
         const history = (res.data as any).history as any[]

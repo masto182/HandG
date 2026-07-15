@@ -25,9 +25,12 @@ export type ShareOptions = {
 const UTM_CAMPAIGN = "member_invite"
 
 export function canNativeShare(): boolean {
-  if (typeof window === "undefined" || typeof navigator === "undefined") return false
+  if (typeof window === "undefined" || typeof navigator === "undefined")
+    return false
   if (!window.isSecureContext) return false
-  return typeof (navigator as Navigator & { share?: unknown }).share === "function"
+  return (
+    typeof (navigator as Navigator & { share?: unknown }).share === "function"
+  )
 }
 
 export function withUtm(link: string, medium: string): string {
@@ -46,7 +49,7 @@ export function buildIntentUrl(
   channel: ShareChannel,
   link: string,
   body: string,
-  emailSubject?: string
+  emailSubject?: string,
 ): string {
   const linked = withUtm(link, channel)
   const text = body?.trim() || ""
@@ -88,9 +91,15 @@ export async function shareReferral(opts: ShareOptions): Promise<ShareResult> {
     const linked = withUtm(link, "share")
     if (canNativeShare()) {
       try {
-        await (navigator as Navigator & {
-          share: (data: { title?: string; text?: string; url?: string }) => Promise<void>
-        }).share({
+        await (
+          navigator as Navigator & {
+            share: (data: {
+              title?: string
+              text?: string
+              url?: string
+            }) => Promise<void>
+          }
+        ).share({
           title: emailSubject,
           text: body,
           url: linked,
@@ -107,9 +116,13 @@ export async function shareReferral(opts: ShareOptions): Promise<ShareResult> {
 
   // Channel intent path (desktop).
   const intentUrl = buildIntentUrl(channel, link, body, emailSubject)
-  const opened = typeof window !== "undefined" && window.open(intentUrl, "_blank", "noopener,noreferrer")
+  const opened =
+    typeof window !== "undefined" &&
+    window.open(intentUrl, "_blank", "noopener,noreferrer")
   if (!opened) {
-    const ok = await copyFallback(`${body || ""} ${withUtm(link, channel)}`.trim())
+    const ok = await copyFallback(
+      `${body || ""} ${withUtm(link, channel)}`.trim(),
+    )
     return ok ? "clipboard" : "intent"
   }
   return "intent"

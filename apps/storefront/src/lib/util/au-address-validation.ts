@@ -1,4 +1,13 @@
-export const AU_STATES = ["NSW", "VIC", "QLD", "WA", "SA", "TAS", "NT", "ACT"] as const
+export const AU_STATES = [
+  "NSW",
+  "VIC",
+  "QLD",
+  "WA",
+  "SA",
+  "TAS",
+  "NT",
+  "ACT",
+] as const
 export type AUState = (typeof AU_STATES)[number]
 
 const STATE_POSTCODE_PREFIXES: Record<AUState, string[]> = {
@@ -22,7 +31,7 @@ export function isValidAUPostcode(postcode: string): boolean {
 
 export function doesPostcodeMatchState(
   postcode: string,
-  state: string
+  state: string,
 ): boolean {
   if (!isValidAUPostcode(postcode) || !isValidAUState(state)) return false
   const prefix = postcode[0]
@@ -37,7 +46,9 @@ export function validateAUAddress(fields: {
   const errors: string[] = []
 
   if (fields.province && !isValidAUState(fields.province)) {
-    errors.push(`Invalid state: ${fields.province}. Must be one of: ${AU_STATES.join(", ")}`)
+    errors.push(
+      `Invalid state: ${fields.province}. Must be one of: ${AU_STATES.join(", ")}`,
+    )
   }
 
   if (fields.postal_code && !isValidAUPostcode(fields.postal_code)) {
@@ -51,7 +62,9 @@ export function validateAUAddress(fields: {
     isValidAUPostcode(fields.postal_code) &&
     !doesPostcodeMatchState(fields.postal_code, fields.province)
   ) {
-    errors.push(`Postcode ${fields.postal_code} does not match state ${fields.province}`)
+    errors.push(
+      `Postcode ${fields.postal_code} does not match state ${fields.province}`,
+    )
   }
 
   return { valid: errors.length === 0, errors }

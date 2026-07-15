@@ -18,25 +18,24 @@ export type ActiveSpecial = {
   discount_value: number
 }
 
-export const getActiveSpecials = cache(
-  async (): Promise<ActiveSpecial[]> => {
-    try {
-      const res = await fetch(`${BACKEND_URL}/store/active-specials`, { // sdk-exempt
-        headers: { "x-publishable-api-key": PUBLISHABLE_KEY },
-        next: { revalidate: 60 },
-      })
-      if (!res.ok) return []
-      const data = (await res.json()) as { specials: ActiveSpecial[] }
-      return data.specials || []
-    } catch {
-      return []
-    }
+export const getActiveSpecials = cache(async (): Promise<ActiveSpecial[]> => {
+  try {
+    const res = await fetch(`${BACKEND_URL}/store/active-specials`, {
+      // sdk-exempt
+      headers: { "x-publishable-api-key": PUBLISHABLE_KEY },
+      next: { revalidate: 60 },
+    })
+    if (!res.ok) return []
+    const data = (await res.json()) as { specials: ActiveSpecial[] }
+    return data.specials || []
+  } catch {
+    return []
   }
-)
+})
 
 export function getSpecialForProduct(
   specials: ActiveSpecial[],
-  productId: string
+  productId: string,
 ): ActiveSpecial | null {
   return specials.find((s) => s.target_product_ids.includes(productId)) || null
 }

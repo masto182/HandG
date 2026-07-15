@@ -35,10 +35,10 @@ export async function getReferralData(): Promise<ReferralData | null> {
   if (!headers.authorization) return null
 
   try {
-    const data = await sdk.client.fetch<any>(
-      "/store/customers/me/referrals",
-      { method: "GET", headers }
-    )
+    const data = await sdk.client.fetch<any>("/store/customers/me/referrals", {
+      method: "GET",
+      headers,
+    })
     if (!data) return null
 
     return {
@@ -51,8 +51,16 @@ export async function getReferralData(): Promise<ReferralData | null> {
         contribution_value: data.stats?.contribution_value ?? 0,
         growth_last_month: data.stats?.growth_last_month ?? 0,
       },
-      history: Array.isArray(data.history) ? data.history : (Array.isArray(data.referrals) ? data.referrals : []),
-      total_history_count: data.total_history_count ?? data.history?.length ?? data.referrals?.length ?? 0,
+      history: Array.isArray(data.history)
+        ? data.history
+        : Array.isArray(data.referrals)
+          ? data.referrals
+          : [],
+      total_history_count:
+        data.total_history_count ??
+        data.history?.length ??
+        data.referrals?.length ??
+        0,
       stealth_mode: data.stealth_mode ?? false,
     }
   } catch (e) {

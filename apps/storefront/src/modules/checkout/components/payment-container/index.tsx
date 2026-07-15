@@ -31,7 +31,7 @@ const PaymentContainer: React.FC<PaymentContainerProps> = ({
         {
           "border-primary bg-primary/5": isSelected,
           "border-outline-variant hover:border-outline": !isSelected,
-        }
+        },
       )}
     >
       <div className="flex items-center justify-between">

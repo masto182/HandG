@@ -1,6 +1,13 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react"
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+} from "react"
 import { getLikedProducts, toggleProductLike } from "@lib/data/likes"
 
 type LikesContextType = {
@@ -67,9 +74,15 @@ export function LikesProvider({ children }: { children: React.ReactNode }) {
     setLoading(null)
   }, [])
 
-  const isLiked = useCallback((productId: string) => items.has(productId), [items])
+  const isLiked = useCallback(
+    (productId: string) => items.has(productId),
+    [items],
+  )
 
-  const getCount = useCallback((productId: string) => counts.get(productId) || 0, [counts])
+  const getCount = useCallback(
+    (productId: string) => counts.get(productId) || 0,
+    [counts],
+  )
 
   const setCount = useCallback((productId: string, count: number) => {
     setCounts((prev) => {
@@ -80,7 +93,9 @@ export function LikesProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
-    <LikesContext.Provider value={{ items, counts, toggle, isLiked, getCount, setCount, loading }}>
+    <LikesContext.Provider
+      value={{ items, counts, toggle, isLiked, getCount, setCount, loading }}
+    >
       {children}
     </LikesContext.Provider>
   )

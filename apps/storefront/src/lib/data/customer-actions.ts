@@ -8,10 +8,10 @@ export async function getVipStatus(): Promise<any | null> {
   if (!headers.authorization) return null
 
   try {
-    const data = await sdk.client.fetch<any>(
-      "/store/customers/me/vip",
-      { method: "GET", headers }
-    )
+    const data = await sdk.client.fetch<any>("/store/customers/me/vip", {
+      method: "GET",
+      headers,
+    })
     return data
   } catch {
     return null
@@ -23,10 +23,10 @@ export async function getMembershipDetails(): Promise<any | null> {
   if (!headers.authorization) return null
 
   try {
-    const data = await sdk.client.fetch<any>(
-      "/store/customers/me/membership",
-      { method: "GET", headers }
-    )
+    const data = await sdk.client.fetch<any>("/store/customers/me/membership", {
+      method: "GET",
+      headers,
+    })
     return data
   } catch {
     return null
@@ -40,7 +40,7 @@ export async function listRestockAlerts(): Promise<any[]> {
   try {
     const data = await sdk.client.fetch<{ restock_alerts: any[] }>(
       "/store/customers/me/restock-alerts",
-      { method: "GET", headers }
+      { method: "GET", headers },
     )
     return data.restock_alerts || []
   } catch {
@@ -63,7 +63,7 @@ export async function createRestockAlert(body: {
         method: "POST",
         headers: { ...headers, "content-type": "application/json" },
         body,
-      }
+      },
     )
     return data.restock_alert || null
   } catch {
@@ -76,10 +76,10 @@ export async function deleteRestockAlert(id: string): Promise<boolean> {
   if (!headers.authorization) return false
 
   try {
-    await sdk.client.fetch(
-      `/store/customers/me/restock-alerts/${id}`,
-      { method: "DELETE", headers }
-    )
+    await sdk.client.fetch(`/store/customers/me/restock-alerts/${id}`, {
+      method: "DELETE",
+      headers,
+    })
     return true
   } catch {
     return false
@@ -91,9 +91,11 @@ export async function uploadAvatar(formData: FormData): Promise<string | null> {
   if (!headers.authorization) return null
 
   try {
-    const backendUrl = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "http://localhost:9000"
+    const backendUrl =
+      process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "http://localhost:9000"
     // sdk-exempt: SDK client does not support multipart/form-data uploads cleanly
-    const res = await fetch(`${backendUrl}/store/customers/me/avatar`, { // sdk-exempt
+    const res = await fetch(`${backendUrl}/store/customers/me/avatar`, {
+      // sdk-exempt
       method: "POST",
       headers: { ...headers },
       body: formData,
@@ -111,26 +113,25 @@ export async function removeAvatar(): Promise<boolean> {
   if (!headers.authorization) return false
 
   try {
-    await sdk.client.fetch(
-      "/store/customers/me/avatar",
-      { method: "DELETE", headers }
-    )
+    await sdk.client.fetch("/store/customers/me/avatar", {
+      method: "DELETE",
+      headers,
+    })
     return true
   } catch {
     return false
   }
 }
 
-export async function registerCustomer(profile: Record<string, any>): Promise<any> {
+export async function registerCustomer(
+  profile: Record<string, any>,
+): Promise<any> {
   try {
-    const data = await sdk.client.fetch<any>(
-      "/store/customers/register",
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: profile,
-      }
-    )
+    const data = await sdk.client.fetch<any>("/store/customers/register", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: profile,
+    })
     return data
   } catch (e: any) {
     throw e

@@ -25,7 +25,7 @@ export const Text = forwardRef<HTMLParagraphElement, TextProps>(
         {children}
       </Component>
     )
-  }
+  },
 )
 Text.displayName = "Text"
 
@@ -44,14 +44,14 @@ export const Heading = forwardRef<HTMLHeadingElement, HeadingProps>(
           Component === "h1" && "text-3xl",
           Component === "h2" && "text-2xl",
           Component === "h3" && "text-xl",
-          className
+          className,
         )}
         {...props}
       >
         {children}
       </Component>
     )
-  }
+  },
 )
 Heading.displayName = "Heading"
 
@@ -73,7 +73,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       children,
       ...props
     },
-    ref
+    ref,
   ) => {
     return (
       <button
@@ -81,21 +81,23 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={disabled || isLoading}
         className={clsx(
           "inline-flex gap-2 items-center justify-center rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
-          variant === "primary" && "bg-primary-container text-on-primary-container hover:opacity-90",
+          variant === "primary" &&
+            "bg-primary-container text-on-primary-container hover:opacity-90",
           variant === "secondary" &&
             "bg-surface-container text-on-surface border border-outline-variant hover:border-outline",
-          variant === "transparent" && "bg-transparent hover:bg-surface-container",
+          variant === "transparent" &&
+            "bg-transparent hover:bg-surface-container",
           size === "small" && "h-8 px-3 text-sm",
           size === "medium" && "h-10 px-4",
           size === "large" && "h-12 px-6 text-lg",
-          className
+          className,
         )}
         {...props}
       >
         {isLoading ? "Loading..." : children}
       </button>
     )
-  }
+  },
 )
 Button.displayName = "Button"
 
@@ -107,13 +109,16 @@ export const Container = forwardRef<HTMLDivElement, ContainerProps>(
     return (
       <div
         ref={ref}
-        className={clsx("bg-surface-container rounded-xl border border-white/5 p-4", className)}
+        className={clsx(
+          "bg-surface-container rounded-xl border border-white/5 p-4",
+          className,
+        )}
         {...props}
       >
         {children}
       </div>
     )
-  }
+  },
 )
 Container.displayName = "Container"
 
@@ -135,14 +140,14 @@ export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
           color === "orange" && "bg-orange-100 text-orange-700",
           color === "grey" && "bg-hg-bg text-hg-text-secondary",
           color === "purple" && "bg-purple-100 text-purple-700",
-          className
+          className,
         )}
         {...props}
       >
         {children}
       </span>
     )
-  }
+  },
 )
 Badge.displayName = "Badge"
 
@@ -156,14 +161,14 @@ export const IconBadge = forwardRef<HTMLSpanElement, IconBadgeProps>(
         ref={ref}
         className={clsx(
           "inline-flex items-center justify-center rounded-lg bg-hg-surface p-1",
-          className
+          className,
         )}
         {...props}
       >
         {children}
       </span>
     )
-  }
+  },
 )
 IconBadge.displayName = "IconBadge"
 
@@ -177,14 +182,14 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
         ref={ref}
         className={clsx(
           "inline-flex items-center justify-center rounded-md p-2 hover:bg-hg-surface transition-colors focus-visible:outline-none focus-visible:ring-2",
-          className
+          className,
         )}
         {...props}
       >
         {children}
       </button>
     )
-  }
+  },
 )
 IconButton.displayName = "IconButton"
 
@@ -202,7 +207,7 @@ export const Label = forwardRef<HTMLLabelElement, LabelProps>(
         {children}
       </label>
     )
-  }
+  },
 )
 Label.displayName = "Label"
 
@@ -220,13 +225,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           className={clsx(
             "flex h-10 w-full rounded-md border border-hg-border bg-hg-surface px-3 py-2 text-sm text-hg-text placeholder:text-hg-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-hg-gold focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
-            className
+            className,
           )}
           {...props}
         />
       </div>
     )
-  }
+  },
 )
 Input.displayName = "Input"
 
@@ -244,7 +249,7 @@ const TableRoot = forwardRef<HTMLTableElement, TableProps>(
         {children}
       </table>
     )
-  }
+  },
 )
 TableRoot.displayName = "Table"
 
@@ -261,7 +266,7 @@ const TableHeader = forwardRef<HTMLTableSectionElement, TableHeaderProps>(
         {children}
       </thead>
     )
-  }
+  },
 )
 TableHeader.displayName = "TableHeader"
 
@@ -278,7 +283,7 @@ const TableBody = forwardRef<HTMLTableSectionElement, TableBodyProps>(
         {children}
       </tbody>
     )
-  }
+  },
 )
 TableBody.displayName = "TableBody"
 
@@ -291,14 +296,14 @@ const TableRow = forwardRef<HTMLTableRowElement, TableRowProps>(
         ref={ref}
         className={clsx(
           "border-b border-hg-border/30 transition-colors hover:bg-hg-surface/60",
-          className
+          className,
         )}
         {...props}
       >
         {children}
       </tr>
     )
-  }
+  },
 )
 TableRow.displayName = "TableRow"
 
@@ -311,14 +316,14 @@ const TableHead = forwardRef<HTMLTableCellElement, TableHeadProps>(
         ref={ref}
         className={clsx(
           "h-12 px-4 text-left align-middle font-medium text-hg-text-secondary [&:has([role=checkbox])]:pr-0",
-          className
+          className,
         )}
         {...props}
       >
         {children}
       </th>
     )
-  }
+  },
 )
 TableHead.displayName = "TableHead"
 
@@ -331,14 +336,14 @@ const TableCell = forwardRef<HTMLTableCellElement, TableCellProps>(
         ref={ref}
         className={clsx(
           "p-4 align-middle [&:has([role=checkbox])]:pr-0",
-          className
+          className,
         )}
         {...props}
       >
         {children}
       </td>
     )
-  }
+  },
 )
 TableCell.displayName = "TableCell"
 
@@ -365,7 +370,7 @@ const RadioGroupRoot = forwardRef<HTMLDivElement, RadioGroupProps>(
         {children}
       </div>
     )
-  }
+  },
 )
 RadioGroupRoot.displayName = "RadioGroup"
 
@@ -383,14 +388,14 @@ const RadioGroupItem = forwardRef<HTMLInputElement, RadioGroupItemProps>(
           id={id}
           className={clsx(
             "h-4 w-4 border-hg-border text-hg-gold focus:ring-hg-gold",
-            className
+            className,
           )}
           {...props}
         />
         {label && <Label htmlFor={id}>{label}</Label>}
       </div>
     )
-  }
+  },
 )
 RadioGroupItem.displayName = "RadioGroupItem"
 
@@ -413,13 +418,13 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
           id={id}
           className={clsx(
             "h-4 w-4 rounded border-hg-border text-hg-gold focus:ring-hg-gold",
-            className
+            className,
           )}
           {...props}
         />
         {label && <Label htmlFor={id}>{label}</Label>}
       </div>
     )
-  }
+  },
 )
 Checkbox.displayName = "Checkbox"

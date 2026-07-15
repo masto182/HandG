@@ -5,8 +5,14 @@ const SWATCHES = [
   { name: "secondary", token: "bg-secondary text-on-secondary" },
   { name: "tertiary", token: "bg-tertiary text-on-tertiary" },
   { name: "error", token: "bg-error text-on-error" },
-  { name: "surface", token: "bg-surface text-on-surface border border-outline-variant" },
-  { name: "surface-variant", token: "bg-surface-variant text-on-surface-variant" },
+  {
+    name: "surface",
+    token: "bg-surface text-on-surface border border-outline-variant",
+  },
+  {
+    name: "surface-variant",
+    token: "bg-surface-variant text-on-surface-variant",
+  },
   { name: "outline", token: "bg-outline" },
   { name: "outline-variant", token: "bg-outline-variant" },
 ]
