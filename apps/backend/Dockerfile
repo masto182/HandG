@@ -14,7 +14,8 @@ COPY packages/shared-types/ packages/shared-types/
 # server can require it without ts-node at runtime.
 RUN cd packages/shared-types && pnpm build
 COPY apps/backend/ apps/backend/
-RUN cd apps/backend && pnpm build
+# TypeScript 6 needs extra heap during medusa build (tsc is more memory-intensive)
+RUN NODE_OPTIONS=--max-old-space-size=8192 pnpm --filter=backend build
 
 FROM node:24.18.0-alpine AS runner
 
