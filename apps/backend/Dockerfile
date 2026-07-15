@@ -1,4 +1,4 @@
-FROM node:20.20.2-alpine AS builder
+FROM node:24.18.0-alpine AS builder
 
 WORKDIR /app
 
@@ -16,7 +16,7 @@ RUN cd packages/shared-types && pnpm build
 COPY apps/backend/ apps/backend/
 RUN cd apps/backend && pnpm build
 
-FROM node:20.20.2-alpine AS runner
+FROM node:24.18.0-alpine AS runner
 
 WORKDIR /app
 

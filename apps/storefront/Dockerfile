@@ -1,4 +1,4 @@
-FROM node:20.20.2-alpine AS builder
+FROM node:24.18.0-alpine AS builder
 
 WORKDIR /app
 
@@ -29,7 +29,7 @@ ENV NEXT_PUBLIC_STORE_URL=$NEXT_PUBLIC_STORE_URL
 
 RUN cd apps/storefront && pnpm build
 
-FROM node:20.20.2-alpine AS runner
+FROM node:24.18.0-alpine AS runner
 
 WORKDIR /app
 
