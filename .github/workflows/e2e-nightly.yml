@@ -87,7 +87,7 @@ jobs:
       # In production Caddy handles this; in CI we need Next.js rewrites instead.
       NEXT_REWRITES_BACKEND: http://localhost:9000
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Start MeiliSearch
         # MeiliSearch's debian:12-slim image has no wget/curl, so we can't use a
@@ -124,10 +124,10 @@ jobs:
             minio/mc:RELEASE.2024-10-08T09-37-26Z \
             anonymous set none minio/medusa
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: ${{ env.PNPM_VERSION }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm

@@ -37,6 +37,7 @@ export const productImageMiddlewares: MiddlewareRoute[] = [
   {
     matcher: "/admin/product-images/validate",
     method: "POST",
+    // @ts-expect-error TS2589: Zod v4 + validateAndTransformBody creates deep type chains under TS 6
     middlewares: [validateAndTransformBody(ValidateImagesSchema)],
   },
   {

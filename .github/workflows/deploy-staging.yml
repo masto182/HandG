@@ -28,7 +28,7 @@ jobs:
           echo "Refusing to deploy: head_branch was ${{ github.event.workflow_run.head_branch }}, expected main."
           exit 1
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: SSH deploy
         uses: appleboy/ssh-action@v1

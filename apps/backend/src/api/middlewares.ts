@@ -31,6 +31,7 @@ export default defineMiddlewares({
         // the middleware accepts JWTs with empty actor_id but valid auth_identity_id.
         // The route handler enforces auth_identity_id presence and returns 401 if missing.
         authenticate("customer", ["bearer"], { allowUnregistered: true }),
+        // @ts-expect-error TS2589: Zod v4 schema causes deep type chain in validateAndTransformBody under TS 6 — functionally correct
         validateAndTransformBody(RegisterCustomerSchema),
         rateLimit(process.env.NODE_ENV === "production" ? 20 : 200, 3600000),
       ],
