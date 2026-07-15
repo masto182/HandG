@@ -89,7 +89,8 @@ const createRestockAlertStep = createStep(
 
     return new StepResponse({ alert, created: true }, { id: alert.id })
   },
-  async (compensation: { id: string } | null, { container }) => {
+  // TS 6: stricter generic variance on CompensateFn — use any to satisfy
+  async (compensation: { id: string } | null | any, { container }) => {
     if (!compensation?.id) return
     const restockAlertService = container.resolve(RESTOCK_ALERT_MODULE) as any
     await restockAlertService.deleteRestockAlerts(compensation.id)

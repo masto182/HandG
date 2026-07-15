@@ -41,7 +41,7 @@ jobs:
           echo "Refusing to promote: workflow must run from main (got ${{ github.ref }})."
           exit 1
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -83,7 +83,7 @@ jobs:
     timeout-minutes: 20
     environment: production
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: SSH deploy
         uses: appleboy/ssh-action@v1

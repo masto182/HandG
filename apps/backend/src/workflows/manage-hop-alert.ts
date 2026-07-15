@@ -80,7 +80,8 @@ const upsertHopAlertStep = createStep(
       id: alert.id,
     } as UpsertCompensation)
   },
-  async (compensation: UpsertCompensation, { container }) => {
+  // TS 6: stricter generic variance on CompensateFn — cast to satisfy the type
+  async (compensation: UpsertCompensation | any, { container }) => {
     if (!compensation) return
     const hopAlertService = container.resolve(HOP_ALERT_MODULE) as any
     if (compensation.action === "create") {

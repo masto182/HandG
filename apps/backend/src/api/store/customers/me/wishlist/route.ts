@@ -83,7 +83,7 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
         }
       } catch (e) {
         const logger = req.scope.resolve(ContainerRegistrationKeys.LOGGER)
-        logger.error("[Wishlist] Price calculation failed:", e)
+        logger.error("[Wishlist] Price calculation failed:", e instanceof Error ? e : undefined)
       }
     }
 
@@ -119,7 +119,7 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
         }
       } catch (e) {
         const logger = req.scope.resolve(ContainerRegistrationKeys.LOGGER)
-        logger.error("[Wishlist] Inventory fetch failed:", e)
+        logger.error("[Wishlist] Inventory fetch failed:", e instanceof Error ? e : undefined)
       }
     }
 
@@ -162,7 +162,10 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
     return res.json({ wishlist: enriched })
   } catch (e) {
     const logger = req.scope.resolve(ContainerRegistrationKeys.LOGGER)
-    logger.error("[Wishlist GET] Enrichment failed, returning basic items:", e)
+    logger.error(
+      "[Wishlist GET] Enrichment failed, returning basic items:",
+      e instanceof Error ? e : undefined
+    )
     return res.json({ wishlist: items.map((item: any) => ({ ...item, product: null })) })
   }
 }

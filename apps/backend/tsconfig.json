@@ -30,6 +30,7 @@
     ".cache",
     "src/admin",
     "scripts",
-    "integration-tests"
+    "integration-tests",
+    "src/__tests__"
   ]
 }

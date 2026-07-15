@@ -1,11 +1,9 @@
 // Integration HTTP test runner.
 //
 // Why this exists: medusaIntegrationTestRunner bootstraps a full Medusa app in
-// each spec's beforeAll. Under `node --experimental-vm-modules`, the SECOND and
-// later app bootstraps in the SAME process corrupt the intrinsic `Map`,
-// producing "Method Map.prototype.set called on incompatible receiver #<Map>"
-// when the Fulfillment module loads its providers. Running each spec file in
-// its own jest process avoids the cross-suite realm pollution.
+// each spec's beforeAll. Running multiple bootstraps in the SAME process can
+// corrupt shared JS intrinsics. Running each spec file in its own jest process
+// avoids cross-suite realm pollution.
 //
 // Usage:
 //   node integration-tests/run-http.mjs                 # run all http specs
