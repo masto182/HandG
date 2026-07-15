@@ -32,11 +32,14 @@ const upsertHopAlertStep = createStep(
   async (input: UpsertHopAlertInput, { container }) => {
     const hopAlertService = container.resolve(HOP_ALERT_MODULE) as any
 
-    // Fetch all alerts for this customer and find the matching hop in JS.
-    // Filtering by multiple fields directly (customer_id + hop_id) can miss
-    // existing records in some MikroORM 6.6+ / Medusa 2.17 configurations.
-    const customerAlerts = await hopAlertService.listHopAlerts({ customer_id: input.customer_id })
-    const existing = customerAlerts.find((a: any) => a.hop_id === input.hop_id) ?? null
+    // Medusa 2.17 / MikroORM 6.6: auto-generated listXxx in workflow-step context
+    // may return a minimal default field selection (only id). Specify select
+    // explicitly so hop_id, customer_id etc. are available for the dedup check.
+    const customerAlerts = await hopAlertService.listHopAlerts(
+      { customer_id: input.customer_id, hop_id: input.hop_id },
+      { select: ["id", "customer_id", "hop_id", "channel_email", "channel_inapp"] }
+    )
+    const existing = customerAlerts[0] ?? null
 
     if (existing) {
       const prev = {

@@ -188,7 +188,23 @@ class SiteConfigModuleService extends MedusaService({
     // Avoid passing order/take options: Medusa 2.17 / MikroORM 6.6 changed how
     // list options are applied on auto-generated module services. Sort + slice in
     // JS to guarantee correct ordering regardless of version behaviour.
-    const rows = await (this as any).listSiteConfigHistories({ key })
+    // Also specify select explicitly: default workflow-step context may return
+    // only "id"; the history endpoint needs action/value_new/created_at etc.
+    const rows = await (this as any).listSiteConfigHistories(
+      { key },
+      {
+        select: [
+          "id",
+          "key",
+          "action",
+          "value_old",
+          "value_new",
+          "actor",
+          "created_at",
+          "updated_at",
+        ],
+      }
+    )
     return (rows as any[])
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       .slice(0, limit)

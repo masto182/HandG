@@ -41,7 +41,22 @@ const createRestockAlertStep = createStep(
       dedupeFilter.brewery_name = input.brewery_name
     }
 
-    const allMatches = await restockAlertService.listRestockAlerts(dedupeFilter)
+    const allMatches = await restockAlertService.listRestockAlerts(
+      dedupeFilter,
+      // Explicit select: Medusa 2.17 / MikroORM 6.6 can return only "id" by
+      // default in workflow-step context. We need notified_at for the JS filter.
+      {
+        select: [
+          "id",
+          "customer_id",
+          "product_id",
+          "beer_name",
+          "brewery_name",
+          "notified_at",
+          "tier_at_notification",
+        ],
+      }
+    )
     const existing = allMatches.filter((a: any) => !a.notified_at)
     if (existing.length) {
       // Nothing created -> no compensation payload.
