@@ -62,7 +62,7 @@
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
     "@types/google.maps": "^3.64.1",
-    "@types/jest": "^29.5.14",
+    "@types/jest": "^30.0.0",
     "@types/lodash": "^4.14.195",
     "@types/node": "^24.0.0",
     "@types/pg": "^8.11.0",

@@ -120,6 +120,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
 
   integration-backend:
     name: Backend integration tests (Node 20)
