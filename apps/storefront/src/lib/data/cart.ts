@@ -42,7 +42,7 @@ async function withStaleCartRecovery<T>(
       await removeCartId()
       try {
         const cartCacheTag = await getCacheTag("carts")
-        revalidateTag(cartCacheTag)
+        revalidateTag(cartCacheTag, "default")
       } catch {
         // revalidateTag is only valid in Server Actions / Route Handlers.
         // From a render context Next throws \u2014 swallow; cache will refresh
@@ -101,7 +101,7 @@ export async function retrieveCart(cartId?: string, fields?: string) {
         await removeCartId()
         try {
           const cartCacheTag = await getCacheTag("carts")
-          revalidateTag(cartCacheTag)
+          revalidateTag(cartCacheTag, "default")
         } catch {
           // revalidateTag is only allowed in Server Actions / Route Handlers.
           // When called during a Server Component render, Next throws — swallow
@@ -116,7 +116,7 @@ export async function retrieveCart(cartId?: string, fields?: string) {
         await removeCartId()
         try {
           const cartCacheTag = await getCacheTag("carts")
-          revalidateTag(cartCacheTag)
+          revalidateTag(cartCacheTag, "default")
         } catch {
           // see comment above
         }
@@ -147,7 +147,7 @@ export async function getOrSetCart(countryCode: string) {
     )
     await setCartId(cartResp.cart.id)
     const cartCacheTag = await getCacheTag("carts")
-    revalidateTag(cartCacheTag)
+    revalidateTag(cartCacheTag, "default")
     return cartResp.cart
   }
 
@@ -165,7 +165,7 @@ export async function getOrSetCart(countryCode: string) {
           headers,
         )
         const cartCacheTag = await getCacheTag("carts")
-        revalidateTag(cartCacheTag)
+        revalidateTag(cartCacheTag, "default")
         return updated
       },
       // Retry path: the existing cart was unrecoverable (stale variants from
@@ -191,9 +191,9 @@ export async function updateCart(data: HttpTypes.StoreUpdateCart) {
   return withStaleCartRecovery(async () => {
     const { cart } = await sdk.store.cart.update(cartId, data, {}, headers)
     const cartCacheTag = await getCacheTag("carts")
-    revalidateTag(cartCacheTag)
+    revalidateTag(cartCacheTag, "default")
     const fulfillmentCacheTag = await getCacheTag("fulfillment")
-    revalidateTag(fulfillmentCacheTag)
+    revalidateTag(fulfillmentCacheTag, "default")
     return cart
   })
 }
@@ -230,9 +230,9 @@ export async function addToCart({
         headers,
       )
       const cartCacheTag = await getCacheTag("carts")
-      revalidateTag(cartCacheTag)
+      revalidateTag(cartCacheTag, "default")
       const fulfillmentCacheTag = await getCacheTag("fulfillment")
-      revalidateTag(fulfillmentCacheTag)
+      revalidateTag(fulfillmentCacheTag, "default")
     },
     // Retry path: existing cart had stale items from a region/variant wipe.
     // The recovery wrapper has already cleared the cookie; we mint a fresh
@@ -250,9 +250,9 @@ export async function addToCart({
         retryHeaders,
       )
       const cartCacheTag = await getCacheTag("carts")
-      revalidateTag(cartCacheTag)
+      revalidateTag(cartCacheTag, "default")
       const fulfillmentCacheTag = await getCacheTag("fulfillment")
-      revalidateTag(fulfillmentCacheTag)
+      revalidateTag(fulfillmentCacheTag, "default")
     },
   )
 }
@@ -287,9 +287,9 @@ export async function updateLineItem({
       headers,
     )
     const cartCacheTag = await getCacheTag("carts")
-    revalidateTag(cartCacheTag)
+    revalidateTag(cartCacheTag, "default")
     const fulfillmentCacheTag = await getCacheTag("fulfillment")
-    revalidateTag(fulfillmentCacheTag)
+    revalidateTag(fulfillmentCacheTag, "default")
   })
 }
 
@@ -311,9 +311,9 @@ export async function deleteLineItem(lineId: string) {
   await withStaleCartRecovery(async () => {
     await sdk.store.cart.deleteLineItem(cartId, lineId, {}, headers)
     const cartCacheTag = await getCacheTag("carts")
-    revalidateTag(cartCacheTag)
+    revalidateTag(cartCacheTag, "default")
     const fulfillmentCacheTag = await getCacheTag("fulfillment")
-    revalidateTag(fulfillmentCacheTag)
+    revalidateTag(fulfillmentCacheTag, "default")
   })
 }
 
@@ -338,7 +338,7 @@ export async function setShippingMethod({
       headers,
     )
     const cartCacheTag = await getCacheTag("carts")
-    revalidateTag(cartCacheTag)
+    revalidateTag(cartCacheTag, "default")
     return result
   })
 }
@@ -359,7 +359,7 @@ export async function initiatePaymentSession(
       headers,
     )
     const cartCacheTag = await getCacheTag("carts")
-    revalidateTag(cartCacheTag)
+    revalidateTag(cartCacheTag, "default")
     return resp
   })
 }
@@ -378,9 +378,9 @@ export async function applyPromotions(codes: string[]) {
   return withStaleCartRecovery(async () => {
     await sdk.store.cart.update(cartId, { promo_codes: codes }, {}, headers)
     const cartCacheTag = await getCacheTag("carts")
-    revalidateTag(cartCacheTag)
+    revalidateTag(cartCacheTag, "default")
     const fulfillmentCacheTag = await getCacheTag("fulfillment")
-    revalidateTag(fulfillmentCacheTag)
+    revalidateTag(fulfillmentCacheTag, "default")
   })
 }
 
@@ -522,7 +522,7 @@ export async function setAddresses(
           )
           .then(async () => {
             const customerCacheTag = await getCacheTag("customers")
-            revalidateTag(customerCacheTag)
+            revalidateTag(customerCacheTag, "default")
           })
           .catch(() => {})
       }
@@ -554,7 +554,7 @@ export async function placeOrder(cartId?: string) {
     .complete(id, {}, headers)
     .then(async (cartRes) => {
       const cartCacheTag = await getCacheTag("carts")
-      revalidateTag(cartCacheTag)
+      revalidateTag(cartCacheTag, "default")
       return cartRes
     })
     .catch(medusaError)
@@ -564,7 +564,7 @@ export async function placeOrder(cartId?: string) {
       cartRes.order.shipping_address?.country_code?.toLowerCase()
 
     const orderCacheTag = await getCacheTag("orders")
-    revalidateTag(orderCacheTag)
+    revalidateTag(orderCacheTag, "default")
 
     await removeCartId()
     redirect(`/order/${cartRes?.order.id}/confirmed`)
@@ -589,14 +589,14 @@ export async function updateRegion(countryCode: string, currentPath: string) {
   if (cartId) {
     await updateCart({ region_id: region.id })
     const cartCacheTag = await getCacheTag("carts")
-    revalidateTag(cartCacheTag)
+    revalidateTag(cartCacheTag, "default")
   }
 
   const regionCacheTag = await getCacheTag("regions")
-  revalidateTag(regionCacheTag)
+  revalidateTag(regionCacheTag, "default")
 
   const productsCacheTag = await getCacheTag("products")
-  revalidateTag(productsCacheTag)
+  revalidateTag(productsCacheTag, "default")
 
   redirect(currentPath)
 }

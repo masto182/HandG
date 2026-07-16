@@ -24,6 +24,9 @@ overrides:
   jest-environment-node: "30.4.1"
   jest-environment-jsdom: "30.4.1"
   "@jest/core": "30.4.1"
+  # eslint 10.7.0 broke typescript-eslint@8.x (scopeManager.addGlobals API);
+  # pin at 10.6.0 until typescript-eslint ships compatibility.
+  eslint: "10.6.0"
 
 auditConfig:
   ignoreGhsas:

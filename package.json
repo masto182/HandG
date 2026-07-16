@@ -35,8 +35,8 @@
     "*.{ts,tsx,js,jsx,json,md,yml,yaml}": [
       "prettier --write"
     ],
-    "apps/storefront/**/*.{ts,tsx,js,jsx}": [
-      "pnpm --filter storefront exec next lint --fix --file"
+    "apps/storefront/**/*.{ts,tsx}": [
+      "pnpm --filter storefront exec eslint --fix"
     ]
   }
 }
