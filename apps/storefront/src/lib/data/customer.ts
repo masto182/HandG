@@ -3,7 +3,11 @@
 import { sdk } from "@lib/config"
 import medusaError from "@lib/util/medusa-error"
 import { HttpTypes } from "@medusajs/types"
-import { revalidateTag } from "next/cache"
+import { revalidateTag as _revalidateTag } from "next/cache"
+// Next.js 16 made the profile arg required in types but the single-arg form
+// still works at runtime and invalidates ALL cache entries for the tag
+// (profile-filtered form introduced by "default" breaks cache invalidation).
+const revalidateTag = _revalidateTag as (tag: string) => void
 import { redirect } from "next/navigation"
 import {
   getAuthHeaders,
@@ -59,7 +63,7 @@ export const updateCustomer = async (body: HttpTypes.StoreUpdateCustomer) => {
     .catch(medusaError)
 
   const cacheTag = await getCacheTag("customers")
-  revalidateTag(cacheTag, "default")
+  revalidateTag(cacheTag)
 
   return updateRes
 }
@@ -81,7 +85,7 @@ export async function login(_currentState: unknown, formData: FormData) {
       .then(async (token) => {
         await setAuthToken(token as string)
         const customerCacheTag = await getCacheTag("customers")
-        revalidateTag(customerCacheTag, "default")
+        revalidateTag(customerCacheTag)
       })
   } catch (error) {
     return String(error)
@@ -102,12 +106,12 @@ export async function signout(_countryCode?: string) {
   await removeAuthToken()
 
   const customerCacheTag = await getCacheTag("customers")
-  revalidateTag(customerCacheTag, "default")
+  revalidateTag(customerCacheTag)
 
   await removeCartId()
 
   const cartCacheTag = await getCacheTag("carts")
-  revalidateTag(cartCacheTag, "default")
+  revalidateTag(cartCacheTag)
 
   redirect("/")
 }
@@ -124,7 +128,7 @@ export async function transferCart() {
   await sdk.store.cart.transferCart(cartId, {}, headers)
 
   const cartCacheTag = await getCacheTag("carts")
-  revalidateTag(cartCacheTag, "default")
+  revalidateTag(cartCacheTag)
 }
 
 export const listCustomerAddresses = async (): Promise<
@@ -170,7 +174,7 @@ export const addCustomerAddress = async (
     .createAddress(address, {}, headers)
     .then(async () => {
       const customerCacheTag = await getCacheTag("customers")
-      revalidateTag(customerCacheTag, "default")
+      revalidateTag(customerCacheTag)
       return { success: true, error: null }
     })
     .catch((err) => {
@@ -189,7 +193,7 @@ export const deleteCustomerAddress = async (
     .deleteAddress(addressId, headers)
     .then(async () => {
       const customerCacheTag = await getCacheTag("customers")
-      revalidateTag(customerCacheTag, "default")
+      revalidateTag(customerCacheTag)
       return { success: true, error: null }
     })
     .catch((err) => {
@@ -234,7 +238,7 @@ export const updateCustomerAddress = async (
     .updateAddress(addressId, address, {}, headers)
     .then(async () => {
       const customerCacheTag = await getCacheTag("customers")
-      revalidateTag(customerCacheTag, "default")
+      revalidateTag(customerCacheTag)
       return { success: true, error: null }
     })
     .catch((err) => {

@@ -1,7 +1,11 @@
 "use server"
 
 import { sdk } from "@lib/config"
-import { revalidateTag } from "next/cache"
+import { revalidateTag as _revalidateTag } from "next/cache"
+// Next.js 16 made the profile arg required in types but the single-arg form
+// still works at runtime and invalidates ALL cache entries for the tag
+// (profile-filtered form introduced by "default" breaks cache invalidation).
+const revalidateTag = _revalidateTag as (tag: string) => void
 import { cookies as nextCookies } from "next/headers"
 import { getAuthHeaders, getCacheTag, getCartId } from "./cookies"
 
@@ -50,24 +54,24 @@ export const updateLocale = async (localeCode: string): Promise<string> => {
 
     const cartCacheTag = await getCacheTag("carts")
     if (cartCacheTag) {
-      revalidateTag(cartCacheTag, "default")
+      revalidateTag(cartCacheTag)
     }
   }
 
   // Revalidate relevant caches to refresh content
   const productsCacheTag = await getCacheTag("products")
   if (productsCacheTag) {
-    revalidateTag(productsCacheTag, "default")
+    revalidateTag(productsCacheTag)
   }
 
   const categoriesCacheTag = await getCacheTag("categories")
   if (categoriesCacheTag) {
-    revalidateTag(categoriesCacheTag, "default")
+    revalidateTag(categoriesCacheTag)
   }
 
   const collectionsCacheTag = await getCacheTag("collections")
   if (collectionsCacheTag) {
-    revalidateTag(collectionsCacheTag, "default")
+    revalidateTag(collectionsCacheTag)
   }
 
   return localeCode
