@@ -348,6 +348,7 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
         await inventoryModule.updateInventoryLevels([{ id: levels[0].id, stocked_quantity: qty }]) // workflow-exempt
       } else {
         await inventoryModule.createInventoryLevels({
+          // workflow-exempt: bulk inventory import
           inventory_item_id: item.id,
           location_id: defaultWarehouse.id,
           stocked_quantity: qty,
@@ -373,7 +374,7 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
       const current = (existingLists as any[]).find((pl: any) => pl.title === title) || null
       if (salePrice !== null) {
         if (current) {
-          await pricingModule.deletePriceLists([current.id])
+          await pricingModule.deletePriceLists([current.id]) // workflow-exempt: delete-then-recreate inside applyPriceList
         }
         await createPriceListsWorkflow(req.scope).run({
           input: {
@@ -389,7 +390,7 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
           } as any,
         })
       } else if (current) {
-        await pricingModule.deletePriceLists([current.id])
+        await pricingModule.deletePriceLists([current.id]) // workflow-exempt: remove stale price list
       }
     } catch (err: any) {
       logger.warn(`[CSV Import] Price list update failed for ${handle}: ${err.message}`)

@@ -21,7 +21,7 @@ export type ActiveSpecial = {
 export const getActiveSpecials = cache(async (): Promise<ActiveSpecial[]> => {
   try {
     const res = await fetch(`${BACKEND_URL}/store/active-specials`, {
-      // sdk-exempt
+      // sdk-exempt: custom endpoint not in Medusa SDK
       headers: { "x-publishable-api-key": PUBLISHABLE_KEY },
       next: { revalidate: 60 },
     })

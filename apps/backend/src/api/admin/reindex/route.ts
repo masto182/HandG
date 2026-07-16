@@ -2,6 +2,10 @@ import { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { Client } from "pg"
 
+// workflow-exempt: reindex is a background maintenance utility (not a business
+// mutation) — it truncates stale index tables and triggers a full sync, which
+// has no saga / compensation that a workflow would add value to.
+
 /**
  * POST /admin/reindex
  *

@@ -36,7 +36,7 @@ export const getPickupLocations = cache(
   async (): Promise<PickupLocationDTO[]> => {
     try {
       const res = await fetch(`${BACKEND_URL}/store/pickup-locations`, {
-        // sdk-exempt
+        // sdk-exempt: custom endpoint not in Medusa SDK
         headers: { "x-publishable-api-key": PUBLISHABLE_KEY },
         next: { revalidate: 60 },
       })
