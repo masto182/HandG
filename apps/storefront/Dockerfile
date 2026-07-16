@@ -27,7 +27,7 @@ ENV NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=$NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
 ARG NEXT_PUBLIC_STORE_URL
 ENV NEXT_PUBLIC_STORE_URL=$NEXT_PUBLIC_STORE_URL
 
-RUN cd apps/storefront && pnpm build
+RUN NODE_OPTIONS=--max-old-space-size=8192 pnpm --filter=storefront build
 
 FROM node:24.18.0-alpine AS runner
 

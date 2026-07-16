@@ -1,6 +1,5 @@
 import { ImageResponse } from "next/og"
 
-export const runtime = "edge"
 export const alt = "Hops & Glory Product"
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
@@ -8,8 +7,9 @@ export const contentType = "image/png"
 export default async function Image({
   params,
 }: {
-  params: { handle: string }
+  params: Promise<{ handle: string }>
 }) {
+  const { handle } = await params
   const backendUrl =
     process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "http://localhost:9000"
   const pk = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
@@ -21,7 +21,7 @@ export default async function Image({
   try {
     // sdk-exempt: edge runtime does not support the Medusa SDK client
     const res = await fetch(
-      `${backendUrl}/store/products?handle=${params.handle}&fields=title,metadata`,
+      `${backendUrl}/store/products?handle=${handle}&fields=title,metadata`,
       {
         // sdk-exempt
         headers: { "x-publishable-api-key": pk },
