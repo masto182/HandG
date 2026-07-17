@@ -91,17 +91,10 @@ export async function uploadAvatar(formData: FormData): Promise<string | null> {
   if (!headers.authorization) return null
 
   try {
-    const backendUrl =
-      process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "http://localhost:9000"
-    // sdk-exempt: SDK client does not support multipart/form-data uploads cleanly
-    const res = await fetch(`${backendUrl}/store/customers/me/avatar`, {
-      // sdk-exempt: multipart upload, SDK client lacks native FormData support
-      method: "POST",
-      headers: { ...headers },
-      body: formData,
-    })
-    if (!res.ok) return null
-    const data = await res.json()
+    const data = await sdk.client.fetch<{ avatar_url: string }>(
+      "/store/customers/me/avatar",
+      { method: "POST", headers, body: formData },
+    )
     return data.avatar_url || null
   } catch {
     return null

@@ -1,9 +1,6 @@
 import "server-only"
 import { cache } from "react"
-
-const BACKEND_URL =
-  process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "http://localhost:9000"
-const PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
+import { sdk } from "@lib/config"
 
 export type ActiveSpecial = {
   id: string
@@ -20,13 +17,10 @@ export type ActiveSpecial = {
 
 export const getActiveSpecials = cache(async (): Promise<ActiveSpecial[]> => {
   try {
-    const res = await fetch(`${BACKEND_URL}/store/active-specials`, {
-      // sdk-exempt: custom store endpoint not in Medusa JS SDK
-      headers: { "x-publishable-api-key": PUBLISHABLE_KEY },
-      next: { revalidate: 60 },
-    })
-    if (!res.ok) return []
-    const data = (await res.json()) as { specials: ActiveSpecial[] }
+    const data = await sdk.client.fetch<{ specials: ActiveSpecial[] }>(
+      "/store/active-specials",
+      { next: { revalidate: 60 } },
+    )
     return data.specials || []
   } catch {
     return []

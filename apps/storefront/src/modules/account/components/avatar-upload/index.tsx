@@ -17,9 +17,6 @@ export default function AvatarUpload({
   const [uploading, setUploading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const backendUrl =
-    process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "http://localhost:9000"
-
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -29,21 +26,11 @@ export default function AvatarUpload({
     formData.append("files", file)
 
     try {
-      // sdk-exempt: SDK client does not support multipart/form-data uploads cleanly
-      const res = await fetch(`${backendUrl}/store/customers/me/avatar`, {
-        // sdk-exempt: multipart upload, SDK client lacks native FormData support
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "x-publishable-api-key":
-            process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || "",
-        },
-        body: formData,
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setAvatarUrl(data.avatar_url)
-      }
+      const data = await sdk.client.fetch<{ avatar_url: string }>(
+        "/store/customers/me/avatar",
+        { method: "POST", body: formData },
+      )
+      setAvatarUrl(data.avatar_url)
     } catch {}
     setUploading(false)
   }
