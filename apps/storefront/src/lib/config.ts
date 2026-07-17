@@ -34,9 +34,15 @@ sdk.client.fetch = async <T>(
     headers["x-medusa-locale"] ??= localeHeader["x-medusa-locale"]
   } catch {}
 
-  const newHeaders = {
+  // Always inject the publishable key explicitly. The SDK's initClient() captures
+  // it once at module-load time; if the module was first evaluated before env vars
+  // were fully available (e.g. during Next.js prerender), the baked default-headers
+  // may not have it. Reading from process.env here is always up-to-date.
+  const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
+  const newHeaders: Record<string, string | null> = {
     ...localeHeader,
     ...headers,
+    ...(publishableKey ? { "x-publishable-api-key": publishableKey } : {}),
   }
   init = {
     ...init,
