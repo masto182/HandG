@@ -347,12 +347,12 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
       if (levels?.length) {
         await inventoryModule.updateInventoryLevels([{ id: levels[0].id, stocked_quantity: qty }]) // workflow-exempt
       } else {
-        await inventoryModule.createInventoryLevels({
-          // workflow-exempt: bulk CSV import
+        // prettier-ignore
+        await inventoryModule.createInventoryLevels({ // workflow-exempt: bulk CSV import
           inventory_item_id: item.id,
           location_id: defaultWarehouse.id,
           stocked_quantity: qty,
-        }) // workflow-exempt: bulk inventory import utility
+        })
       }
     } catch (err: any) {
       logger.warn(`[CSV Import] Stock update failed for variant ${variantId}: ${err.message}`)
