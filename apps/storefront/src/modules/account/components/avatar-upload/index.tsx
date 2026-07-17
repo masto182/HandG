@@ -31,7 +31,7 @@ export default function AvatarUpload({
     try {
       // sdk-exempt: SDK client does not support multipart/form-data uploads cleanly
       const res = await fetch(`${backendUrl}/store/customers/me/avatar`, {
-        // sdk-exempt
+        // sdk-exempt: multipart upload, SDK client lacks native FormData support
         method: "POST",
         credentials: "include",
         headers: {
