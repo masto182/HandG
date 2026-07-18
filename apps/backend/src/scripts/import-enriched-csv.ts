@@ -49,7 +49,15 @@ export default async function importEnrichedCsv({ container }: ExecArgs) {
   const styleMap = new Map(styles.map((s: any) => [s.name.toLowerCase(), s]))
 
   const salesChannels = await container.resolve(Modules.SALES_CHANNEL).listSalesChannels({})
-  const defaultChannel = salesChannels[0]
+  const defaultChannel =
+    salesChannels.find(
+      (c: any) => c.name.toLowerCase().includes("hops") || c.name.toLowerCase().includes("glory")
+    ) ?? null
+  if (!defaultChannel) {
+    logger.error(`Sales channel not found — run the base seed first`)
+    return
+  }
+  logger.info(`Using sales channel: "${defaultChannel.name}" (${defaultChannel.id})`)
 
   const locations = await stockLocationModule.listStockLocations({})
   const warehouse =

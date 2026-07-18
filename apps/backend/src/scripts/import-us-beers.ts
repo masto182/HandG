@@ -84,12 +84,11 @@ export default async function importProducts({ container }: ExecArgs) {
   const rows = parseCSV(csvPath)
   logger.info(`Parsed ${rows.length} rows from CSV`)
 
-  // Find the canonical H&G sales channel — not just [0] to avoid the orphan Default channel
+  // Find the canonical H&G sales channel by name — never fall back to [0]
   const allChannels = await salesChannelModule.listSalesChannels({})
-  const salesChannel =
-    allChannels.find(
-      (c) => c.name.toLowerCase().includes("hops") || c.name.toLowerCase().includes("glory")
-    ) || allChannels[0]
+  const salesChannel = allChannels.find(
+    (c) => c.name.toLowerCase().includes("hops") || c.name.toLowerCase().includes("glory")
+  )
   if (!salesChannel) {
     logger.error("No sales channel found — run the base seed first")
     return

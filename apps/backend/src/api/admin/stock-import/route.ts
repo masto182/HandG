@@ -260,7 +260,13 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
   const styleMap = new Map<string, any>(styles.map((s: any) => [s.name.toLowerCase(), s]))
 
   const salesChannels = await req.scope.resolve(Modules.SALES_CHANNEL).listSalesChannels({})
-  const defaultChannel = salesChannels[0]
+  const defaultChannel =
+    salesChannels.find(
+      (c: any) => c.name.toLowerCase().includes("hops") || c.name.toLowerCase().includes("glory")
+    ) ?? null
+  if (!defaultChannel) {
+    return res.status(500).json({ error: "Sales channel not found — run seed first" })
+  }
 
   // Resolve default warehouse once — used for stock updates
   let defaultWarehouse: any = null
