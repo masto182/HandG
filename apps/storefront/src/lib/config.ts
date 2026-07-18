@@ -12,10 +12,20 @@ const MEDUSA_BACKEND_URL =
     ? window.location.origin
     : process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "http://localhost:9000"
 
+// Server-side: prefer MEDUSA_PUBLISHABLE_KEY (no NEXT_PUBLIC_ prefix — read at
+// runtime, never baked into the bundle) so each environment uses its own key
+// independently without rebuilding the image.
+// Client-side: NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY (baked at build time).
+const PUBLISHABLE_KEY =
+  typeof window !== "undefined"
+    ? process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
+    : process.env.MEDUSA_PUBLISHABLE_KEY ||
+      process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
+
 export const sdk = new Medusa({
   baseUrl: MEDUSA_BACKEND_URL,
   debug: process.env.NODE_ENV === "development",
-  publishableKey: process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY,
+  publishableKey: PUBLISHABLE_KEY,
   auth: {
     type: "session",
   },
@@ -37,8 +47,13 @@ sdk.client.fetch = async <T>(
   // Always inject the publishable key explicitly. The SDK's initClient() captures
   // it once at module-load time; if the module was first evaluated before env vars
   // were fully available (e.g. during Next.js prerender), the baked default-headers
-  // may not have it. Reading from process.env here is always up-to-date.
-  const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
+  // may not have it. Server-side reads MEDUSA_PUBLISHABLE_KEY (runtime, not baked)
+  // so each environment uses the correct key without rebuilding the image.
+  const publishableKey =
+    typeof window !== "undefined"
+      ? process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
+      : process.env.MEDUSA_PUBLISHABLE_KEY ||
+        process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
   const newHeaders: Record<string, string | null> = {
     ...localeHeader,
     ...headers,
