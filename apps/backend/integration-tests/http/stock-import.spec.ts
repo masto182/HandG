@@ -17,7 +17,7 @@ medusaIntegrationTestRunner({
         const salesChannelModule = container.resolve("sales_channel") as any
         let [channel] = await salesChannelModule.listSalesChannels({})
         if (!channel) {
-          channel = await salesChannelModule.createSalesChannels({ name: "Default" })
+          channel = await salesChannelModule.createSalesChannels({ name: "Hops & Glory Store" })
         }
         salesChannelId = channel.id
 
