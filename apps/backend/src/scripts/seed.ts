@@ -3,6 +3,9 @@ import type { ExecArgs } from "@medusajs/framework/types"
 import { createShippingOptionsWorkflow } from "@medusajs/medusa/core-flows"
 import { PICKUP_LOCATION_MODULE } from "../modules/pickup-location"
 import type PickupLocationModuleService from "../modules/pickup-location/service"
+import { getShipEngineClient } from "../modules/shipengine/factory"
+import { SITE_CONFIG_MODULE } from "../modules/site-config"
+import type SiteConfigModuleService from "../modules/site-config/service"
 
 /**
  * Consolidated, idempotent seed for the retail example.
@@ -540,6 +543,26 @@ export default async function seed({ container }: ExecArgs) {
         )
       }
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // 10. Seed ShipEngine carrier IDs into site_config
+  // ---------------------------------------------------------------------------
+  const siteConfigSvc = container.resolve(SITE_CONFIG_MODULE) as SiteConfigModuleService
+  try {
+    const shipClient = getShipEngineClient()
+    const carriers = await shipClient.listCarriers()
+    if (carriers.length > 0) {
+      const carrierIds = carriers.map((c: any) => c.carrier_id)
+      await siteConfigSvc.set("shipengine_carrier_ids", carrierIds)
+      logger.info(`  Set shipengine_carrier_ids: [${carrierIds.join(", ")}]`)
+    } else {
+      logger.warn("  No ShipEngine carriers returned — shipengine_carrier_ids not updated")
+    }
+  } catch (err) {
+    logger.warn(
+      `  ShipEngine carrier seed skipped: ${err instanceof Error ? err.message : String(err)}`
+    )
   }
 
   logger.info("=== SEED COMPLETE ===")
