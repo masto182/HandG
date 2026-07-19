@@ -248,7 +248,11 @@ export default async function seed({ container }: ExecArgs) {
       await link.create(payload)
       logger.info(`  Linked ${label}`)
     } catch (e: any) {
-      if (!e.message?.includes("already exists")) throw e
+      if (
+        !e.message?.includes("already exists") &&
+        !e.message?.includes("Cannot create multiple links")
+      )
+        throw e
     }
   }
 
