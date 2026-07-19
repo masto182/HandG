@@ -437,7 +437,9 @@ export default async function seed({ container }: ExecArgs) {
   // ---------------------------------------------------------------------------
   for (const pl of PICKUP_LOCATIONS) {
     const stockLoc = pickupStockLocations[pl.slug]
-    const existing = await (pickupSvc as any).listPickupLocations({ slug: pl.slug })
+    const existing = await (pickupSvc as any).listPickupLocations({
+      stock_location_id: stockLoc.id,
+    })
     if (existing?.length) {
       await (pickupSvc as any).updatePickupLocations({
         selector: { id: existing[0].id },
