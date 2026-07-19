@@ -3,7 +3,11 @@ import { retrieveCustomer } from "@lib/data/customer"
 import { listCartShippingMethods } from "@lib/data/fulfillment"
 import { listCartPaymentMethods } from "@lib/data/payment"
 import { getHeatHold } from "@lib/data/heat-hold"
-import { getPayidHoldHours, getOrdersEmail } from "@lib/data/site-config"
+import {
+  getPayidHoldHours,
+  getOrdersEmail,
+  getPayidAlias,
+} from "@lib/data/site-config"
 import { getPickupOptions } from "@lib/util/shipping"
 import PaymentWrapper from "@modules/checkout/components/payment-wrapper"
 import CheckoutProgress from "@modules/checkout/components/checkout-progress"
@@ -91,9 +95,10 @@ export default async function Checkout({
         const paymentMethods = await listCartPaymentMethods(
           cart.region?.id ?? "",
         )
-        const [payHoldHours, payOrdersEmail] = await Promise.all([
+        const [payHoldHours, payOrdersEmail, payidAlias] = await Promise.all([
           getPayidHoldHours(),
           getOrdersEmail(),
+          getPayidAlias(),
         ])
         return (
           <PaymentWrapper cart={cart}>
@@ -103,6 +108,7 @@ export default async function Checkout({
               isPickup={isPickup}
               holdHours={payHoldHours}
               ordersEmail={payOrdersEmail}
+              payidAlias={payidAlias}
             />
           </PaymentWrapper>
         )
@@ -119,15 +125,18 @@ export default async function Checkout({
           <StepReview cart={cart} isPickup={isPickup} heatHold={heatHold} />
         )
       case "confirm":
-        const [confirmHoldHours, confirmOrdersEmail] = await Promise.all([
-          getPayidHoldHours(),
-          getOrdersEmail(),
-        ])
+        const [confirmHoldHours, confirmOrdersEmail, confirmPayidAlias] =
+          await Promise.all([
+            getPayidHoldHours(),
+            getOrdersEmail(),
+            getPayidAlias(),
+          ])
         return (
           <StepConfirm
             cart={cart}
             holdHours={confirmHoldHours}
             ordersEmail={confirmOrdersEmail}
+            payidAlias={confirmPayidAlias}
           />
         )
       default:

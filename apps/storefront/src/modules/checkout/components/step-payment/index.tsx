@@ -11,6 +11,7 @@ type Props = {
   isPickup: boolean
   holdHours?: number
   ordersEmail?: string
+  payidAlias?: string
 }
 
 const StepPayment: React.FC<Props> = ({
@@ -19,6 +20,7 @@ const StepPayment: React.FC<Props> = ({
   isPickup,
   holdHours = 24,
   ordersEmail,
+  payidAlias,
 }) => {
   const activeSession = cart.payment_collection?.payment_sessions?.find(
     (s) => s.status === "pending",
@@ -72,7 +74,7 @@ const StepPayment: React.FC<Props> = ({
     payid_alias?: string
     reference?: string
   }
-  const payidEmail = payidData.payid_alias || PAYID_ALIAS
+  const payidEmail = payidData.payid_alias || payidAlias || PAYID_ALIAS
   const referenceCode =
     payidData.reference ||
     (cart.id
@@ -221,6 +223,9 @@ const StepPayment: React.FC<Props> = ({
                 </p>
                 <p className="text-base font-bold text-hg-gold mt-1">
                   {payidEmail}
+                </p>
+                <p className="text-[11px] text-hg-text-secondary mt-0.5">
+                  This will show as Campbell Masterson in your banking app.
                 </p>
               </div>
               <button

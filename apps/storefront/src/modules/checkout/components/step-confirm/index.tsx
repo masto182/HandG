@@ -9,17 +9,19 @@ type Props = {
   cart: HttpTypes.StoreCart
   holdHours?: number
   ordersEmail?: string
+  payidAlias?: string
 }
 
 const StepConfirm: React.FC<Props> = ({
   cart,
   holdHours = 24,
   ordersEmail,
+  payidAlias,
 }) => {
   const [copied, setCopied] = useState<string | null>(null)
 
   const orderNumber = `HG-${Date.now().toString(36).toUpperCase().slice(-7)}0`
-  const payidEmail = PAYID_ALIAS
+  const payidEmail = payidAlias || PAYID_ALIAS
   const total = cart.total ?? 0
   const currencyCode = cart.currency_code || "aud"
 
@@ -168,6 +170,9 @@ const StepConfirm: React.FC<Props> = ({
                   )}
                 </button>
               </div>
+              <p className="ml-9 mt-1 text-xs text-hg-text-muted">
+                This will show as Campbell Masterson in your banking app.
+              </p>
             </div>
 
             <div className="p-4 bg-hg-bg border border-hg-border rounded-xl">
