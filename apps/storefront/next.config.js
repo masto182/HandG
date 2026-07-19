@@ -32,6 +32,9 @@ const SELF_IMAGE_HOSTS = [
   "hopsandglory.au",
   "www.hopsandglory.au",
   "staging.hopsandglory.au",
+  // OCI Object Storage (ap-sydney-1) — production and staging buckets
+  "objectstorage.ap-sydney-1.oraclecloud.com",
+  "sdcddm8qvsbv.objectstorage.ap-sydney-1.oraclecloud.com",
 ]
 
 const allImageHostnames = [...new Set([...imageHostnames, ...SELF_IMAGE_HOSTS])]
