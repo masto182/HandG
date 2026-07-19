@@ -15,7 +15,11 @@ medusaIntegrationTestRunner({
         adminAuth = await createAdminAuth(api, container)
 
         const salesChannelModule = container.resolve("sales_channel") as any
-        let [channel] = await salesChannelModule.listSalesChannels({})
+        const allChannels = await salesChannelModule.listSalesChannels({})
+        let channel = allChannels.find(
+          (c: any) =>
+            c.name.toLowerCase().includes("hops") || c.name.toLowerCase().includes("glory")
+        )
         if (!channel) {
           channel = await salesChannelModule.createSalesChannels({ name: "Hops & Glory Store" })
         }
