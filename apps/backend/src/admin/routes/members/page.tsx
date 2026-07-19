@@ -111,8 +111,8 @@ const tierColor = (tier: string): "grey" | "green" | "purple" | "red" => {
   return "grey"
 }
 
-const ReferredByCell = ({ ref }: { ref: ReferredBy | null }) => {
-  if (!ref) {
+const ReferredByCell = ({ referrer }: { referrer: ReferredBy | null }) => {
+  if (!referrer) {
     return (
       <Text size="small" className="text-ui-fg-muted">
         Direct — no code
@@ -121,9 +121,9 @@ const ReferredByCell = ({ ref }: { ref: ReferredBy | null }) => {
   }
   return (
     <div className="flex items-center gap-2">
-      <Text size="small">{ref.name}</Text>
-      <Badge size="2xsmall" color={tierColor(ref.tier)}>
-        {ref.tier}
+      <Text size="small">{referrer.name}</Text>
+      <Badge size="2xsmall" color={tierColor(referrer.tier)}>
+        {referrer.tier}
       </Badge>
     </div>
   )
@@ -474,7 +474,7 @@ const MembersPage = () => {
                         </>
                       )}
                       <Table.Cell>
-                        <ReferredByCell ref={m.referred_by} />
+                        <ReferredByCell referrer={m.referred_by} />
                       </Table.Cell>
                       {!isPending && (
                         <Table.Cell className="text-ui-fg-subtle">
@@ -640,7 +640,7 @@ const MemberDrawer = ({
 
               <Section title="Referral">
                 <Row label="Referred by">
-                  <ReferredByCell ref={member.referred_by} />
+                  <ReferredByCell referrer={member.referred_by} />
                 </Row>
                 <Row label="Members referred">{member.referral_count}</Row>
               </Section>
