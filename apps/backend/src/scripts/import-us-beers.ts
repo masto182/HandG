@@ -10,10 +10,62 @@
  *   DRY_RUN=false npx medusa exec ./src/scripts/import-us-beers.ts  # commit
  */
 import { ContainerRegistrationKeys, Modules, ProductStatus } from "@medusajs/framework/utils"
+import { HOP_MODULE } from "../modules/hop"
 import type { ExecArgs } from "@medusajs/framework/types"
 import { createProductsWorkflow, createPriceListsWorkflow } from "@medusajs/medusa/core-flows"
 import * as fs from "fs"
 import * as path from "path"
+
+function parseDate(str: string): string | null {
+  if (!str?.trim()) return null
+  const MONTHS: Record<string, number> = {
+    jan: 0,
+    feb: 1,
+    mar: 2,
+    apr: 3,
+    may: 4,
+    jun: 5,
+    june: 5,
+    jul: 6,
+    july: 6,
+    aug: 7,
+    sep: 8,
+    oct: 9,
+    nov: 10,
+    dec: 11,
+  }
+  const parts = str.trim().split("-")
+  if (parts.length !== 3) return null
+  const day = parseInt(parts[0], 10)
+  const month = MONTHS[parts[1].toLowerCase()]
+  const year = parseInt(parts[2], 10)
+  if (isNaN(day) || month === undefined || isNaN(year)) return null
+  return new Date(Date.UTC(year, month, day)).toISOString()
+}
+
+function getContainer(
+  breweryName: string,
+  title: string
+): {
+  container: string
+  volume_ml: number
+  weight: number
+} {
+  if (breweryName === "Troon") {
+    return { container: "Crowler 950ml", volume_ml: 950, weight: 1100 }
+  }
+  if (breweryName === "Russian River" && title === "Pliny the Elder") {
+    return { container: "Bottle 510ml", volume_ml: 510, weight: 700 }
+  }
+  return { container: "Can 473ml", volume_ml: 473, weight: 500 }
+}
+
+function normalizeTitle(str: string): string {
+  return str
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
+    .trim()
+}
 
 function slugify(str: string): string {
   return str
@@ -67,6 +119,42 @@ export default async function importProducts({ container }: ExecArgs) {
   const inventoryModule = container.resolve(Modules.INVENTORY) as any
   const link = container.resolve(ContainerRegistrationKeys.LINK)
   const breweryService = container.resolve("brewery") as any
+  const hopService = container.resolve(HOP_MODULE) as any
+
+  const HOP_NORMALIZATION: Record<string, string> = {
+    Nelson: "Nelson Sauvin",
+    "Nelson Sauvin": "Nelson Sauvin",
+    CTZ: "CTZ",
+    Columbus: "Columbus",
+  }
+
+  async function buildHopMap() {
+    const allHops = await hopService.listHops({})
+    const map: Record<string, any> = {}
+    for (const h of allHops) map[h.name.toLowerCase()] = h
+    return map
+  }
+
+  async function linkHops(hopMap: Record<string, any>, hopNames: string, productId: string) {
+    for (const token of hopNames
+      .split(",")
+      .map((s: string) => s.trim())
+      .filter(Boolean)) {
+      const normalized = HOP_NORMALIZATION[token] || token
+      const hop = hopMap[normalized.toLowerCase()]
+      if (!hop) continue
+      try {
+        await link.create({
+          [HOP_MODULE]: { hop_id: hop.id },
+          [Modules.PRODUCT]: { product_id: productId },
+        })
+      } catch {
+        // already exists
+      }
+    }
+  }
+
+  const hopMap = await buildHopMap()
 
   const dryRun = process.env.DRY_RUN !== "false"
 
@@ -113,8 +201,18 @@ export default async function importProducts({ container }: ExecArgs) {
     breweryMap[b.name.toLowerCase()] = b
   }
 
-  // Ensure all breweries exist
-  const uniqueBreweries = [...new Set(rows.map((r) => r["Brewery"]).filter(Boolean))]
+  // Ensure all breweries exist (main + collab)
+  const uniqueBreweries = [
+    ...new Set([
+      ...rows.map((r) => r["Brewery"]).filter(Boolean),
+      ...rows.flatMap((r) =>
+        (r["Colab"] || "")
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+      ),
+    ]),
+  ]
   for (const breweryName of uniqueBreweries) {
     if (breweryMap[breweryName.toLowerCase()]) continue
     if (dryRun) {
@@ -193,8 +291,8 @@ export default async function importProducts({ container }: ExecArgs) {
   let errors = 0
 
   for (const row of rows) {
-    const title = row["Beer"]?.trim()
-    const breweryName = row["Brewery"]?.trim()
+    const title = normalizeTitle(row["Beer"] || "")
+    const breweryName = normalizeTitle(row["Brewery"] || "")
     if (!title || !breweryName) continue
 
     const rawPrice = parseFloat(row["Price"] || "0")
@@ -216,6 +314,10 @@ export default async function importProducts({ container }: ExecArgs) {
     const sku = `us-${slugify(breweryName)}-${slugify(title)}`.slice(0, 100)
     const handle = slugify(`${breweryName}-${title}`)
 
+    const { container, volume_ml, weight } = getContainer(breweryName, title)
+    const packedAtISO = parseDate(releasedDate)
+    const dateAddedISO = parseDate(row["Date Added"])
+
     const metadata: Record<string, any> = {
       abv,
       untappd_score: untappd,
@@ -224,9 +326,13 @@ export default async function importProducts({ container }: ExecArgs) {
       brewery_slug: slugify(breweryName),
       style,
       released_date: releasedDate,
+      packaged_at: packedAtISO,
       comment: comment || null,
       origin: "US",
+      container,
+      volume_ml,
     }
+    if (dateAddedISO) metadata.date_added = dateAddedISO
     if (hops) metadata.hop_names = hops
     if (colab) metadata.collab_partner = colab
 
@@ -246,6 +352,7 @@ export default async function importProducts({ container }: ExecArgs) {
         if (variant) {
           await productModule.updateProductVariants(variant.id, {
             prices: [{ currency_code: "aud", amount: basePrice }],
+            weight,
           })
           await applyStock(variant.id, sku, stock)
           // Manage sale price list — uses existing.handle for reliable lookup
@@ -265,6 +372,30 @@ export default async function importProducts({ container }: ExecArgs) {
             })
           } catch {
             // link already exists — ignore
+          }
+        }
+
+        // Hop links from metadata.hop_names
+        if (hops) await linkHops(hopMap, hops, existing.id)
+
+        // Collab brewery links
+        if (colab) {
+          const collabNames = colab
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean)
+          for (const collabName of collabNames) {
+            const collabBrewery = breweryMap[collabName.toLowerCase()]
+            if (collabBrewery) {
+              try {
+                await link.create({
+                  brewery: { brewery_id: collabBrewery.id },
+                  [Modules.PRODUCT]: { product_id: existing.id },
+                })
+              } catch {
+                // link already exists — ignore
+              }
+            }
           }
         }
 
@@ -296,8 +427,8 @@ export default async function importProducts({ container }: ExecArgs) {
       const batch = toCreate.slice(i, i + BATCH_SIZE)
 
       const workflowInput = batch.map((row) => {
-        const title = row["Beer"].trim()
-        const breweryName = row["Brewery"].trim()
+        const title = normalizeTitle(row["Beer"] || "")
+        const breweryName = normalizeTitle(row["Brewery"] || "")
         const rawPrice = parseFloat(row["Price"] || "0")
         const was = parseFloat(row["Was"] || "0")
         const salePrice = was > rawPrice ? rawPrice : null
@@ -311,6 +442,9 @@ export default async function importProducts({ container }: ExecArgs) {
         const colab = row["Colab"] || ""
         const sku = `us-${slugify(breweryName)}-${slugify(title)}`.slice(0, 100)
         const handle = slugify(`${breweryName}-${title}`)
+        const { container, volume_ml, weight } = getContainer(breweryName, title)
+        const packedAtISO = parseDate(releasedDate)
+        const dateAddedISO = parseDate(row["Date Added"])
 
         const metadata: Record<string, any> = {
           abv,
@@ -320,31 +454,39 @@ export default async function importProducts({ container }: ExecArgs) {
           brewery_slug: slugify(breweryName),
           style,
           released_date: releasedDate,
+          packaged_at: packedAtISO,
           comment: comment || null,
           origin: "US",
+          container,
+          volume_ml,
         }
+        if (dateAddedISO) metadata.date_added = dateAddedISO
         if (hops) metadata.hop_names = hops
         if (colab) metadata.collab_partner = colab
 
         return {
           title,
           handle,
-          description: [style, abv ? `${abv}% ABV` : "", comment || ""].filter(Boolean).join(" · "),
+          description: [style, abv ? `${abv}% ABV` : "", container, comment || ""]
+            .filter(Boolean)
+            .join(" · "),
           status: ProductStatus.PUBLISHED,
           metadata,
           options: [{ title: "Format", values: ["Can"] }],
           variants: [
             {
-              title: `${title} — Can`,
+              title: `${title} — ${container}`,
               sku,
               manage_inventory: true,
-              weight: 500,
+              weight,
               prices: [{ currency_code: "aud", amount: basePrice }],
               options: { Format: "Can" },
             },
           ],
           sales_channels: [{ id: salesChannel.id }],
           _brewery_name: breweryName,
+          _colab: colab,
+          _hops: hops,
           _stock: parseInt(row["Left"] || "0"),
           _sku: sku,
           _handle: handle,
@@ -354,7 +496,8 @@ export default async function importProducts({ container }: ExecArgs) {
 
       try {
         const input = workflowInput.map(
-          ({ _brewery_name, _stock, _sku, _handle, _sale_price, ...product }) => product
+          ({ _brewery_name, _colab, _hops, _stock, _sku, _handle, _sale_price, ...product }) =>
+            product
         )
         const { result: products } = await createProductsWorkflow(container).run({
           input: { products: input },
@@ -371,6 +514,32 @@ export default async function importProducts({ container }: ExecArgs) {
               })
             } catch (e: any) {
               logger.warn(`Brewery link failed for ${workflowInput[j].title}: ${e.message}`)
+            }
+          }
+
+          // Collab brewery links
+          // Hop links for new products
+          const newHops = workflowInput[j]._hops
+          if (newHops) await linkHops(hopMap, newHops, products[j].id)
+
+          const collabRaw = workflowInput[j]._colab
+          if (collabRaw) {
+            const collabNames = collabRaw
+              .split(",")
+              .map((s: string) => s.trim())
+              .filter(Boolean)
+            for (const collabName of collabNames) {
+              const collabBrewery = breweryMap[collabName.toLowerCase()]
+              if (collabBrewery) {
+                try {
+                  await link.create({
+                    brewery: { brewery_id: collabBrewery.id },
+                    [Modules.PRODUCT]: { product_id: products[j].id },
+                  })
+                } catch {
+                  // link already exists — ignore
+                }
+              }
             }
           }
 

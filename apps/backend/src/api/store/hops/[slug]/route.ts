@@ -25,7 +25,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const allProducts = hopWithProducts?.products || []
   const products = allProducts.filter((p: any) => {
     const stock =
-      p.variants?.reduce((sum: number, v: any) => sum + (v.inventory_quantity ?? 0), 0) ?? 1
+      p.variants?.reduce((sum: number, v: any) => sum + (v.inventory_quantity ?? 1), 0) ?? 1
     return stock > 0
   })
 
