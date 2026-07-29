@@ -3,6 +3,7 @@
 import { useCallback } from "react"
 
 const BACKEND = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL ?? ""
+const PK = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY ?? ""
 
 function getOrCreateSessionId(): string {
   if (typeof document === "undefined") return ""
@@ -20,7 +21,10 @@ export function useTrack() {
       if (!session_id) return
       fetch(`${BACKEND}/store/events`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-publishable-api-key": PK,
+        },
         body: JSON.stringify({ event_type, session_id, payload }),
       }).catch(() => {})
     },
