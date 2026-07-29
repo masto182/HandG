@@ -24,6 +24,7 @@ import {
 } from "@retail-example/shared-types"
 
 import ProductActionsWrapper from "./product-actions-wrapper"
+import TrackPageView from "@modules/common/components/track-page-view"
 import type { BeerStyle } from "@lib/data/beer-styles"
 
 type ProductTemplateProps = {
@@ -97,6 +98,15 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
 
   return (
     <>
+      <TrackPageView
+        event="product.viewed"
+        payload={{
+          product_id: product.id,
+          handle: product.handle ?? "",
+          brewery_slug: metadata?.brewery_slug ?? null,
+          untappd_rating: metadata?.untappd_score ?? null,
+        }}
+      />
       <main className="max-w-[1440px] mx-auto px-6 py-6 lg:py-8 pb-24 lg:pb-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           <div className="lg:col-span-7 lg:sticky lg:top-8">

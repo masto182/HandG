@@ -27,6 +27,19 @@ type InsightsData = {
     pending_offers: number
     approved_offers: number
   }
+  demand: {
+    top_products: Array<{
+      product_id: string
+      handle: string
+      views: number
+      cart_adds: number
+      view_to_cart_rate: number
+    }>
+    top_breweries: Array<{ slug: string; views: number }>
+    filter_usage: Array<{ filter: string; count: number }>
+    hop_counts: Array<{ hop: string; count: number }>
+    untappd_bands: Array<{ band: string; views: number }>
+  }
 }
 
 const aud = (n: number) =>
@@ -93,15 +106,6 @@ function BarRow({
     </div>
   )
 }
-
-const DEMAND_METRICS = [
-  "Product views & view→cart rate",
-  "Cart abandonment rate",
-  "Brewery page view ranking",
-  "Most-used store filters & sort options",
-  "Hop filter selection counts",
-  "Interactions per Untappd rating band",
-]
 
 const InsightsPage = () => {
   const [data, setData] = useState<InsightsData | null>(null)
@@ -278,27 +282,136 @@ const InsightsPage = () => {
           )}
         </Tabs.Content>
 
-        <Tabs.Content value="demand" className="pt-6">
-          <div className="rounded-lg border border-dashed border-ui-border-base p-8 text-center max-w-xl mx-auto">
-            <Heading level="h2" className="mb-2">
-              Demand &amp; Behaviour
-            </Heading>
-            <Text size="small" className="text-ui-fg-subtle mb-4 block">
-              These metrics need a storefront event-tracking pipeline (product views, filter usage,
-              etc.) that isn't captured yet. Planned once the events layer ships:
-            </Text>
-            <ul className="text-sm text-ui-fg-base text-left inline-block space-y-1">
-              {DEMAND_METRICS.map((m) => (
-                <li key={m} className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-ui-fg-muted inline-block" />
-                  {m}
-                </li>
-              ))}
-            </ul>
-            <Text size="small" className="text-ui-fg-muted mt-4 block">
-              Cart abandonment is already available on the Operations tab.
-            </Text>
+        <Tabs.Content value="demand" className="pt-6 space-y-8">
+          {/* Top products by views */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+              <Heading level="h2" className="mb-3">
+                Top products (30d views)
+              </Heading>
+              {data.demand.top_products.length === 0 ? (
+                <Text size="small" className="text-ui-fg-muted">
+                  No product view events yet.
+                </Text>
+              ) : (
+                <div className="space-y-1">
+                  {data.demand.top_products.map((p, i) => (
+                    <a
+                      key={p.product_id}
+                      href={`/app/products/${p.product_id}`}
+                      className="flex items-center gap-3 border-b border-ui-border-base py-2 hover:bg-ui-bg-subtle px-2 rounded"
+                    >
+                      <span className="text-ui-fg-muted text-sm w-6">#{i + 1}</span>
+                      <span className="text-sm flex-1">{p.handle || p.product_id.slice(-10)}</span>
+                      <Badge color="blue" size="2xsmall">
+                        {p.views} views
+                      </Badge>
+                      {p.views > 0 && (
+                        <Badge
+                          color={p.view_to_cart_rate > 0.1 ? "green" : "orange"}
+                          size="2xsmall"
+                        >
+                          {Math.round(p.view_to_cart_rate * 100)}% cart
+                        </Badge>
+                      )}
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <Heading level="h2" className="mb-3">
+                Top breweries (30d views)
+              </Heading>
+              {data.demand.top_breweries.length === 0 ? (
+                <Text size="small" className="text-ui-fg-muted">
+                  No brewery view events yet.
+                </Text>
+              ) : (
+                <div className="space-y-2">
+                  {data.demand.top_breweries.map((b, i) => (
+                    <div key={b.slug} className="flex items-center gap-3">
+                      <span className="text-ui-fg-muted text-sm w-6">#{i + 1}</span>
+                      <span className="text-sm flex-1">{b.slug}</span>
+                      <Badge color="blue" size="2xsmall">
+                        {b.views} views
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
+
+          {/* Filter usage + hop counts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+              <Heading level="h2" className="mb-3">
+                Filter usage (30d)
+              </Heading>
+              {data.demand.filter_usage.length === 0 ? (
+                <Text size="small" className="text-ui-fg-muted">
+                  No filter events yet.
+                </Text>
+              ) : (
+                <div className="space-y-2">
+                  {data.demand.filter_usage.map((f) => (
+                    <BarRow
+                      key={f.filter}
+                      label={f.filter}
+                      count={f.count}
+                      max={data.demand.filter_usage[0]?.count ?? 1}
+                      color="bg-ui-tag-blue-icon"
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <Heading level="h2" className="mb-3">
+                Hop filter picks (30d)
+              </Heading>
+              {data.demand.hop_counts.length === 0 ? (
+                <Text size="small" className="text-ui-fg-muted">
+                  No hop filter events yet.
+                </Text>
+              ) : (
+                <div className="space-y-2">
+                  {data.demand.hop_counts.map((h) => (
+                    <BarRow
+                      key={h.hop}
+                      label={h.hop}
+                      count={h.count}
+                      max={data.demand.hop_counts[0]?.count ?? 1}
+                      color="bg-ui-tag-green-icon"
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Untappd rating band distribution */}
+          {data.demand.untappd_bands.length > 0 && (
+            <div>
+              <Heading level="h2" className="mb-3">
+                Views by Untappd rating band (30d)
+              </Heading>
+              <div className="space-y-2 max-w-lg">
+                {data.demand.untappd_bands.map((b) => (
+                  <BarRow
+                    key={b.band}
+                    label={b.band}
+                    count={b.views}
+                    max={Math.max(...data.demand.untappd_bands.map((x) => x.views))}
+                    color="bg-ui-tag-orange-icon"
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </Tabs.Content>
       </Tabs>
     </Container>

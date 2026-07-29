@@ -12,6 +12,7 @@ import ProductPrice from "../product-price"
 import MobileActions from "./mobile-actions"
 import { useRouter } from "next/navigation"
 import { sdk } from "@lib/config"
+import { useTrack } from "@lib/hooks/use-track"
 
 type ProductActionsProps = {
   product: HttpTypes.StoreProduct
@@ -43,6 +44,7 @@ export default function ProductActions({
   const [addError, setAddError] = useState<string | null>(null)
   const [quantity, setQuantity] = useState(1)
   const countryCode = (useParams().countryCode as string) || "au"
+  const track = useTrack()
 
   useEffect(() => {
     if (product.variants?.length === 1) {
@@ -165,6 +167,10 @@ export default function ProductActions({
         variantId: selectedVariant.id,
         quantity,
         countryCode,
+      })
+      track("cart.item_added", {
+        product_id: product.id,
+        variant_id: selectedVariant.id,
       })
     } catch (e: any) {
       setAddError(cartErrorMessage(e))

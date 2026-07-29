@@ -2,6 +2,7 @@ import { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/
 import { Modules, ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { VIP_SCORE_MODULE } from "../../../modules/vip-score"
 import { WISHLIST_MODULE } from "../../../modules/wishlist"
+import { ANALYTICS_MODULE } from "../../../modules/analytics"
 
 const LOW_STOCK_THRESHOLD = 6
 
@@ -173,5 +174,104 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
       pending_offers: pendingOffers,
       approved_offers: approvedOffers,
     },
+    demand: await buildDemandMetrics(req.scope.resolve(ANALYTICS_MODULE) as any),
   })
+}
+
+async function buildDemandMetrics(analyticsService: any) {
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+  const empty = {
+    top_products: [],
+    top_breweries: [],
+    filter_usage: [],
+    hop_counts: [],
+    untappd_bands: [],
+  }
+
+  try {
+    const events: any[] = await analyticsService.listStorefrontEvents({})
+    const recent = events.filter((e) => new Date(e.created_at) >= thirtyDaysAgo)
+
+    const productViews = new Map<string, { handle: string; views: number; cart_adds: number }>()
+    const breweryViews = new Map<string, number>()
+    const filterUsage = new Map<string, number>()
+    const hopCounts = new Map<string, number>()
+    const untappdBands = new Map<string, number>()
+
+    for (const e of recent) {
+      const p = e.payload ?? {}
+
+      if (e.event_type === "product.viewed") {
+        if (p.product_id) {
+          const cur = productViews.get(p.product_id) ?? {
+            handle: p.handle ?? "",
+            views: 0,
+            cart_adds: 0,
+          }
+          productViews.set(p.product_id, { ...cur, views: cur.views + 1 })
+        }
+        if (p.untappd_rating != null) {
+          const rating = parseFloat(p.untappd_rating)
+          if (!isNaN(rating)) {
+            const floor = Math.floor(rating * 2) / 2
+            const band = `${floor.toFixed(1)}–${(floor + 0.5).toFixed(1)}`
+            untappdBands.set(band, (untappdBands.get(band) ?? 0) + 1)
+          }
+        }
+      }
+
+      if (e.event_type === "cart.item_added" && p.product_id) {
+        const cur = productViews.get(p.product_id) ?? { handle: "", views: 0, cart_adds: 0 }
+        productViews.set(p.product_id, { ...cur, cart_adds: cur.cart_adds + 1 })
+      }
+
+      if (e.event_type === "brewery.viewed" && p.slug) {
+        breweryViews.set(p.slug as string, (breweryViews.get(p.slug as string) ?? 0) + 1)
+      }
+
+      if (e.event_type === "filter.applied") {
+        const filters = (p.filters ?? {}) as Record<string, string>
+        for (const [key, value] of Object.entries(filters)) {
+          if (value) {
+            filterUsage.set(key, (filterUsage.get(key) ?? 0) + 1)
+            if (key === "hops") {
+              for (const hop of value.split(",")) {
+                const h = hop.trim()
+                if (h) hopCounts.set(h, (hopCounts.get(h) ?? 0) + 1)
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return {
+      top_products: Array.from(productViews.entries())
+        .map(([product_id, d]) => ({
+          product_id,
+          handle: d.handle,
+          views: d.views,
+          cart_adds: d.cart_adds,
+          view_to_cart_rate: d.views > 0 ? Math.round((d.cart_adds / d.views) * 100) / 100 : 0,
+        }))
+        .sort((a, b) => b.views - a.views)
+        .slice(0, 10),
+      top_breweries: Array.from(breweryViews.entries())
+        .map(([slug, views]) => ({ slug, views }))
+        .sort((a, b) => b.views - a.views)
+        .slice(0, 10),
+      filter_usage: Array.from(filterUsage.entries())
+        .map(([filter, count]) => ({ filter, count }))
+        .sort((a, b) => b.count - a.count),
+      hop_counts: Array.from(hopCounts.entries())
+        .map(([hop, count]) => ({ hop, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 20),
+      untappd_bands: Array.from(untappdBands.entries())
+        .map(([band, views]) => ({ band, views }))
+        .sort((a, b) => parseFloat(a.band) - parseFloat(b.band)),
+    }
+  } catch {
+    return empty
+  }
 }

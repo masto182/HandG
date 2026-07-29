@@ -12,6 +12,7 @@ import { getBreweryCollabs } from "@lib/data/brewery-collabs"
 import { getMyBreweryFollow } from "@lib/data/brewery-follows"
 import ProductPill from "@modules/products/components/product-pill"
 import FollowBreweryButton from "@modules/breweries/components/follow-brewery-button"
+import TrackPageView from "@modules/common/components/track-page-view"
 
 type Props = {
   params: Promise<{ slug: string }>
@@ -97,6 +98,10 @@ export default async function BreweryDetailPage(props: Props) {
 
   return (
     <div className="w-full">
+      <TrackPageView
+        event="brewery.viewed"
+        payload={{ slug, name: brewery.name }}
+      />
       {/* Hero Section */}
       <section className="relative h-[360px] sm:h-[500px] small:h-[614px] w-full flex items-end pb-10 small:pb-16 overflow-hidden">
         <div className="absolute inset-0 z-0">

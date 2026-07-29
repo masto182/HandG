@@ -4,6 +4,7 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation"
 import { useCallback, useEffect, useState, useRef } from "react"
 import { createPortal } from "react-dom"
 import { sdk } from "@lib/config"
+import { useTrack } from "@lib/hooks/use-track"
 
 type FacetDistribution = Record<string, Record<string, number>>
 
@@ -58,6 +59,7 @@ export default function FilterPanel({
   const abortRef = useRef<AbortController | null>(null)
   const initialFetchDone = useRef(false)
   const scrollLockRef = useRef(0)
+  const track = useTrack()
 
   useEffect(() => {
     setMounted(true)
@@ -66,6 +68,19 @@ export default function FilterPanel({
   useEffect(() => {
     setMobileOpen(false)
   }, [searchParams])
+
+  // Track filter changes with a 600ms debounce
+  const searchParamsStr = searchParams.toString()
+  useEffect(() => {
+    if (!searchParamsStr) return
+    const timer = setTimeout(() => {
+      track("filter.applied", {
+        filters: Object.fromEntries(searchParams.entries()),
+      })
+    }, 600)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParamsStr])
 
   // Lock body scroll when sheet is open (iOS-safe position:fixed pattern)
   useEffect(() => {

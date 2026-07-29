@@ -4,15 +4,19 @@ import { useState } from "react"
 import { toast } from "sonner"
 import { addToCart } from "@lib/data/cart"
 import { classifyCartError } from "@lib/util/cart-error"
+import { useTrack } from "@lib/hooks/use-track"
 
 export default function AddToCartButton({
   variantId,
+  productId,
   compact = false,
 }: {
   variantId: string
+  productId?: string
   compact?: boolean
 }) {
   const [adding, setAdding] = useState(false)
+  const track = useTrack()
   const [added, setAdded] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
@@ -24,6 +28,10 @@ export default function AddToCartButton({
     setErrorMsg(null)
     try {
       await addToCart({ variantId, quantity: 1, countryCode: "au" })
+      track("cart.item_added", {
+        variant_id: variantId,
+        ...(productId ? { product_id: productId } : {}),
+      })
       setAdded(true)
       setTimeout(() => setAdded(false), 1500)
       toast.success("Added to cart")

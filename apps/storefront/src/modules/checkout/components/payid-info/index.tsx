@@ -19,6 +19,12 @@ const PayIdInfo = ({
           <span className="text-sm font-mono text-hg-gold">{alias}</span>
         </div>
         <div className="flex justify-between items-center">
+          <span className="text-sm text-hg-text-secondary">Pays to:</span>
+          <span className="text-sm text-hg-text-secondary">
+            Campbell Masterson
+          </span>
+        </div>
+        <div className="flex justify-between items-center">
           <span className="text-sm text-hg-text-secondary">Reference:</span>
           <span className="text-sm font-mono text-hg-text">{reference}</span>
         </div>
