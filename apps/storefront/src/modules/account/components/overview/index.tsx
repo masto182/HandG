@@ -6,7 +6,10 @@ import { convertToLocale } from "@lib/util/money"
 import { HttpTypes } from "@medusajs/types"
 import Icon from "@modules/common/components/icon"
 import { sdk } from "@lib/config"
-import { useOnboardingProgress } from "@lib/hooks/use-onboarding-progress"
+import {
+  useOnboardingProgress,
+  OnboardingProgress,
+} from "@lib/hooks/use-onboarding-progress"
 
 type VipData = {
   tier: string
@@ -22,6 +25,7 @@ type VipData = {
 type OverviewProps = {
   customer: HttpTypes.StoreCustomer | null
   orders: HttpTypes.StoreOrder[] | null
+  initialOnboardingProgress?: OnboardingProgress | null
 }
 
 const TIER_LABELS: Record<string, string> = {
@@ -33,10 +37,15 @@ const TIER_LABELS: Record<string, string> = {
   vip5: "VIP 5",
 }
 
-function GettingStartedCard() {
+function GettingStartedCard({
+  initial,
+}: {
+  initial?: OnboardingProgress | null
+}) {
   const { progress } = useOnboardingProgress()
-  if (!progress || progress.pct_complete >= 100) return null
-  const steps = Object.keys(progress.steps).length
+  const data = progress ?? initial ?? null
+  if (!data || data.pct_complete >= 100) return null
+  const steps = Object.keys(data.steps).length
 
   return (
     <div className="glass-card p-5 rounded-xl border border-hg-gold/30 mb-6">
@@ -49,13 +58,13 @@ function GettingStartedCard() {
             </h3>
           </div>
           <p className="text-sm text-hg-text mb-3">
-            {progress.steps_completed.length} of {steps} steps ·{" "}
-            {progress.points_earned} / {progress.max_points} pts
+            {data.steps_completed.length} of {steps} steps ·{" "}
+            {data.points_earned} / {data.max_points} pts
           </p>
           <div className="w-full bg-hg-border/40 rounded-full h-1.5 mb-3">
             <div
               className="bg-hg-gold h-1.5 rounded-full transition-all duration-500"
-              style={{ width: `${progress.pct_complete}%` }}
+              style={{ width: `${data.pct_complete}%` }}
             />
           </div>
           <LocalizedClientLink
@@ -66,14 +75,18 @@ function GettingStartedCard() {
           </LocalizedClientLink>
         </div>
         <span className="text-2xl font-bold text-hg-gold flex-shrink-0">
-          {progress.pct_complete}%
+          {data.pct_complete}%
         </span>
       </div>
     </div>
   )
 }
 
-const Overview = ({ customer, orders }: OverviewProps) => {
+const Overview = ({
+  customer,
+  orders,
+  initialOnboardingProgress,
+}: OverviewProps) => {
   const [vip, setVip] = useState<VipData | null>(null)
 
   useEffect(() => {
@@ -107,7 +120,7 @@ const Overview = ({ customer, orders }: OverviewProps) => {
   return (
     <div data-testid="overview-page-wrapper">
       {/* Getting Started progress card — hidden once all steps complete */}
-      <GettingStartedCard />
+      <GettingStartedCard initial={initialOnboardingProgress} />
 
       <div className="mb-8">
         <h1

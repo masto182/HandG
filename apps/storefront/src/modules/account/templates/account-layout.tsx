@@ -3,6 +3,7 @@ import React from "react"
 import AccountNav from "../components/account-nav"
 import TierUpgradeListener from "../components/tier-upgrade-toast"
 import OnboardingToastWatcher from "../components/onboarding-toast-watcher"
+import OnboardingProgressBanner from "../components/onboarding-progress-banner"
 import { HttpTypes } from "@medusajs/types"
 
 interface AccountLayoutProps {
@@ -30,6 +31,7 @@ const AccountLayout: React.FC<AccountLayoutProps> = ({
               </div>
             </aside>
             <main className="flex-1 min-w-0 px-4 py-6 small:px-10 small:py-8 max-w-5xl mx-auto">
+              <OnboardingProgressBanner />
               {children}
             </main>
           </div>
