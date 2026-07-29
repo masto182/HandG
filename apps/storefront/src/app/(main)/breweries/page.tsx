@@ -41,7 +41,7 @@ export default async function BreweriesPage() {
 
   return (
     <div className="max-w-[1440px] mx-auto px-6 pt-24 pb-20 min-h-screen">
-      <PageVisitTracker stepId="browse_breweries" />
+      {isApproved && <PageVisitTracker stepId="browse_breweries" />}
       <header className="py-16">
         <div className="max-w-3xl">
           <h1 className="text-h1 text-hg-text mb-4">
