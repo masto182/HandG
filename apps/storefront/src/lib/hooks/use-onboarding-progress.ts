@@ -1,9 +1,7 @@
 "use client"
 
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useRef } from "react"
 import { sdk } from "@lib/config"
-import { toast } from "sonner"
 
 export type OnboardingStep = {
   label: string
@@ -23,7 +21,7 @@ export type OnboardingProgress = {
   current_tier: string
 }
 
-const STEP_ICONS: Record<string, string> = {
+export const ONBOARDING_STEP_ICONS: Record<string, string> = {
   browse_hops: "🌿",
   browse_breweries: "🍺",
   hop_alert: "🔔",
@@ -45,9 +43,7 @@ async function fetchOnboardingProgress(): Promise<OnboardingProgress> {
   )
 }
 
-export async function markOnboardingStepComplete(
-  stepId: string,
-): Promise<
+export async function markOnboardingStepComplete(stepId: string): Promise<
   OnboardingProgress & {
     already_claimed?: boolean
     tier_promoted?: boolean
@@ -62,8 +58,6 @@ export async function markOnboardingStepComplete(
 
 export function useOnboardingProgress() {
   const queryClient = useQueryClient()
-  const prevCompletedRef = useRef<string[]>([])
-  const prevTierRef = useRef<string>("")
 
   const query = useQuery({
     queryKey: ["onboarding-progress"],
@@ -71,44 +65,6 @@ export function useOnboardingProgress() {
     staleTime: 30 * 1000,
     refetchOnWindowFocus: true,
   })
-
-  // Fire toasts when steps complete, detect tier upgrades
-  useEffect(() => {
-    if (!query.data) return
-
-    const prev = prevCompletedRef.current
-    const current = query.data.steps_completed
-
-    if (prev.length > 0) {
-      const newSteps = current.filter((s) => !prev.includes(s))
-      for (const stepId of newSteps) {
-        const step = query.data.steps[stepId]
-        if (step) {
-          const icon = STEP_ICONS[stepId] ?? "✓"
-          toast.success(`${icon} ${step.label}`, {
-            description: `+${step.points} pts earned`,
-            duration: 4000,
-          })
-        }
-      }
-
-      // Tier upgrade
-      if (
-        prevTierRef.current &&
-        query.data.current_tier !== prevTierRef.current &&
-        query.data.current_tier !== "approved"
-      ) {
-        window.dispatchEvent(
-          new CustomEvent("hg:tier-upgrade", {
-            detail: { new_tier: query.data.current_tier },
-          }),
-        )
-      }
-    }
-
-    prevCompletedRef.current = current
-    prevTierRef.current = query.data.current_tier
-  }, [query.data])
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: ["onboarding-progress"] })

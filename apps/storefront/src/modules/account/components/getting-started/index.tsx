@@ -1,9 +1,11 @@
 "use client"
 
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 import {
   useOnboardingProgress,
   markOnboardingStepComplete,
+  ONBOARDING_STEP_ICONS,
 } from "@lib/hooks/use-onboarding-progress"
 import type { OnboardingProgress } from "@lib/hooks/use-onboarding-progress"
 
@@ -70,7 +72,7 @@ type StepRowProps = {
   ctaLabel: string
   ctaHref: string
   completed: boolean
-  onComplete: (stepId: string) => void
+  onComplete: (stepId: string) => Promise<void>
 }
 
 function StepRow({
@@ -86,8 +88,16 @@ function StepRow({
 }: StepRowProps) {
   const router = useRouter()
 
-  const handleCta = () => {
-    if (!completed) onComplete(stepId)
+  const handleCta = async () => {
+    if (!completed) {
+      // Fire toast immediately before navigating so the user sees it
+      const icon = ONBOARDING_STEP_ICONS[stepId] ?? "✓"
+      toast.success(`${icon} ${title}`, {
+        description: `+${pointValue} pts earned`,
+        duration: 4000,
+      })
+      onComplete(stepId).catch(() => {})
+    }
     router.push(ctaHref)
   }
 
@@ -154,7 +164,7 @@ export default function GettingStartedClient({
   const stepsCompleted = new Set(data.steps_completed)
   const totalSteps = Object.keys(data.steps).length
 
-  const handleComplete = async (stepId: string) => {
+  const handleComplete = async (stepId: string): Promise<void> => {
     await markOnboardingStepComplete(stepId)
     invalidate()
   }
