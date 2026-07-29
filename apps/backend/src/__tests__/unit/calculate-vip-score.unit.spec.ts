@@ -47,6 +47,12 @@ function buildDeps(opts: {
         async createVipScores(data: any) {
           creates.push(data)
         },
+        async getBonusPointsInWindow(_customerId: string, _since: Date) {
+          return 0
+        },
+        async getLifetimeBonusPoints(_customerId: string) {
+          return 0
+        },
       },
     },
     updates,
