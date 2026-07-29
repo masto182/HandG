@@ -4,6 +4,9 @@ import {
   removeWishlistWorkflow,
 } from "../../../../../../workflows/manage-wishlist"
 import { checkPriceAlertImmediate } from "../check-price-alert"
+import { VIP_SCORE_MODULE } from "../../../../../../modules/vip-score"
+import evaluateVipProgressionWorkflow from "../../../../../../workflows/evaluate-vip-progression"
+import { ONBOARDING_STEPS } from "../../../../../../modules/vip-score/onboarding-steps"
 
 export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   const customerId = req.auth_context.actor_id
@@ -33,6 +36,33 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
   checkPriceAlertImmediate(req.scope, result).catch((err) => {
     console.error("[Wishlist] Immediate price check failed:", err)
   })
+
+  if (target_price !== undefined && target_price !== null && !item.target_price) {
+    const vipScoreService = req.scope.resolve(VIP_SCORE_MODULE) as any
+    const step = ONBOARDING_STEPS.price_alert
+    vipScoreService
+      .addOnboardingBonus(customerId, "price_alert", step.points)
+      .then(({ inserted }: { inserted: boolean }) => {
+        if (inserted)
+          evaluateVipProgressionWorkflow(req.scope)
+            .run({ input: { customer_id: customerId } })
+            .catch(() => {})
+      })
+      .catch(() => {})
+  }
+  if (stock_threshold !== undefined && !item.stock_threshold) {
+    const vipScoreService = req.scope.resolve(VIP_SCORE_MODULE) as any
+    const step = ONBOARDING_STEPS.stock_alert
+    vipScoreService
+      .addOnboardingBonus(customerId, "stock_alert", step.points)
+      .then(({ inserted }: { inserted: boolean }) => {
+        if (inserted)
+          evaluateVipProgressionWorkflow(req.scope)
+            .run({ input: { customer_id: customerId } })
+            .catch(() => {})
+      })
+      .catch(() => {})
+  }
 
   res.json({ wishlist_item: result })
 }

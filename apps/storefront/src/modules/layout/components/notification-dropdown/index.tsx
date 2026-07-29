@@ -89,9 +89,13 @@ export default function NotificationDropdown() {
     wishlist_match: "favorite",
     restock: "inventory",
     vip_tier: "military_tech",
+    tier_upgrade: "military_tech",
     order_status: "local_shipping",
     referral: "group",
+    referral_signup: "group",
     new_drop: "new_releases",
+    welcome: "waving_hand",
+    onboarding_halfway: "emoji_events",
   }
 
   return (

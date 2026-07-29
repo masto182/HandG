@@ -8,6 +8,11 @@ import LocalizedClientLink from "@modules/common/components/localized-client-lin
 import Icon from "@modules/common/components/icon"
 
 const navLinks = [
+  {
+    href: "/account/getting-started",
+    label: "Getting Started",
+    icon: "rocket_launch",
+  },
   { href: "/account", label: "Overview", icon: "dashboard" },
   { href: "/account/orders", label: "Orders", icon: "shopping_bag" },
   { href: "/account/profile", label: "Profile", icon: "person" },

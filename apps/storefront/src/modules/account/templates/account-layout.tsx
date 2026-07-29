@@ -1,6 +1,7 @@
 import React from "react"
 
 import AccountNav from "../components/account-nav"
+import TierUpgradeListener from "../components/tier-upgrade-toast"
 import { HttpTypes } from "@medusajs/types"
 
 interface AccountLayoutProps {
@@ -16,6 +17,7 @@ const AccountLayout: React.FC<AccountLayoutProps> = ({
     <div className="flex-1" data-testid="account-page">
       {customer ? (
         <>
+          <TierUpgradeListener />
           <div className="small:hidden px-4 py-4">
             <AccountNav customer={customer} mobile />
           </div>

@@ -6,6 +6,7 @@ import { convertToLocale } from "@lib/util/money"
 import { HttpTypes } from "@medusajs/types"
 import Icon from "@modules/common/components/icon"
 import { sdk } from "@lib/config"
+import { useOnboardingProgress } from "@lib/hooks/use-onboarding-progress"
 
 type VipData = {
   tier: string
@@ -30,6 +31,46 @@ const TIER_LABELS: Record<string, string> = {
   vip3: "VIP 3",
   vip4: "VIP 4",
   vip5: "VIP 5",
+}
+
+function GettingStartedCard() {
+  const { progress } = useOnboardingProgress()
+  if (!progress || progress.pct_complete >= 100) return null
+  const steps = Object.keys(progress.steps).length
+
+  return (
+    <div className="glass-card p-5 rounded-xl border border-hg-gold/30 mb-6">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <Icon name="rocket_launch" size={18} className="text-hg-gold" />
+            <h3 className="text-label-caps uppercase tracking-widest text-hg-gold text-xs">
+              Getting Started
+            </h3>
+          </div>
+          <p className="text-sm text-hg-text mb-3">
+            {progress.steps_completed.length} of {steps} steps ·{" "}
+            {progress.points_earned} / {progress.max_points} pts
+          </p>
+          <div className="w-full bg-hg-border/40 rounded-full h-1.5 mb-3">
+            <div
+              className="bg-hg-gold h-1.5 rounded-full transition-all duration-500"
+              style={{ width: `${progress.pct_complete}%` }}
+            />
+          </div>
+          <LocalizedClientLink
+            href="/account/getting-started"
+            className="text-xs text-hg-gold font-bold uppercase hover:underline"
+          >
+            Continue setup →
+          </LocalizedClientLink>
+        </div>
+        <span className="text-2xl font-bold text-hg-gold flex-shrink-0">
+          {progress.pct_complete}%
+        </span>
+      </div>
+    </div>
+  )
 }
 
 const Overview = ({ customer, orders }: OverviewProps) => {
@@ -65,6 +106,9 @@ const Overview = ({ customer, orders }: OverviewProps) => {
 
   return (
     <div data-testid="overview-page-wrapper">
+      {/* Getting Started progress card — hidden once all steps complete */}
+      <GettingStartedCard />
+
       <div className="mb-8">
         <h1
           className="text-h2 text-hg-text"

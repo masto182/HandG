@@ -3,6 +3,7 @@ import { getPublicConfig } from "@lib/data/site-config"
 import { getAuthHeaders } from "@lib/data/cookies"
 import { getMembershipStatus, isApprovedMember } from "@lib/data/membership"
 import { redirect } from "next/navigation"
+import PageVisitTracker from "@modules/account/components/page-visit-tracker"
 
 type VipData = {
   tier: string
@@ -149,6 +150,7 @@ export default async function VipPage() {
 
   return (
     <div className="w-full" data-testid="vip-page-wrapper">
+      <PageVisitTracker stepId="vip_view" />
       <header className="mb-8">
         <h1 className="text-h1 text-on-surface mb-1">VIP Status</h1>
         <p className="text-body-lg text-on-surface-variant">

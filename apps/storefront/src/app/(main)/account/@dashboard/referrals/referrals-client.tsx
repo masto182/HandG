@@ -73,6 +73,12 @@ export default function ReferralsPage({
     setCopied(label)
     trackGoal("referral_sent", { channel: label, via: "clipboard" })
     setTimeout(() => setCopied(null), 2000)
+    // Award onboarding step for first referral code copy
+    import("@lib/hooks/use-onboarding-progress").then(
+      ({ markOnboardingStepComplete }) => {
+        markOnboardingStepComplete("referral_view").catch(() => {})
+      },
+    )
   }
 
   const handleShare = async (channel?: ShareChannel) => {

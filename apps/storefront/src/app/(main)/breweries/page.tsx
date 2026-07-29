@@ -2,6 +2,7 @@ import Link from "next/link"
 import { listBreweries } from "@lib/data/breweries"
 import { getMembershipStatus, isApprovedMember } from "@lib/data/membership"
 import { breweryLabel } from "@lib/util/brewery-label"
+import PageVisitTracker from "@modules/account/components/page-visit-tracker"
 import { Metadata } from "next"
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -40,6 +41,7 @@ export default async function BreweriesPage() {
 
   return (
     <div className="max-w-[1440px] mx-auto px-6 pt-24 pb-20 min-h-screen">
+      <PageVisitTracker stepId="browse_breweries" />
       <header className="py-16">
         <div className="max-w-3xl">
           <h1 className="text-h1 text-hg-text mb-4">

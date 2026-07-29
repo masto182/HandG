@@ -175,10 +175,15 @@ export async function calculateVipScore(
     }
   }
 
-  const vipScore =
+  const spendScore =
     personal.total +
     vipConfig.directMultiplier * directSpend +
     vipConfig.indirectMultiplier * indirectSpend
+
+  // Add bonus events (onboarding steps, referral signups) in the rolling window.
+  const bonusInWindow = await vipScoreService.getBonusPointsInWindow(input.customer_id, since)
+  const lifetimeBonusPoints = await vipScoreService.getLifetimeBonusPoints(input.customer_id)
+  const vipScore = spendScore + bonusInWindow
 
   // Upsert vip_score row.
   //   personal_spend_12mo  -> personal spend in the rolling window
@@ -190,12 +195,11 @@ export async function calculateVipScore(
 
   const payload = {
     personal_spend_12mo: personal.total,
-    // Sprint 3: persist direct + indirect separately so the dashboard can split
-    // the score breakdown without re-deriving on each request.
     direct_spend_12mo: directSpend,
     indirect_spend_12mo: indirectSpend,
     vip_score: vipScore,
     order_count_12mo: personal.count,
+    lifetime_points: lifetimeBonusPoints,
     last_evaluated_at: now,
   }
 

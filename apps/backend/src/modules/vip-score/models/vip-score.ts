@@ -14,6 +14,8 @@ const VipScore = model.define("vip_score", {
   pending_demotion: model.boolean().default(false),
   demotion_warning_at: model.dateTime().nullable(),
   last_evaluated_at: model.dateTime().nullable(),
+  lifetime_points: model.number().default(0),
+  last_reconciled_at: model.dateTime().nullable(),
 })
 
 export default VipScore

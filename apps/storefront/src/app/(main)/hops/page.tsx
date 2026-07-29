@@ -3,6 +3,7 @@ import { listHops } from "@lib/data/hops"
 import { getMyHopAlerts } from "@lib/data/hop-alerts"
 import { getMembershipStatus, isApprovedMember } from "@lib/data/membership"
 import AlertHopButton from "@modules/hops/components/alert-hop-button"
+import PageVisitTracker from "@modules/account/components/page-visit-tracker"
 import { Metadata } from "next"
 
 export const metadata: Metadata = {
@@ -39,6 +40,7 @@ export default async function HopsPage({ searchParams }: Props) {
 
   return (
     <div className="max-w-[1440px] mx-auto px-6 pt-24 pb-20 min-h-screen">
+      <PageVisitTracker stepId="browse_hops" />
       <header className="py-8 small:py-16">
         <div className="max-w-3xl">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-hg-text-muted mb-3">

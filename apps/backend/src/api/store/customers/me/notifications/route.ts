@@ -10,5 +10,7 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
     { order: { created_at: "DESC" }, take: 50 }
   )
 
-  res.json({ notifications })
+  const unread_count = notifications.filter((n: any) => !n.read).length
+
+  res.json({ notifications, unread_count })
 }

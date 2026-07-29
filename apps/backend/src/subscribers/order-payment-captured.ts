@@ -4,6 +4,7 @@ import evaluateVipProgressionWorkflow from "../workflows/evaluate-vip-progressio
 import { REFERRAL_MODULE } from "../modules/referral"
 import { sendTemplate, refreshEmailConfig, getStoreUrl } from "../lib/email"
 import * as VipTierUpTpl from "../emails/vip-tier-up"
+import { createInboxNotification } from "../lib/create-inbox-notification"
 
 type Logger = {
   info: (msg: string) => void
@@ -81,6 +82,16 @@ export default async function orderPaymentCapturedHandler({
 
         // Send VIP tier-up email inline when the workflow promoted this customer.
         if ((result as any)?.promoted === true) {
+          const newTier = (result as any).new_tier || "vip"
+          // In-app inbox notification
+          createInboxNotification(
+            container,
+            target.id,
+            "tier_upgrade",
+            `You've reached ${newTier.toUpperCase()}`,
+            `Your VIP score crossed the ${newTier} threshold. New early-access perks are now active.`,
+            { new_tier: newTier, cta: "/account/vip" }
+          )
           try {
             await refreshEmailConfig(container)
             const customerModule = container.resolve(Modules.CUSTOMER)
@@ -95,7 +106,7 @@ export default async function orderPaymentCapturedHandler({
                 template: VipTierUpTpl,
                 props: {
                   name: customer.first_name || "Collector",
-                  newTier: (result as any).new_tier || "vip",
+                  newTier,
                   storeUrl: getStoreUrl(),
                 },
                 container,

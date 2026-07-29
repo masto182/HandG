@@ -1,5 +1,8 @@
 import { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { createRestockAlertWorkflow } from "../../../../../workflows/manage-restock-alert"
+import { VIP_SCORE_MODULE } from "../../../../../modules/vip-score"
+import evaluateVipProgressionWorkflow from "../../../../../workflows/evaluate-vip-progression"
+import { ONBOARDING_STEPS } from "../../../../../modules/vip-score/onboarding-steps"
 
 export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   const customerId = req.auth_context.actor_id
@@ -37,5 +40,19 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
   })
 
   // 201 when a new alert was created; 200 when an existing one was returned.
+  if (result.created) {
+    const vipScoreService = req.scope.resolve(VIP_SCORE_MODULE) as any
+    const step = ONBOARDING_STEPS.restock_alert
+    vipScoreService
+      .addOnboardingBonus(customerId, "restock_alert", step.points)
+      .then(({ inserted }: { inserted: boolean }) => {
+        if (inserted)
+          evaluateVipProgressionWorkflow(req.scope)
+            .run({ input: { customer_id: customerId } })
+            .catch(() => {})
+      })
+      .catch(() => {})
+  }
+
   res.status(result.created ? 201 : 200).json({ restock_alert: result.alert })
 }

@@ -5,6 +5,9 @@ import {
   upsertHopAlertWorkflow,
   deleteHopAlertWorkflow,
 } from "../../../../../workflows/manage-hop-alert"
+import { VIP_SCORE_MODULE } from "../../../../../modules/vip-score"
+import evaluateVipProgressionWorkflow from "../../../../../workflows/evaluate-vip-progression"
+import { ONBOARDING_STEPS } from "../../../../../modules/vip-score/onboarding-steps"
 
 const UpsertSchema = z.object({
   hop_id: z.string().min(1),
@@ -40,6 +43,20 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
   const { result } = await upsertHopAlertWorkflow(req.scope).run({
     input: { customer_id: customerId, ...parsed.data },
   })
+
+  if (result.created) {
+    const vipScoreService = req.scope.resolve(VIP_SCORE_MODULE) as any
+    const step = ONBOARDING_STEPS.hop_alert
+    vipScoreService
+      .addOnboardingBonus(req.auth_context.actor_id, "hop_alert", step.points)
+      .then(({ inserted }: { inserted: boolean }) => {
+        if (inserted)
+          evaluateVipProgressionWorkflow(req.scope)
+            .run({ input: { customer_id: req.auth_context.actor_id } })
+            .catch(() => {})
+      })
+      .catch(() => {})
+  }
 
   res.status(result.created ? 201 : 200).json({ hop_alert: result.alert })
 }
