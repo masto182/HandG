@@ -4,10 +4,10 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import {
   useOnboardingProgress,
-  markOnboardingStepComplete,
   ONBOARDING_STEP_ICONS,
 } from "@lib/hooks/use-onboarding-progress"
 import type { OnboardingProgress } from "@lib/hooks/use-onboarding-progress"
+import { completeOnboardingStep } from "@lib/data/onboarding"
 
 const STEP_ICONS: Record<string, string> = {
   browse_hops: "🌿",
@@ -163,7 +163,7 @@ export default function GettingStartedClient({
   const totalSteps = Object.keys(data.steps).length
 
   const handleComplete = async (stepId: string): Promise<void> => {
-    await markOnboardingStepComplete(stepId)
+    await completeOnboardingStep(stepId)
     invalidate()
   }
 

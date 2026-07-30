@@ -23,3 +23,18 @@ export async function getOnboardingProgress(): Promise<OnboardingProgress | null
     return null
   }
 }
+
+export async function completeOnboardingStep(stepId: string): Promise<boolean> {
+  try {
+    const headers = await getAuthHeaders()
+    if (!headers.authorization) return false
+    await sdk.client.fetch("/store/customers/me/onboarding/complete-step", {
+      method: "POST",
+      headers,
+      body: { step_id: stepId },
+    })
+    return true
+  } catch {
+    return false
+  }
+}

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
-import { markOnboardingStepComplete } from "@lib/hooks/use-onboarding-progress"
+import { completeOnboardingStep } from "@lib/data/onboarding"
 
 type Props = {
   stepId: string
@@ -9,7 +9,7 @@ type Props = {
 
 export default function PageVisitTracker({ stepId }: Props) {
   useEffect(() => {
-    markOnboardingStepComplete(stepId).catch(() => {})
+    completeOnboardingStep(stepId).catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

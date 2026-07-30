@@ -8,6 +8,7 @@ import {
   ReferralStatus,
 } from "@lib/data/referrals"
 import { trackGoal } from "@lib/util/plausible"
+import { completeOnboardingStep } from "@lib/data/onboarding"
 import { shareReferral, type ShareChannel } from "@lib/util/share"
 import {
   DEFAULT_REFERRAL_BODY,
@@ -73,12 +74,7 @@ export default function ReferralsPage({
     setCopied(label)
     trackGoal("referral_sent", { channel: label, via: "clipboard" })
     setTimeout(() => setCopied(null), 2000)
-    // Award onboarding step for first referral code copy
-    import("@lib/hooks/use-onboarding-progress").then(
-      ({ markOnboardingStepComplete }) => {
-        markOnboardingStepComplete("referral_view").catch(() => {})
-      },
-    )
+    completeOnboardingStep("referral_view").catch(() => {})
   }
 
   const handleShare = async (channel?: ShareChannel) => {
