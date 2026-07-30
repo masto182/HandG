@@ -3,29 +3,44 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useOnboardingProgress } from "@lib/hooks/use-onboarding-progress"
+import { sdk } from "@lib/config"
+
+type OnboardingProgress = {
+  steps_completed: string[]
+  points_earned: number
+  max_points: number
+  pct_complete: number
+  steps: Record<string, { label: string; points: number }>
+}
 
 const DISMISSED_KEY = "hg_onboarding_banner_dismissed"
 
-function getBannerDismissed(): boolean {
-  try {
-    return sessionStorage.getItem(DISMISSED_KEY) === "true"
-  } catch {
-    return false
-  }
-}
-
 export default function OnboardingProgressBanner() {
-  const { progress } = useOnboardingProgress()
-  const pathname = usePathname()
+  const [progress, setProgress] = useState<OnboardingProgress | null>(null)
   const [dismissed, setDismissed] = useState(false)
+  const pathname = usePathname()
 
   useEffect(() => {
-    setDismissed(getBannerDismissed())
+    try {
+      if (sessionStorage.getItem(DISMISSED_KEY) === "true") {
+        setDismissed(true)
+        return
+      }
+    } catch {}
+
+    sdk.client
+      .fetch<OnboardingProgress>("/store/customers/me/onboarding", {
+        method: "GET",
+      })
+      .then(setProgress)
+      .catch(() => {})
   }, [])
 
   if (!progress || progress.pct_complete >= 100 || dismissed) return null
   if (pathname?.includes("/getting-started")) return null
+
+  const totalSteps = Object.keys(progress.steps).length
+  const ptsRemaining = progress.max_points - progress.points_earned
 
   const handleDismiss = () => {
     try {
@@ -34,17 +49,14 @@ export default function OnboardingProgressBanner() {
     setDismissed(true)
   }
 
-  const totalSteps = Object.keys(progress.steps).length
-
   return (
-    <div className="relative flex items-center justify-center gap-3 px-6 py-2 bg-hg-bg border-b border-hg-gold/20 text-sm">
-      {/* Progress fill behind text */}
+    <div className="relative flex items-center justify-center gap-3 px-6 py-2 bg-hg-bg border-b border-hg-gold/20 text-sm overflow-hidden">
+      {/* Background fill reflecting % complete */}
       <div
-        className="absolute inset-0 bg-hg-gold/5 transition-all duration-700"
+        className="absolute inset-y-0 left-0 bg-hg-gold/5 transition-all duration-700 pointer-events-none"
         style={{ width: `${progress.pct_complete}%` }}
       />
 
-      {/* Content */}
       <div className="relative flex items-center gap-3 z-10">
         <span className="text-hg-gold font-bold text-xs uppercase tracking-widest">
           Getting Started
@@ -65,11 +77,10 @@ export default function OnboardingProgressBanner() {
           href="/account/getting-started"
           className="text-xs font-semibold text-hg-gold hover:underline whitespace-nowrap"
         >
-          Earn {progress.max_points - progress.points_earned} more pts →
+          Earn {ptsRemaining} more pts →
         </Link>
       </div>
 
-      {/* Dismiss */}
       <button
         onClick={handleDismiss}
         className="absolute right-3 top-1/2 -translate-y-1/2 p-2 opacity-50 hover:opacity-100 transition-opacity z-10"

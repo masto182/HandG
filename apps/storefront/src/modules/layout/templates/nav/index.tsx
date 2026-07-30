@@ -42,7 +42,7 @@ export default async function Nav({
   return (
     <div className="sticky top-0 inset-x-0 z-50 group">
       <AnnouncementStrip />
-      <OnboardingProgressBanner />
+      {isApproved && <OnboardingProgressBanner />}
       <header
         className="relative h-20 w-full border-b border-hg-border backdrop-blur-lg"
         style={{
