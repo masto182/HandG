@@ -28,7 +28,7 @@ export async function completeOnboardingStep(stepId: string): Promise<boolean> {
   try {
     const headers = await getAuthHeaders()
     if (!headers.authorization) return false
-    await sdk.client.fetch("/store/customers/me/onboarding/complete-step", {
+    await sdk.client.fetch("/store/customers/me/onboarding", {
       method: "POST",
       headers,
       body: { step_id: stepId },
