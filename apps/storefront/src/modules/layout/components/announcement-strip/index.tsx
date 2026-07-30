@@ -9,65 +9,74 @@ type Announcement = {
   link_text: string | null
   link_url: string | null
   type: "info" | "warning" | "promo"
+  priority: number
+}
+
+const DISMISSED_KEY = "hg_dismissed_banners"
+
+function getDismissed(): Set<string> {
+  try {
+    return new Set(JSON.parse(sessionStorage.getItem(DISMISSED_KEY) ?? "[]"))
+  } catch {
+    return new Set()
+  }
+}
+
+function addDismissed(id: string) {
+  try {
+    const s = getDismissed()
+    s.add(id)
+    sessionStorage.setItem(DISMISSED_KEY, JSON.stringify([...s]))
+  } catch {}
 }
 
 const AnnouncementStrip = () => {
-  const [announcement, setAnnouncement] = useState<Announcement | null>(null)
-  const [dismissed, setDismissed] = useState(false)
+  const [announcements, setAnnouncements] = useState<Announcement[]>([])
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
-    const fetchAnnouncements = async () => {
-      try {
-        const data = await sdk.client.fetch<{ announcements: any[] }>(
-          "/store/announcements",
-          { method: "GET" },
-        )
-        if (data.announcements?.length > 0) {
-          const latest = data.announcements[0]
-          const dismissedId = sessionStorage.getItem("dismissed-announcement")
-          if (dismissedId !== latest.id) {
-            setAnnouncement(latest)
-          }
-        }
-      } catch {
-        // silently fail
-      }
-    }
-    fetchAnnouncements()
+    setDismissedIds(getDismissed())
+    sdk.client
+      .fetch<{ announcements: Announcement[] }>("/store/announcements", {
+        method: "GET",
+      })
+      .then((data) => setAnnouncements(data.announcements ?? []))
+      .catch(() => {})
   }, [])
 
-  if (!announcement || dismissed) return null
+  const visible = announcements.filter((a) => !dismissedIds.has(a.id))
+  const current = visible[0] ?? null
+
+  if (!current) return null
 
   const dismiss = () => {
-    setDismissed(true)
-    sessionStorage.setItem("dismissed-announcement", announcement.id)
+    addDismissed(current.id)
+    setDismissedIds(getDismissed())
   }
 
   const bgClass =
-    announcement.type === "promo"
+    current.type === "promo"
       ? "bg-hg-gold"
-      : announcement.type === "warning"
+      : current.type === "warning"
         ? "bg-hl-warning"
         : "bg-hl-primary-soft"
 
   const textClass =
-    announcement.type === "promo"
+    current.type === "promo" || current.type === "warning"
       ? "text-white"
-      : announcement.type === "warning"
-        ? "text-white"
-        : "text-hg-text"
+      : "text-hg-text"
 
   return (
     <div
       className={`relative flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium ${bgClass} ${textClass}`}
     >
-      <span>{announcement.message}</span>
-      {announcement.link_text && announcement.link_url && (
+      <span>{current.message}</span>
+      {current.link_text && current.link_url && (
         <a
-          href={announcement.link_url}
+          href={current.link_url}
           className="underline underline-offset-2 font-semibold hover:opacity-80"
         >
-          {announcement.link_text}
+          {current.link_text}
         </a>
       )}
       <button

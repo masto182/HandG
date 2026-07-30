@@ -26,12 +26,6 @@ export const ONBOARDING_STEPS: Record<
     section: "notifications",
     description: "Be first to hear about new drops from a brewery you love.",
   },
-  restock_alert: {
-    label: "Set a Restock Alert",
-    points: 10,
-    section: "notifications",
-    description: "Sold out? Add a restock alert and we'll ping you if it comes back.",
-  },
   wishlist_add: {
     label: "Add a Beer to Your Wishlist",
     points: 10,

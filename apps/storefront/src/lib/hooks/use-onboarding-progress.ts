@@ -62,7 +62,7 @@ export function useOnboardingProgress() {
   const query = useQuery({
     queryKey: ["onboarding-progress"],
     queryFn: fetchOnboardingProgress,
-    staleTime: 30 * 1000,
+    staleTime: 0,
     refetchOnWindowFocus: true,
   })
 

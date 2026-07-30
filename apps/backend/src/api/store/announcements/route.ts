@@ -14,5 +14,11 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     return true
   })
 
+  active.sort(
+    (a: any, b: any) =>
+      (b.priority ?? 0) - (a.priority ?? 0) ||
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  )
+
   res.json({ announcements: active })
 }

@@ -7,6 +7,7 @@ const Announcement = model.define("announcement", {
   link_url: model.text().nullable(),
   type: model.enum(["info", "warning", "promo"]).default("info"),
   is_active: model.boolean().default(true),
+  priority: model.number().default(0),
   starts_at: model.dateTime().nullable(),
   ends_at: model.dateTime().nullable(),
 })

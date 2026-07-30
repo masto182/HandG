@@ -14,7 +14,6 @@ const STEP_ICONS: Record<string, string> = {
   browse_breweries: "🍺",
   hop_alert: "🔔",
   brewery_follow: "⭐",
-  restock_alert: "📦",
   wishlist_add: "❤️",
   price_alert: "💰",
   stock_alert: "⚠️",
@@ -29,7 +28,6 @@ const STEP_CTA: Record<string, { label: string; href: string }> = {
   browse_breweries: { label: "Browse Breweries", href: "/breweries" },
   hop_alert: { label: "Find a Hop", href: "/hops" },
   brewery_follow: { label: "Browse Breweries", href: "/breweries" },
-  restock_alert: { label: "Browse Store", href: "/store" },
   wishlist_add: { label: "Go to Wishlist", href: "/account/wishlist" },
   price_alert: { label: "Set Alert", href: "/account/wishlist" },
   stock_alert: { label: "Set Alert", href: "/account/wishlist" },
@@ -48,7 +46,7 @@ const SECTIONS = [
   {
     key: "notifications",
     title: "Get Notified",
-    steps: ["hop_alert", "brewery_follow", "restock_alert"],
+    steps: ["hop_alert", "brewery_follow"],
   },
   {
     key: "wishlist",

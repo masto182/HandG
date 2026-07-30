@@ -47,12 +47,21 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
   const { inserted } = await vipScoreService.addOnboardingBonus(customerId, step_id, step.points)
 
   if (inserted) {
-    const { result } = await evaluateVipProgressionWorkflow(req.scope).run({
-      input: { customer_id: customerId },
-    })
+    let progressionResult: any = null
+    try {
+      const { result } = await evaluateVipProgressionWorkflow(req.scope).run({
+        input: { customer_id: customerId },
+      })
+      progressionResult = result
+    } catch (err) {
+      const logger = req.scope.resolve("logger") as any
+      logger.warn(
+        `[Onboarding] VIP progression failed for step ${step_id}: ${err instanceof Error ? err.message : String(err)}`
+      )
+    }
 
-    if ((result as any)?.promoted === true) {
-      const newTier = (result as any).new_tier || "vip"
+    if ((progressionResult as any)?.promoted === true) {
+      const newTier = (progressionResult as any).new_tier || "vip"
       createInboxNotification(
         req.scope,
         customerId,
@@ -91,8 +100,8 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
       step_id,
       points_awarded: step.points,
       already_claimed: false,
-      tier_promoted: (result as any)?.promoted ?? false,
-      new_tier: (result as any)?.new_tier ?? null,
+      tier_promoted: (progressionResult as any)?.promoted ?? false,
+      new_tier: (progressionResult as any)?.new_tier ?? null,
       steps_completed: stepsCompleted,
       points_earned: pointsEarned,
       max_points: MAX_ONBOARDING_POINTS,
