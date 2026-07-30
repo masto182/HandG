@@ -9,6 +9,7 @@ import CartButton from "@modules/layout/components/cart-button"
 import SideMenu from "@modules/layout/components/side-menu"
 import ThemeToggle from "@modules/layout/components/theme-toggle"
 import AnnouncementStrip from "@modules/layout/components/announcement-strip"
+import OnboardingProgressBanner from "@modules/account/components/onboarding-progress-banner"
 import Icon from "@modules/common/components/icon"
 import SearchBar from "@modules/search/components/search-bar"
 import VipBadge from "@modules/layout/components/vip-badge"
@@ -41,6 +42,7 @@ export default async function Nav({
   return (
     <div className="sticky top-0 inset-x-0 z-50 group">
       <AnnouncementStrip />
+      <OnboardingProgressBanner />
       <header
         className="relative h-20 w-full border-b border-hg-border backdrop-blur-lg"
         style={{
