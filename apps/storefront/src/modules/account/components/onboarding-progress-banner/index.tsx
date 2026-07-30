@@ -1,9 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { sdk } from "@lib/config"
 
 type OnboardingProgress = {
   steps_completed: string[]
@@ -15,30 +14,27 @@ type OnboardingProgress = {
 
 const DISMISSED_KEY = "hg_onboarding_banner_dismissed"
 
-export default function OnboardingProgressBanner() {
-  const [progress, setProgress] = useState<OnboardingProgress | null>(null)
-  const [dismissed, setDismissed] = useState(false)
+function isDismissed(): boolean {
+  try {
+    return sessionStorage.getItem(DISMISSED_KEY) === "true"
+  } catch {
+    return false
+  }
+}
+
+type Props = {
+  initialProgress?: OnboardingProgress | null
+}
+
+export default function OnboardingProgressBanner({ initialProgress }: Props) {
+  const [dismissed, setDismissed] = useState(() => isDismissed())
   const pathname = usePathname()
 
-  useEffect(() => {
-    try {
-      if (sessionStorage.getItem(DISMISSED_KEY) === "true") {
-        setDismissed(true)
-        return
-      }
-    } catch {}
-
-    sdk.client
-      .fetch<OnboardingProgress>("/store/customers/me/onboarding", {
-        method: "GET",
-      })
-      .then(setProgress)
-      .catch(() => {})
-  }, [])
-
-  if (!progress || progress.pct_complete >= 100 || dismissed) return null
+  if (!initialProgress || initialProgress.pct_complete >= 100 || dismissed)
+    return null
   if (pathname?.includes("/getting-started")) return null
 
+  const progress = initialProgress
   const totalSteps = Object.keys(progress.steps).length
   const ptsRemaining = progress.max_points - progress.points_earned
 
@@ -51,7 +47,6 @@ export default function OnboardingProgressBanner() {
 
   return (
     <div className="relative flex items-center justify-center gap-3 px-6 py-2 bg-hg-bg border-b border-hg-gold/20 text-sm overflow-hidden">
-      {/* Background fill reflecting % complete */}
       <div
         className="absolute inset-y-0 left-0 bg-hg-gold/5 transition-all duration-700 pointer-events-none"
         style={{ width: `${progress.pct_complete}%` }}

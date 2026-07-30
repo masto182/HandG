@@ -10,6 +10,7 @@ import SideMenu from "@modules/layout/components/side-menu"
 import ThemeToggle from "@modules/layout/components/theme-toggle"
 import AnnouncementStrip from "@modules/layout/components/announcement-strip"
 import OnboardingProgressBanner from "@modules/account/components/onboarding-progress-banner"
+import { getOnboardingProgress } from "@lib/data/onboarding"
 import Icon from "@modules/common/components/icon"
 import SearchBar from "@modules/search/components/search-bar"
 import VipBadge from "@modules/layout/components/vip-badge"
@@ -35,6 +36,8 @@ export default async function Nav({
   const isApproved = isApprovedMember(membershipStatus)
   const isLoggedIn = membershipStatus !== "public"
 
+  const onboardingProgress = isApproved ? await getOnboardingProgress() : null
+
   const avatarUrl = (customer?.metadata as Record<string, string> | null)
     ?.avatar_url
   const initial = customer?.first_name?.charAt(0)?.toUpperCase() || "?"
@@ -42,7 +45,9 @@ export default async function Nav({
   return (
     <div className="sticky top-0 inset-x-0 z-50 group">
       <AnnouncementStrip />
-      {isApproved && <OnboardingProgressBanner />}
+      {isApproved && (
+        <OnboardingProgressBanner initialProgress={onboardingProgress} />
+      )}
       <header
         className="relative h-20 w-full border-b border-hg-border backdrop-blur-lg"
         style={{
