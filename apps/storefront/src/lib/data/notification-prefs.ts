@@ -23,3 +23,28 @@ export async function getNotificationPreferences(): Promise<
     return []
   }
 }
+
+type PatchResult =
+  | {
+      updated: true
+      entry: {
+        category: string
+        label: string
+        description: string
+        transactional: boolean
+        enabled: boolean
+      }
+    }
+  | { updated: false; noticeMessage: string }
+
+export async function updateNotificationPreference(
+  category: string,
+  enabled: boolean,
+): Promise<PatchResult> {
+  const headers = await getAuthHeaders()
+  if (!headers.authorization) throw new Error("Unauthorized")
+  return sdk.client.fetch<PatchResult>(
+    "/store/customers/me/notifications/preferences",
+    { method: "POST", body: { category, enabled } as any, headers },
+  )
+}

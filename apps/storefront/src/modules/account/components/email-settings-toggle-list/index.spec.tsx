@@ -3,17 +3,13 @@ import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import EmailSettingsToggleList, { type PreferenceEntry } from "./index"
 
-const mockFetch = jest.fn()
-jest.mock("@lib/config", () => ({
-  sdk: {
-    client: {
-      fetch: (...args: unknown[]) => mockFetch(...args),
-    },
-  },
+const mockUpdatePref = jest.fn()
+jest.mock("@lib/data/notification-prefs", () => ({
+  updateNotificationPreference: (...args: unknown[]) => mockUpdatePref(...args),
 }))
 
 beforeEach(() => {
-  mockFetch.mockReset()
+  mockUpdatePref.mockReset()
 })
 
 const sample: PreferenceEntry[] = [
@@ -80,8 +76,8 @@ describe("EmailSettingsToggleList", () => {
     ).toBeGreaterThan(0)
   })
 
-  it("clicking a marketing toggle PATCHes the API and updates state", async () => {
-    mockFetch.mockResolvedValueOnce({
+  it("clicking a marketing toggle calls updateNotificationPreference and updates state", async () => {
+    mockUpdatePref.mockResolvedValueOnce({
       updated: true,
       entry: { ...sample[2], enabled: false },
     })
@@ -91,27 +87,21 @@ describe("EmailSettingsToggleList", () => {
       .querySelector("button[role='switch']") as HTMLButtonElement
     await userEvent.click(restockBtn)
 
-    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1))
-    const [path, opts] = mockFetch.mock.calls[0]
-    expect(path).toBe("/store/customers/me/notifications/preferences")
-    expect(opts.method).toBe("POST")
-    expect(opts.body).toEqual({ category: "restock_alerts", enabled: false })
+    await waitFor(() => expect(mockUpdatePref).toHaveBeenCalledTimes(1))
+    expect(mockUpdatePref).toHaveBeenCalledWith("restock_alerts", false)
   })
 
-  it("clicking a transactional toggle does NOT PATCH and surfaces noticeMessage", async () => {
+  it("clicking a transactional toggle does NOT call updateNotificationPreference and surfaces noticeMessage", async () => {
     render(<EmailSettingsToggleList initial={sample} />)
     const ordersBtn = screen
       .getByTestId("email-pref-orders")
       .querySelector("button[role='switch']") as HTMLButtonElement
-    // The button is disabled; clicking does nothing. Use fireEvent / userEvent
-    // to confirm it doesn't trigger the handler.
     await userEvent.click(ordersBtn)
-    expect(mockFetch).not.toHaveBeenCalled()
+    expect(mockUpdatePref).not.toHaveBeenCalled()
   })
 
   it("surfaces noticeMessage when server returns updated:false", async () => {
-    // Simulate a marketing PATCH being soft-rejected (e.g. removed category).
-    mockFetch.mockResolvedValueOnce({
+    mockUpdatePref.mockResolvedValueOnce({
       updated: false,
       noticeMessage: "Category not currently active",
     })

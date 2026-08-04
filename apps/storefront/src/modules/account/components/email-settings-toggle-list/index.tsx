@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { sdk } from "@lib/config"
+import { updateNotificationPreference } from "@lib/data/notification-prefs"
 
 export type PreferenceEntry = {
   category: string
@@ -10,10 +10,6 @@ export type PreferenceEntry = {
   transactional: boolean
   enabled: boolean
 }
-
-type PatchResult =
-  | { updated: true; entry: PreferenceEntry }
-  | { updated: false; noticeMessage: string }
 
 export default function EmailSettingsToggleList({
   initial,
@@ -36,12 +32,9 @@ export default function EmailSettingsToggleList({
     setError(null)
     setNotice(null)
     try {
-      const result = await sdk.client.fetch<PatchResult>(
-        "/store/customers/me/notifications/preferences",
-        {
-          method: "POST",
-          body: { category: entry.category, enabled: !entry.enabled } as any,
-        },
+      const result = await updateNotificationPreference(
+        entry.category,
+        !entry.enabled,
       )
       if (result.updated) {
         setPrefs((cur) =>
