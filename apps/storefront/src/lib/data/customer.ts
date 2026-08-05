@@ -98,6 +98,53 @@ export async function login(_currentState: unknown, formData: FormData) {
   }
 }
 
+export async function requestPasswordReset(
+  _: unknown,
+  formData: FormData,
+): Promise<string | null> {
+  const email = ((formData.get("email") as string) || "").trim().toLowerCase()
+  if (!email) return "Email is required"
+
+  try {
+    await sdk.client.fetch("/store/customers/forgot-password", {
+      method: "POST",
+      body: { email },
+    })
+  } catch {
+    // swallow — the backend always returns 200; network errors are silent
+  }
+
+  return "sent"
+}
+
+export async function resetPassword(
+  _: unknown,
+  formData: FormData,
+): Promise<string | null> {
+  const email = formData.get("email") as string
+  const token = formData.get("token") as string
+  const password = formData.get("password") as string
+  const confirmPassword = formData.get("confirm_password") as string
+
+  if (password !== confirmPassword) return "Passwords do not match"
+  if (password.length < 12) return "Password must be at least 12 characters"
+
+  try {
+    await sdk.client.fetch("/store/customers/reset-password", {
+      method: "POST",
+      body: { email, token, new_password: password },
+    })
+  } catch (e: any) {
+    const msg =
+      e?.response?.json?.error ||
+      e?.message ||
+      "Reset failed — the link may have expired"
+    return String(msg)
+  }
+
+  redirect("/account")
+}
+
 export async function signout(_countryCode?: string) {
   try {
     await sdk.auth.logout()

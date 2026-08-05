@@ -48,6 +48,15 @@ const Login = ({ setCurrentView }: Props) => {
             data-testid="password-input"
           />
         </div>
+        <div className="flex justify-end mt-1">
+          <a
+            href="/forgot-password"
+            className="text-body-sm text-on-surface-variant hover:text-primary transition-colors"
+            data-testid="forgot-password-link"
+          >
+            Forgot password?
+          </a>
+        </div>
         <ErrorMessage error={message} data-testid="login-error-message" />
         <button
           type="submit"
