@@ -157,6 +157,7 @@ export default function GettingStartedClient({
   customerName,
 }: Props) {
   const { progress, invalidate } = useOnboardingProgress()
+  const router = useRouter()
   const data = progress ?? initialProgress
 
   const stepsCompleted = new Set(data.steps_completed)
@@ -165,6 +166,7 @@ export default function GettingStartedClient({
   const handleComplete = async (stepId: string): Promise<void> => {
     await completeOnboardingStep(stepId)
     invalidate()
+    router.refresh()
   }
 
   return (
