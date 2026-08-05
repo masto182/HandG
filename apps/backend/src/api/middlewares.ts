@@ -1,4 +1,5 @@
-import { defineMiddlewares, authenticate, validateAndTransformBody } from "@medusajs/framework/http"
+import { defineMiddlewares, authenticate } from "@medusajs/framework/http"
+import { validateBody } from "../lib/validate-body"
 import { RegisterCustomerSchema } from "./store/customers/register/validators"
 import { resolveCustomerTier } from "./store/middlewares/resolve-customer-tier"
 import { publicProductRedactor } from "./store/middlewares/public-product-redactor"
@@ -31,8 +32,7 @@ export default defineMiddlewares({
         // the middleware accepts JWTs with empty actor_id but valid auth_identity_id.
         // The route handler enforces auth_identity_id presence and returns 401 if missing.
         authenticate("customer", ["bearer"], { allowUnregistered: true }),
-        // @ts-expect-error TS2589: Zod v4 schema causes deep type chain in validateAndTransformBody under TS 6 — functionally correct
-        validateAndTransformBody(RegisterCustomerSchema),
+        validateBody(RegisterCustomerSchema),
         rateLimit(process.env.NODE_ENV === "production" ? 20 : 200, 3600000),
       ],
     },

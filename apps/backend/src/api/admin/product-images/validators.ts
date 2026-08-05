@@ -1,6 +1,6 @@
 import { z } from "zod"
 import type { MiddlewareRoute } from "@medusajs/framework/http"
-import { validateAndTransformBody } from "@medusajs/framework/http"
+import { validateBody } from "../../../lib/validate-body"
 
 // ─── Validate ────────────────────────────────────────────────────────────────
 
@@ -37,12 +37,11 @@ export const productImageMiddlewares: MiddlewareRoute[] = [
   {
     matcher: "/admin/product-images/validate",
     method: "POST",
-    // @ts-expect-error TS2589: Zod v4 + validateAndTransformBody creates deep type chains under TS 6
-    middlewares: [validateAndTransformBody(ValidateImagesSchema)],
+    middlewares: [validateBody(ValidateImagesSchema)],
   },
   {
     matcher: "/admin/product-images/commit",
     method: "POST",
-    middlewares: [validateAndTransformBody(CommitImagesSchema)],
+    middlewares: [validateBody(CommitImagesSchema)],
   },
 ]
