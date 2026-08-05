@@ -1,7 +1,7 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import crypto from "crypto"
 import { sendTemplate } from "../../../../lib/email"
-import PasswordResetEmail from "../../../../emails/password-reset"
+import * as PasswordResetEmailTpl from "../../../../emails/password-reset"
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
   const { email } = (req.body || {}) as { email?: string }
@@ -31,7 +31,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         to: email,
         customerId: customer.id,
         category: "account",
-        template: PasswordResetEmail,
+        template: PasswordResetEmailTpl,
         props: {
           name: customer.first_name || "there",
           resetUrl,
