@@ -47,19 +47,11 @@ scripts/.venv-images/
 1~
 
 # Image pipeline work product (generated locally, not deployed)
-apps/backend/data/image-selection/
-apps/backend/data/image-selection-visual/
-apps/backend/data/product-images/
-apps/backend/data/product-images-ranked/
-apps/backend/data/product-images-winners/
-apps/backend/data/product-images-visual/
-apps/backend/data/product-images-backup-*/
-apps/backend/data/image-selection-product/
-apps/backend/data/product-images-product/
-apps/backend/data/product-images-product-OLD-badcrop/
-apps/backend/data/product-images-raw/
-apps/backend/data/product-images-rejected/
-apps/backend/data/product-images-validation-report.json
+apps/backend/data/pipeline-run-*/
+apps/backend/data/image-selection*
+apps/backend/data/product-images*
+apps/backend/data/rubric-examples/
+apps/backend/data/*.html
 apps/backend/data/brewery-logos/
 apps/backend/data/brewery-instagram-sources.json
 apps/backend/data/instagram-cache.json
@@ -70,9 +62,10 @@ apps/storefront/public/images/enhanced-quick/
 review/
 
 # Backend utility scripts (local tooling, not part of the Medusa app)
-apps/backend/scripts/scrape-untappd-images.ts
-apps/backend/scripts/staging-image-sync.ts
-apps/backend/scripts/sweep-instagram.ts
+apps/backend/scripts/*.ts
+
+# Local YOLO-World detection server for the image pipeline (root-level, not deployed)
+detect_server.py
 
 # Python image enhancement tools
 scripts/enhance_product_images.py
