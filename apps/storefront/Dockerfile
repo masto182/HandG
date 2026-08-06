@@ -2,7 +2,7 @@ FROM node:24.18.0-alpine AS builder
 
 WORKDIR /app
 
-RUN corepack enable && corepack prepare pnpm@11.13.0 --activate
+RUN corepack enable && corepack prepare pnpm@11.20.0 --activate
 
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/storefront/package.json apps/storefront/
@@ -30,7 +30,14 @@ ENV NEXT_PUBLIC_STORE_URL=$NEXT_PUBLIC_STORE_URL
 ARG STOREFRONT_IMAGE_HOSTS
 ENV STOREFRONT_IMAGE_HOSTS=$STOREFRONT_IMAGE_HOSTS
 
-RUN NODE_OPTIONS=--max-old-space-size=8192 pnpm --filter=storefront build
+# verify-deps-before-run=false: deps are already installed from the frozen
+# lockfile above. pnpm 11 defaults this to `install`, and because that install
+# is filtered (--filter=storefront...), the check always sees node_modules as
+# out of sync with the full lockfile and silently re-resolves all 3 workspace
+# projects over the network (pnpm#11865) — slow every build, and fatal when
+# registry.npmjs.org returns 429.
+RUN NODE_OPTIONS=--max-old-space-size=8192 \
+    pnpm --config.verify-deps-before-run=false --filter=storefront build
 
 FROM node:24.18.0-alpine AS runner
 

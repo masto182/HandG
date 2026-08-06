@@ -2,7 +2,7 @@ FROM node:24.18.0-alpine AS builder
 
 WORKDIR /app
 
-RUN corepack enable && corepack prepare pnpm@11.13.0 --activate
+RUN corepack enable && corepack prepare pnpm@11.20.0 --activate
 
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/backend/package.json apps/backend/
@@ -14,8 +14,15 @@ COPY packages/shared-types/ packages/shared-types/
 # server can require it without ts-node at runtime.
 RUN cd packages/shared-types && pnpm build
 COPY apps/backend/ apps/backend/
-# TypeScript 6 needs extra heap during medusa build (tsc is more memory-intensive)
-RUN NODE_OPTIONS=--max-old-space-size=8192 pnpm --filter=backend build
+# TypeScript 6 needs extra heap during medusa build (tsc is more memory-intensive).
+# verify-deps-before-run=false: deps are already installed from the frozen
+# lockfile above. pnpm 11 defaults this to `install`, and because that install
+# is filtered (--filter=backend...), the check always sees node_modules as out
+# of sync with the full lockfile and silently re-resolves all 3 workspace
+# projects over the network (pnpm#11865) — slow every build, and fatal when
+# registry.npmjs.org returns 429.
+RUN NODE_OPTIONS=--max-old-space-size=8192 \
+    pnpm --config.verify-deps-before-run=false --filter=backend build
 
 FROM node:24.18.0-alpine AS runner
 
@@ -23,7 +30,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-RUN corepack enable && corepack prepare pnpm@11.13.0 --activate
+RUN corepack enable && corepack prepare pnpm@11.20.0 --activate
 RUN addgroup --system --gid 1001 medusa && adduser --system --uid 1001 medusa
 
 COPY --from=builder /app/pnpm-lock.yaml /app/pnpm-workspace.yaml /app/package.json ./
