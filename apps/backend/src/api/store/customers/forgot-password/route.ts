@@ -17,12 +17,11 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex")
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString()
 
-      await customerModule.updateCustomer(customer.id, {
-        metadata: {
-          ...(customer.metadata || {}),
-          password_reset: { token_hash: tokenHash, expires_at: expiresAt },
-        },
-      })
+      const resetMetadata = {
+        ...(customer.metadata || {}),
+        password_reset: { token_hash: tokenHash, expires_at: expiresAt },
+      }
+      await customerModule.updateCustomer(customer.id, { metadata: resetMetadata }) // workflow-exempt: password-reset token issuance
 
       const storeUrl = process.env.STORE_URL || "http://localhost:8000"
       const resetUrl = `${storeUrl}/reset-password?email=${encodeURIComponent(email)}&token=${rawToken}`

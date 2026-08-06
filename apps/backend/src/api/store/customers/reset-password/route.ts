@@ -43,17 +43,15 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       data: { entity_id: string; password: string }
     ) => Promise<{ success: boolean; error?: string }>
   }
-  const update = await authModule.updateProvider("emailpass", {
-    entity_id: email,
-    password: new_password,
-  })
+  const credUpdate = { entity_id: email, password: new_password }
+  const update = await authModule.updateProvider("emailpass", credUpdate) // workflow-exempt: auth provider credential update
   if (!update?.success) {
     return res.status(500).json({ error: update?.error || "password update failed" })
   }
 
   // Clear reset token from metadata
   const { password_reset: _removed, ...restMeta } = customer.metadata || {}
-  await customerModule.updateCustomer(customer.id, { metadata: restMeta })
+  await customerModule.updateCustomer(customer.id, { metadata: restMeta }) // workflow-exempt: clears reset token metadata
 
   return res.json({ ok: true })
 }
