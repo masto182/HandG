@@ -108,7 +108,7 @@ export function parseStockImportCsv(text: string): ParsedRow[] {
       name: rec.name,
       brewery: rec.brewery,
       style: rec.style || "",
-      abv: rec.abv || "",
+      abv: (rec.abv || "").replace(/%$/, ""),
       price: rec.price || "",
       stock: rec.stock || "",
       container: rec.container,
