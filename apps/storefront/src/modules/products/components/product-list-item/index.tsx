@@ -32,15 +32,9 @@ function getAbv(product: HttpTypes.StoreProduct): string {
   return abv ? `${abv}%` : ""
 }
 
-function getFreshnessDays(product: HttpTypes.StoreProduct): string {
-  const meta = product.metadata as any
-  const released = meta?.packaged_at ?? meta?.released_date
-  if (!released) return ""
-  const d = new Date(released)
-  if (isNaN(d.getTime())) return ""
-  const days = Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24))
-  if (days < 0) return "SOON"
-  return `${days} DAYS`
+function getUntappdScore(product: HttpTypes.StoreProduct): string {
+  const score = (product.metadata as any)?.untappd_score
+  return score ? Number(score).toFixed(1) : ""
 }
 
 export default async function ProductListItem({
@@ -61,7 +55,7 @@ export default async function ProductListItem({
   const beerName = getBeerName(product)
   const style = getStyle(product)
   const abv = canSeePricing ? getAbv(product) : ""
-  const freshness = canSeePricing ? getFreshnessDays(product) : ""
+  const untappdScore = canSeePricing ? getUntappdScore(product) : ""
   const variantId = product.variants?.[0]?.id
   const meta = product.metadata as any
   const releaseAt = (meta?.release_at as string | undefined) ?? null
@@ -148,18 +142,35 @@ export default async function ProductListItem({
         </LocalizedClientLink>
       </div>
       {canSeePricing && (
-        <div className="col-span-2 hidden md:flex flex-col">
-          <span className="text-sm text-hg-text font-medium">{style}</span>
+        <div className="col-span-2 hidden small:flex flex-col min-w-0">
+          <span className="text-sm text-hg-text font-medium truncate">
+            {style}
+          </span>
         </div>
       )}
       {canSeePricing && (
-        <div className="col-span-1 hidden md:flex flex-col">
+        <div className="col-span-1 hidden medium:flex flex-col">
           <span className="text-sm text-hg-text font-medium">{abv}</span>
         </div>
       )}
       {canSeePricing && (
-        <div className="col-span-2 hidden md:flex flex-col">
-          <span className="text-sm text-hg-text font-medium">{freshness}</span>
+        <div className="col-span-2 hidden md:flex items-center">
+          {untappdScore && (
+            <span className="inline-flex items-center gap-1">
+              <svg
+                width="11"
+                height="11"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                className="text-hg-gold flex-shrink-0"
+              >
+                <path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.7 7-6.3-3.9-6.3 3.9 1.7-7-5.4-4.7 7.1-.6z" />
+              </svg>
+              <span className="text-sm text-hg-text font-medium">
+                {untappdScore}
+              </span>
+            </span>
+          )}
         </div>
       )}
       <div className="col-span-1 md:col-span-2 flex items-center justify-end gap-3 h-full">

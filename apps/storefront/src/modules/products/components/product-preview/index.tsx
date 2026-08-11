@@ -38,6 +38,11 @@ function getAbv(product: HttpTypes.StoreProduct): string {
   return meta?.abv ? `${meta.abv}% ABV` : ""
 }
 
+function getUntappdScore(product: HttpTypes.StoreProduct): string {
+  const score = (product.metadata as any)?.untappd_score
+  return score ? Number(score).toFixed(1) : ""
+}
+
 function getStockStatus(product: HttpTypes.StoreProduct): {
   label: string
   dotClass: string
@@ -85,6 +90,7 @@ export default async function ProductPreview({
   const beerName = getBeerName(product)
   const style = getStyle(product)
   const abv = canSeePricing ? getAbv(product) : ""
+  const untappdScore = getUntappdScore(product)
   const stock = getStockStatus(product)
   const variantId = product.variants?.[0]?.id
   const soldOut = stock.soldOut
@@ -123,6 +129,22 @@ export default async function ProductPreview({
             className="w-full h-full object-contain p-3 grayscale-[0.1] group-hover:grayscale-0 group-hover:scale-[1.03] transition-all duration-500"
           />
           <ProductPill product={product} activeSpecial={activeSpecial} />
+          {canSeePricing && untappdScore && (
+            <div className="absolute top-3 right-3 z-10 flex items-center gap-1 px-2 py-1 rounded-lg bg-hg-bg/70 backdrop-blur-sm border border-hg-gold/30 shadow-sm">
+              <svg
+                width="10"
+                height="10"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                className="text-hg-gold flex-shrink-0"
+              >
+                <path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.7 7-6.3-3.9-6.3 3.9 1.7-7-5.4-4.7 7.1-.6z" />
+              </svg>
+              <span className="text-hg-gold font-bold text-[10px] leading-none">
+                {untappdScore}
+              </span>
+            </div>
+          )}
           {activeSpecial?.ends_at && (
             <SpecialCountdown endsAt={activeSpecial.ends_at} />
           )}
@@ -152,10 +174,12 @@ export default async function ProductPreview({
           {beerName}
         </h2>
         {canSeePricing && (style || abv) && (
-          <div className="flex items-center gap-1.5 text-[11px] font-medium text-hg-text-secondary uppercase tracking-wider">
-            {style && <span>{style}</span>}
-            {style && abv && <span className="text-hg-border">·</span>}
-            {abv && <span>{abv}</span>}
+          <div className="flex items-center gap-1.5 min-w-0 text-[11px] font-medium text-hg-text-secondary uppercase tracking-wider">
+            {style && <span className="truncate">{style}</span>}
+            {style && abv && (
+              <span className="text-hg-border flex-shrink-0">·</span>
+            )}
+            {abv && <span className="flex-shrink-0">{abv}</span>}
           </div>
         )}
         {canSeePricing && (

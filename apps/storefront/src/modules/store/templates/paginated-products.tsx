@@ -28,6 +28,8 @@ const MEILI_SORT_MAP: Record<string, string> = {
   title_desc: "title:desc",
   abv_desc: "abv:desc",
   abv_asc: "abv:asc",
+  untappd_desc: "untappd_score:desc",
+  untappd_asc: "untappd_score:asc",
   stock_asc: "inventory_qty:asc",
   stock_desc: "inventory_qty:desc",
 }
@@ -413,19 +415,19 @@ export default async function PaginatedProducts({
             </div>
             {canSeePricing && (
               <>
-                <div className="col-span-2">
+                <div className="col-span-2 hidden small:block">
                   <span className="font-semibold text-[10px] text-hg-text-secondary uppercase tracking-widest">
                     Style
                   </span>
                 </div>
-                <div className="col-span-1">
+                <div className="col-span-1 hidden medium:block">
                   <span className="font-semibold text-[10px] text-hg-text-secondary uppercase tracking-widest">
                     ABV
                   </span>
                 </div>
                 <div className="col-span-2">
                   <span className="font-semibold text-[10px] text-hg-text-secondary uppercase tracking-widest">
-                    Freshness
+                    Rating
                   </span>
                 </div>
               </>

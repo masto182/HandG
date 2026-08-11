@@ -9,6 +9,8 @@ export type SortOptions =
   | "title_desc"
   | "abv_desc"
   | "abv_asc"
+  | "untappd_desc"
+  | "untappd_asc"
   | "brewery_asc"
   | "brewery_desc"
   | "stock_asc"
@@ -28,6 +30,8 @@ const sortOptions: { label: string; value: SortOptions }[] = [
   { label: "Name Z–A", value: "title_desc" },
   { label: "ABV High–Low", value: "abv_desc" },
   { label: "ABV Low–High", value: "abv_asc" },
+  { label: "Untappd Rating High–Low", value: "untappd_desc" },
+  { label: "Untappd Rating Low–High", value: "untappd_asc" },
   { label: "Stock Low First", value: "stock_asc" },
   { label: "Stock High First", value: "stock_desc" },
 ]

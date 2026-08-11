@@ -44,6 +44,18 @@ export function sortProducts(
           parseFloat((a.metadata as any)?.abv || "0") -
           parseFloat((b.metadata as any)?.abv || "0"),
       )
+    case "untappd_desc":
+      return sorted.sort(
+        (a, b) =>
+          parseFloat((b.metadata as any)?.untappd_score || "0") -
+          parseFloat((a.metadata as any)?.untappd_score || "0"),
+      )
+    case "untappd_asc":
+      return sorted.sort(
+        (a, b) =>
+          parseFloat((a.metadata as any)?.untappd_score || "0") -
+          parseFloat((b.metadata as any)?.untappd_score || "0"),
+      )
     case "brewery_asc":
       return sorted.sort((a, b) =>
         (
