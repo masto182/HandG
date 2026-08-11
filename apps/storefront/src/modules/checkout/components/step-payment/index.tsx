@@ -2,8 +2,9 @@
 import { initiatePaymentSession } from "@lib/data/cart"
 import { isManual, isPayId } from "@lib/constants"
 import { PAYID_ALIAS } from "@lib/constants/payment"
+import { useTrack } from "@lib/hooks/use-track"
 import { HttpTypes } from "@medusajs/types"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 type Props = {
   cart: HttpTypes.StoreCart
@@ -22,9 +23,15 @@ const StepPayment: React.FC<Props> = ({
   ordersEmail,
   payidAlias,
 }) => {
+  const track = useTrack()
   const activeSession = cart.payment_collection?.payment_sessions?.find(
     (s) => s.status === "pending",
   )
+
+  useEffect(() => {
+    track("checkout.step_reached", { cart_id: cart.id, step: "payment" })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cart.id])
 
   const filteredMethods = (paymentMethods ?? []).filter((pm) => {
     if (isPickup) return true

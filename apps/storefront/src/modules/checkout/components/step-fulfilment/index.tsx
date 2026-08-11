@@ -4,7 +4,8 @@ import { getPickupOptions, getDeliveryOptions } from "@lib/util/shipping"
 import { convertToLocale } from "@lib/util/money"
 import { HttpTypes } from "@medusajs/types"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { useTrack } from "@lib/hooks/use-track"
 
 type Props = {
   cart: HttpTypes.StoreCart
@@ -25,8 +26,14 @@ function formatLocationAddress(option: any): string {
 
 const StepFulfilment: React.FC<Props> = ({ cart, shippingOptions }) => {
   const router = useRouter()
+  const track = useTrack()
   const pickupOptions = getPickupOptions(shippingOptions)
   const deliveryOptions = getDeliveryOptions(shippingOptions)
+
+  useEffect(() => {
+    track("checkout.step_reached", { cart_id: cart.id, step: "fulfilment" })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cart.id])
 
   const currentShippingOptionId =
     cart.shipping_methods?.at(-1)?.shipping_option_id
@@ -60,6 +67,13 @@ const StepFulfilment: React.FC<Props> = ({ cart, shippingOptions }) => {
           await setShippingMethod({
             cartId: cart.id,
             shippingMethodId: pickupOption.id,
+          })
+
+          track("checkout.fulfilment_selected", {
+            cart_id: cart.id,
+            method: "pickup",
+            pickup_option_id: pickupOption.id,
+            pickup_location_name: pickupOption.name,
           })
 
           // Snapshot the chosen pickup location to cart metadata so renames or
@@ -100,6 +114,10 @@ const StepFulfilment: React.FC<Props> = ({ cart, shippingOptions }) => {
           } catch {}
         }
         router.push("/checkout?step=address")
+        track("checkout.fulfilment_selected", {
+          cart_id: cart.id,
+          method: "delivery",
+        })
       }
     } catch (e: any) {
       setError(e.message || "Something went wrong")

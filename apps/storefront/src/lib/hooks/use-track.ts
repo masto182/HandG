@@ -19,6 +19,8 @@ export function useTrack() {
       if (!session_id) return
       const sent = sdk.client.fetch("/store/events", {
         method: "POST",
+        credentials: "include",
+        keepalive: true,
         body: { event_type, session_id, payload },
       })
       void sent.catch(() => {})

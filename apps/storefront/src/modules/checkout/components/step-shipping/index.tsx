@@ -12,6 +12,7 @@ import { createLatestSerializer } from "@lib/util/serialize-latest"
 import { HttpTypes } from "@medusajs/types"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useRef, useState } from "react"
+import { useTrack } from "@lib/hooks/use-track"
 
 type Props = {
   cart: HttpTypes.StoreCart
@@ -51,7 +52,20 @@ function rateDescription(rate: CarrierRate): string {
 
 const StepShipping: React.FC<Props> = ({ cart, shippingOptions }) => {
   const router = useRouter()
+  const track = useTrack()
   const deliveryOptions = getDeliveryOptions(shippingOptions)
+
+  useEffect(() => {
+    track("checkout.step_reached", { cart_id: cart.id, step: "shipping" })
+    try {
+      const key = `hg_address_submitted_${cart.id}`
+      if (window.sessionStorage.getItem(key)) {
+        window.sessionStorage.removeItem(key)
+        track("checkout.address_submitted", { cart_id: cart.id })
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cart.id])
 
   const optionByProvider: Record<string, string | undefined> = useMemo(() => {
     const seOption = deliveryOptions.find(
@@ -189,6 +203,17 @@ const StepShipping: React.FC<Props> = ({ cart, shippingOptions }) => {
 
   const handleSelect = (baseId: string) => {
     setSelected(baseId)
+    const selectedRateId = effectiveRateId(baseId)
+    const rate = selectedRateId ? ratesById.get(selectedRateId) : undefined
+    if (rate) {
+      track("checkout.shipping_method_selected", {
+        cart_id: cart.id,
+        rate_id: rate.data.rate_id ?? rate.id,
+        rate_name: rate.name,
+        provider_id: rate.provider_id,
+        amount: rate.amount,
+      })
+    }
     void persistRate(baseId, !!signatureToggles[baseId])
   }
 

@@ -8,6 +8,7 @@ import { rateLimit } from "./store/middlewares/rate-limit"
 import { normalizeAuthEmail } from "./store/middlewares/normalize-auth-email"
 import { normalizeAdminProductResponse } from "./admin/middlewares/normalize-product-response"
 import { productImageMiddlewares } from "./admin/product-images/validators"
+import { StoreEventRequestSchema } from "./store/events/validators"
 
 export default defineMiddlewares({
   routes: [
@@ -57,6 +58,18 @@ export default defineMiddlewares({
         resolveCustomerTier,
         publicProductRedactor,
         rateLimit(60, 60000),
+      ],
+    },
+    {
+      // Auth middleware for the analytics ingest endpoint so logged-in members
+      // get customer_id attributed to their events (drives per-member drill-down).
+      // allowUnauthenticated keeps anonymous browsing events flowing too.
+      matcher: "/store/events",
+      method: "POST",
+      middlewares: [
+        authenticate("customer", ["bearer", "session"], { allowUnauthenticated: true }),
+        validateBody(StoreEventRequestSchema),
+        rateLimit(process.env.NODE_ENV === "production" ? 120 : 1200, 60000),
       ],
     },
     {

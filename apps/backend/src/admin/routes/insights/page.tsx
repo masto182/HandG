@@ -2,6 +2,14 @@ import { defineRouteConfig } from "@medusajs/admin-sdk"
 import { Container, Heading, Badge, Text, Tabs } from "@medusajs/ui"
 import { useEffect, useState } from "react"
 import { sdk } from "../../lib/sdk"
+import { FunnelBar } from "../../components/funnel-bar"
+
+type CustomerLite = {
+  id: string
+  email: string
+  name: string
+  tier: string
+}
 
 type InsightsData = {
   members: {
@@ -40,6 +48,52 @@ type InsightsData = {
     hop_counts: Array<{ hop: string; count: number }>
     untappd_bands: Array<{ band: string; views: number }>
   }
+  funnel: {
+    total_sessions: number
+    completed_orders: number
+    stages: Array<{
+      key: string
+      label: string
+      count: number
+      conversion_rate: number
+    }>
+  }
+  referrals: {
+    summary: {
+      total_referrals: number
+      converted_referrals: number
+      stealth_referrals: number
+      revenue: number
+    }
+    top_referrers: Array<{
+      referrer_customer_id: string
+      referrals: number
+      converted_referrals: number
+      converted_orders: number
+      revenue: number
+      stealth_referrals: number
+      customer: CustomerLite | null
+    }>
+  }
+  product_drilldown:
+    | {
+        customer_id: string
+        views: number
+        cart_adds: number
+        last_at: string | null
+        customer: CustomerLite | null
+      }[]
+    | null
+  filter_drilldown: {
+    values: Array<{ value: string; count: number }>
+    members: Array<{
+      customer_id: string
+      uses: number
+      values: string[]
+      last_at: string | null
+      customer: CustomerLite | null
+    }>
+  } | null
 }
 
 const aud = (n: number) =>
@@ -107,9 +161,24 @@ function BarRow({
   )
 }
 
+function MemberLink({ customer }: { customer: CustomerLite | null }) {
+  if (!customer) {
+    return <span className="text-ui-fg-muted">Unknown member</span>
+  }
+  return (
+    <a href={`/app/members`} className="text-ui-fg-interactive hover:underline">
+      {customer.name}
+    </a>
+  )
+}
+
 const InsightsPage = () => {
   const [data, setData] = useState<InsightsData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null)
+  const [selectedFilter, setSelectedFilter] = useState<string | null>(null)
+  const [productDrilldown, setProductDrilldown] = useState<InsightsData["product_drilldown"]>(null)
+  const [filterDrilldown, setFilterDrilldown] = useState<InsightsData["filter_drilldown"]>(null)
 
   useEffect(() => {
     sdk.client
@@ -118,6 +187,28 @@ const InsightsPage = () => {
       .catch(() => setData(null))
       .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    if (!selectedProductId) {
+      setProductDrilldown(null)
+      return
+    }
+    sdk.client
+      .fetch<InsightsData>(`/admin/insights?product_id=${encodeURIComponent(selectedProductId)}`)
+      .then((response) => setProductDrilldown(response.product_drilldown))
+      .catch(() => setProductDrilldown([]))
+  }, [selectedProductId])
+
+  useEffect(() => {
+    if (!selectedFilter) {
+      setFilterDrilldown(null)
+      return
+    }
+    sdk.client
+      .fetch<InsightsData>(`/admin/insights?filter=${encodeURIComponent(selectedFilter)}`)
+      .then((response) => setFilterDrilldown(response.filter_drilldown))
+      .catch(() => setFilterDrilldown({ values: [], members: [] }))
+  }, [selectedFilter])
 
   if (loading)
     return (
@@ -139,6 +230,7 @@ const InsightsPage = () => {
 
   const tierEntries = Object.entries(data.tiers).sort(([a], [b]) => a.localeCompare(b))
   const tierMax = Math.max(1, ...tierEntries.map(([, c]) => c))
+  const funnelMax = Math.max(1, ...data.funnel.stages.map((stage) => stage.count))
 
   return (
     <Container>
@@ -149,6 +241,8 @@ const InsightsPage = () => {
         <Tabs.List>
           <Tabs.Trigger value="operations">Operations</Tabs.Trigger>
           <Tabs.Trigger value="demand">Demand &amp; Behaviour</Tabs.Trigger>
+          <Tabs.Trigger value="checkout">Checkout Funnel</Tabs.Trigger>
+          <Tabs.Trigger value="referrals">Referrals</Tabs.Trigger>
         </Tabs.List>
 
         <Tabs.Content value="operations" className="pt-6 space-y-8">
@@ -296,10 +390,11 @@ const InsightsPage = () => {
               ) : (
                 <div className="space-y-1">
                   {data.demand.top_products.map((p, i) => (
-                    <a
+                    <button
                       key={p.product_id}
-                      href={`/app/products/${p.product_id}`}
-                      className="flex items-center gap-3 border-b border-ui-border-base py-2 hover:bg-ui-bg-subtle px-2 rounded"
+                      type="button"
+                      onClick={() => setSelectedProductId(p.product_id)}
+                      className="flex w-full items-center gap-3 border-b border-ui-border-base py-2 hover:bg-ui-bg-subtle px-2 rounded text-left"
                     >
                       <span className="text-ui-fg-muted text-sm w-6">#{i + 1}</span>
                       <span className="text-sm flex-1">{p.handle || p.product_id.slice(-10)}</span>
@@ -314,7 +409,7 @@ const InsightsPage = () => {
                           {Math.round(p.view_to_cart_rate * 100)}% cart
                         </Badge>
                       )}
-                    </a>
+                    </button>
                   ))}
                 </div>
               )}
@@ -357,13 +452,19 @@ const InsightsPage = () => {
               ) : (
                 <div className="space-y-2">
                   {data.demand.filter_usage.map((f) => (
-                    <BarRow
+                    <button
                       key={f.filter}
-                      label={f.filter}
-                      count={f.count}
-                      max={data.demand.filter_usage[0]?.count ?? 1}
-                      color="bg-ui-tag-blue-icon"
-                    />
+                      type="button"
+                      onClick={() => setSelectedFilter(f.filter)}
+                      className="block w-full text-left"
+                    >
+                      <BarRow
+                        label={f.filter}
+                        count={f.count}
+                        max={data.demand.filter_usage[0]?.count ?? 1}
+                        color="bg-ui-tag-blue-icon"
+                      />
+                    </button>
                   ))}
                 </div>
               )}
@@ -412,6 +513,153 @@ const InsightsPage = () => {
               </div>
             </div>
           )}
+
+          {selectedProductId && (
+            <div>
+              <Heading level="h2" className="mb-3">
+                Product drill-down
+              </Heading>
+              <div className="space-y-2">
+                {(productDrilldown ?? []).map((row) => (
+                  <div
+                    key={row.customer_id}
+                    className="flex items-center justify-between gap-3 border-b border-ui-border-base py-2"
+                  >
+                    <MemberLink customer={row.customer} />
+                    <div className="flex items-center gap-2 text-sm text-ui-fg-subtle">
+                      <Badge color="blue" size="2xsmall">
+                        {row.views} views
+                      </Badge>
+                      <Badge color="green" size="2xsmall">
+                        {row.cart_adds} cart adds
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+                {(productDrilldown ?? []).length === 0 && (
+                  <Text size="small" className="text-ui-fg-muted">
+                    No member activity for this product yet.
+                  </Text>
+                )}
+              </div>
+            </div>
+          )}
+
+          {selectedFilter && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <Heading level="h2" className="mb-3">
+                  Filter values
+                </Heading>
+                <div className="space-y-2">
+                  {(filterDrilldown?.values ?? []).map((value) => (
+                    <BarRow
+                      key={value.value}
+                      label={value.value}
+                      count={value.count}
+                      max={filterDrilldown?.values[0]?.count ?? 1}
+                      color="bg-ui-tag-orange-icon"
+                    />
+                  ))}
+                </div>
+              </div>
+              <div>
+                <Heading level="h2" className="mb-3">
+                  Members using this filter
+                </Heading>
+                <div className="space-y-2">
+                  {(filterDrilldown?.members ?? []).map((member) => (
+                    <div
+                      key={member.customer_id}
+                      className="flex items-center justify-between gap-3 border-b border-ui-border-base py-2"
+                    >
+                      <div>
+                        <MemberLink customer={member.customer} />
+                        <Text size="small" className="text-ui-fg-muted">
+                          {member.values.join(", ")}
+                        </Text>
+                      </div>
+                      <Badge color="blue" size="2xsmall">
+                        {member.uses} uses
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </Tabs.Content>
+
+        <Tabs.Content value="checkout" className="pt-6 space-y-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <Kpi label="Tracked sessions" value={data.funnel.total_sessions} />
+            <Kpi label="Completed orders" value={data.funnel.completed_orders} />
+            <Kpi
+              label="Overall conversion"
+              value={`${data.funnel.stages.at(-1)?.conversion_rate ?? 0}%`}
+            />
+            <Kpi label="Terminal stage" value="Payment confirmed" />
+          </div>
+
+          <div>
+            <Heading level="h2" className="mb-3">
+              Checkout funnel
+            </Heading>
+            <div className="space-y-3">
+              {data.funnel.stages.map((stage) => (
+                <FunnelBar
+                  key={stage.key}
+                  label={stage.label}
+                  count={stage.count}
+                  total={funnelMax}
+                  rate={stage.conversion_rate}
+                />
+              ))}
+            </div>
+          </div>
+        </Tabs.Content>
+
+        <Tabs.Content value="referrals" className="pt-6 space-y-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <Kpi label="Referrals" value={data.referrals.summary.total_referrals} />
+            <Kpi label="Converted referrals" value={data.referrals.summary.converted_referrals} />
+            <Kpi label="Stealth referrals" value={data.referrals.summary.stealth_referrals} />
+            <Kpi label="Referral revenue" value={aud(data.referrals.summary.revenue)} />
+          </div>
+
+          <div>
+            <Heading level="h2" className="mb-3">
+              Top referrers
+            </Heading>
+            <div className="space-y-2">
+              {data.referrals.top_referrers.map((row) => (
+                <div
+                  key={row.referrer_customer_id}
+                  className="flex items-center justify-between gap-3 border-b border-ui-border-base py-2"
+                >
+                  <div>
+                    <MemberLink customer={row.customer} />
+                    <Text size="small" className="text-ui-fg-muted">
+                      {row.converted_referrals}/{row.referrals} converted
+                    </Text>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge color="blue" size="2xsmall">
+                      {row.converted_orders} orders
+                    </Badge>
+                    <Badge color="green" size="2xsmall">
+                      {aud(row.revenue)}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+              {data.referrals.top_referrers.length === 0 && (
+                <Text size="small" className="text-ui-fg-muted">
+                  No referral conversions yet.
+                </Text>
+              )}
+            </div>
+          </div>
         </Tabs.Content>
       </Tabs>
     </Container>

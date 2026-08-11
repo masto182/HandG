@@ -3,8 +3,9 @@ import { placeOrder } from "@lib/data/cart"
 import { convertToLocale } from "@lib/util/money"
 import { HttpTypes } from "@medusajs/types"
 import HeatHoldBanner from "@modules/checkout/components/heat-hold-banner"
+import { useTrack } from "@lib/hooks/use-track"
 import Thumbnail from "@modules/products/components/thumbnail"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 type Props = {
   cart: HttpTypes.StoreCart
@@ -55,8 +56,14 @@ function shouldShowCarrierCaption(
 }
 
 const StepReview: React.FC<Props> = ({ cart, isPickup, heatHold }) => {
+  const track = useTrack()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    track("checkout.step_reached", { cart_id: cart.id, step: "review" })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cart.id])
 
   const shippingMethod = cart.shipping_methods?.at(-1)
   const shippingData = (shippingMethod?.data ?? {}) as Record<string, unknown>
@@ -65,8 +72,7 @@ const StepReview: React.FC<Props> = ({ cart, isPickup, heatHold }) => {
     shippingMethod?.name ??
     (isPickup ? "In-Store Pickup" : "Delivery")
   const shippingCarrierLabel = shippingData.carrier_display_name as
-    | string
-    | undefined
+    string | undefined
   const showShippingCarrierCaption = shouldShowCarrierCaption(
     shippingDisplayName,
     shippingCarrierLabel,

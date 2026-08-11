@@ -1,24 +1,28 @@
 "use client"
 
 import { useEffect, useRef } from "react"
+import { useTrack } from "@lib/hooks/use-track"
 import { trackGoal } from "@lib/util/plausible"
 
 type Props = {
   orderId: string
   total?: number
   currencyCode?: string
+  cartId?: string | null
 }
 
 /**
- * Fires the Plausible `order_placed` goal exactly once per order id, even if
- * the user refreshes the confirmation page or navigates back.
+ * Fires the confirmation-page analytics exactly once per order id, even if the
+ * user refreshes the confirmation page or navigates back.
  */
 export default function OrderPlacedTracker({
   orderId,
   total,
   currencyCode,
+  cartId,
 }: Props) {
   const sent = useRef<string | null>(null)
+  const track = useTrack()
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -39,7 +43,13 @@ export default function OrderPlacedTracker({
       ...(typeof total === "number" ? { total } : {}),
       ...(currencyCode ? { currency: currencyCode } : {}),
     })
-  }, [orderId, total, currencyCode])
+    track("order.confirmation_viewed", {
+      order_id: orderId,
+      ...(cartId ? { cart_id: cartId } : {}),
+      ...(typeof total === "number" ? { total } : {}),
+      ...(currencyCode ? { currency_code: currencyCode } : {}),
+    })
+  }, [cartId, currencyCode, orderId, total, track])
 
   return null
 }

@@ -30,6 +30,7 @@ export default async function OrderCompletedTemplate({
     <div className="py-6 min-h-[calc(100vh-64px)]">
       <OrderPlacedTracker
         orderId={order.id}
+        cartId={(order as any).cart_id ?? null}
         total={order.total}
         currencyCode={order.currency_code}
       />

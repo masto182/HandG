@@ -2,6 +2,7 @@ import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import evaluateVipProgressionWorkflow from "../workflows/evaluate-vip-progression"
 import { REFERRAL_MODULE } from "../modules/referral"
+import { ANALYTICS_MODULE } from "../modules/analytics"
 import { sendTemplate, refreshEmailConfig, getStoreUrl } from "../lib/email"
 import * as VipTierUpTpl from "../emails/vip-tier-up"
 import { createInboxNotification } from "../lib/create-inbox-notification"
@@ -31,16 +32,18 @@ export default async function orderPaymentCapturedHandler({
   const logger = container.resolve("logger") as Logger
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
   const referralService = container.resolve(REFERRAL_MODULE) as any
+  const analyticsService = container.resolve(ANALYTICS_MODULE) as any
 
   try {
     // event.data.id is the payment ID (from PaymentEvents.CAPTURED).
     // Step 1: get the payment_collection_id from the payment.
     const { data: payments } = await query.graph({
       entity: "payment",
-      fields: ["id", "payment_collection_id"],
+      fields: ["id", "payment_collection_id", "data"],
       filters: { id: event.data.id },
     })
-    const paymentCollectionId = (payments[0] as any)?.payment_collection_id
+    const payment = payments[0] as any
+    const paymentCollectionId = payment?.payment_collection_id
     if (!paymentCollectionId) return
 
     // Step 2: find the order linked to this payment_collection.
@@ -55,10 +58,39 @@ export default async function orderPaymentCapturedHandler({
     // Step 3: get customer_id from the order.
     const { data: orders } = await query.graph({
       entity: "order",
-      fields: ["id", "customer_id"],
+      fields: ["id", "customer_id", "total", "currency_code"],
       filters: { id: orderId },
     })
     const order = orders[0]
+    if (!order) return
+
+    const { data: orderLinks } = await query.graph({
+      entity: "order_cart",
+      fields: ["order_id", "cart_id"],
+      filters: { order_id: orderId },
+    })
+    const cartId =
+      (orderLinks[0] as any)?.cart_id ??
+      payment?.data?.cart_id ??
+      payment?.data?.resource_id ??
+      payment?.data?.context?.cart?.id ??
+      null
+
+    await analyticsService.createStorefrontEvents([
+      {
+        event_type: "order.completed",
+        session_id: `server:order:${orderId}`,
+        customer_id: (order as any).customer_id ?? null,
+        payload: {
+          order_id: orderId,
+          cart_id: cartId,
+          total: Number((order as any).total ?? 0) || 0,
+          currency_code: (order as any).currency_code ?? null,
+          source: "payment.captured",
+        },
+      },
+    ])
+
     if (!order?.customer_id) return
 
     const buyerId = order.customer_id as string

@@ -1,12 +1,9 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ANALYTICS_MODULE } from "../../../modules/analytics"
+import type { StoreEventRequest } from "./validators"
 
-export async function POST(req: MedusaRequest, res: MedusaResponse) {
-  const { event_type, session_id, payload } = req.body as any
-
-  if (!event_type || !session_id) {
-    return res.status(400).json({ error: "event_type and session_id required" })
-  }
+export async function POST(req: MedusaRequest<StoreEventRequest>, res: MedusaResponse) {
+  const { event_type, session_id, payload } = req.validatedBody
 
   const analyticsService = req.scope.resolve(ANALYTICS_MODULE) as any
 

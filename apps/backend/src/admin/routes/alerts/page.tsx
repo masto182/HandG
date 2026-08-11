@@ -14,6 +14,7 @@ import {
 } from "@medusajs/ui"
 import { useEffect, useState } from "react"
 import { sdk } from "../../lib/sdk"
+import { FunnelBar } from "../../components/funnel-bar"
 
 type FunnelStats = {
   dispatched: number
@@ -75,36 +76,6 @@ function Kpi({ label, value, sub }: { label: string; value: string | number; sub
           {sub}
         </Text>
       )}
-    </div>
-  )
-}
-
-function FunnelBar({
-  label,
-  count,
-  total,
-  rate,
-}: {
-  label: string
-  count: number
-  total: number
-  rate: number
-}) {
-  const pct = total > 0 ? Math.round((count / total) * 100) : 0
-  return (
-    <div className="flex items-center gap-3">
-      <Text size="small" className="w-28 text-ui-fg-subtle">
-        {label}
-      </Text>
-      <div className="flex-1 bg-ui-bg-subtle rounded h-5 overflow-hidden">
-        <div className="h-full bg-ui-fg-interactive rounded" style={{ width: `${pct}%` }} />
-      </div>
-      <Text size="small" weight="plus" className="w-10 text-right text-ui-fg-base">
-        {count}
-      </Text>
-      <Text size="small" className="w-12 text-right text-ui-fg-subtle">
-        {rate}%
-      </Text>
     </div>
   )
 }
@@ -201,24 +172,32 @@ function AlertsPage() {
                     count={f?.dispatched ?? 0}
                     total={f?.dispatched ?? 1}
                     rate={100}
+                    labelClassName="w-28"
+                    rateClassName="w-12"
                   />
                   <FunnelBar
                     label="Clicked"
                     count={f?.clicked ?? 0}
                     total={f?.dispatched ?? 1}
                     rate={f?.click_rate ?? 0}
+                    labelClassName="w-28"
+                    rateClassName="w-12"
                   />
                   <FunnelBar
                     label="Added to cart"
                     count={f?.carted ?? 0}
                     total={f?.dispatched ?? 1}
                     rate={f?.cart_rate ?? 0}
+                    labelClassName="w-28"
+                    rateClassName="w-12"
                   />
                   <FunnelBar
                     label="Purchased"
                     count={f?.ordered ?? 0}
                     total={f?.dispatched ?? 1}
                     rate={f?.order_rate ?? 0}
+                    labelClassName="w-28"
+                    rateClassName="w-12"
                   />
                 </div>
                 <Text size="small" className="text-ui-fg-subtle mt-3">

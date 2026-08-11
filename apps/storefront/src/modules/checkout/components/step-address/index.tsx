@@ -8,7 +8,8 @@ import Checkbox from "@modules/common/components/checkbox"
 import { SubmitButton } from "@modules/checkout/components/submit-button"
 import ErrorMessage from "@modules/checkout/components/error-message"
 import AddressAutocomplete from "@modules/common/components/address-autocomplete"
-import { useActionState, useEffect, useMemo, useState } from "react"
+import { useActionState, useEffect, useMemo, useRef, useState } from "react"
+import { useTrack } from "@lib/hooks/use-track"
 
 type Props = {
   cart: HttpTypes.StoreCart
@@ -18,7 +19,7 @@ type Props = {
 const StepAddress: React.FC<Props> = ({ cart, customer }) => {
   const countriesInRegion = useMemo(
     () => cart?.region?.countries?.map((c) => c.iso_2) ?? [],
-    [cart?.region],
+    [cart.region],
   )
 
   const savedAddresses = useMemo(
@@ -29,11 +30,14 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
     [customer?.addresses, countriesInRegion],
   )
 
+  const track = useTrack()
+
   const [selectedOption, setSelectedOption] = useState<"new" | string>(
     savedAddresses.length > 0 ? savedAddresses[0]?.id || "new" : "new",
   )
   const [showForm, setShowForm] = useState(savedAddresses.length === 0)
   const [saveAddress, setSaveAddress] = useState(false)
+  const shouldTrackSubmit = useRef(false)
 
   const [formData, setFormData] = useState<Record<string, string>>({
     "shipping_address.first_name":
@@ -82,7 +86,7 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
-  const [message, formAction] = useActionState(
+  const [message, rawFormAction] = useActionState(
     async (state: string | null | undefined, fd: FormData) => {
       return setAddresses(
         state,
@@ -92,6 +96,21 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
     },
     null,
   )
+
+  const formAction = (fd: FormData) => {
+    if (shouldTrackSubmit.current) {
+      try {
+        window.sessionStorage.setItem(`hg_address_submitted_${cart.id}`, "1")
+      } catch {}
+      shouldTrackSubmit.current = false
+    }
+    return rawFormAction(fd)
+  }
+
+  useEffect(() => {
+    track("checkout.step_reached", { cart_id: cart.id, step: "address" })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cart.id])
 
   const iconForAddress = (addr: any) => {
     const label = ((addr.metadata as any)?.label || "").toLowerCase()
@@ -150,7 +169,13 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
         </p>
       </div>
 
-      <form action={formAction} className="flex flex-col gap-y-8">
+      <form
+        action={formAction}
+        className="flex flex-col gap-y-8"
+        onSubmitCapture={(event) => {
+          shouldTrackSubmit.current = event.currentTarget.checkValidity()
+        }}
+      >
         {savedAddresses.length > 0 && (
           <div>
             <h2 className="font-semibold text-[12px] text-hg-text-secondary uppercase tracking-widest mb-4">

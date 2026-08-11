@@ -3,8 +3,17 @@ import { Modules, ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { VIP_SCORE_MODULE } from "../../../modules/vip-score"
 import { WISHLIST_MODULE } from "../../../modules/wishlist"
 import { ANALYTICS_MODULE } from "../../../modules/analytics"
+import { REFERRAL_MODULE } from "../../../modules/referral"
+import {
+  buildCheckoutFunnel,
+  buildDemandMetrics,
+  buildFilterDrilldown,
+  INSIGHTS_EVENT_TYPES,
+  buildProductDrilldown,
+} from "../../../modules/analytics/lib/insights"
 
 const LOW_STOCK_THRESHOLD = 6
+const INSIGHTS_LOOKBACK_DAYS = 30
 
 export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   const customerModule = req.scope.resolve(Modules.CUSTOMER) as any
@@ -12,7 +21,14 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
   const productModule = req.scope.resolve(Modules.PRODUCT) as any
   const vipScoreService = req.scope.resolve(VIP_SCORE_MODULE) as any
   const wishlistService = req.scope.resolve(WISHLIST_MODULE) as any
+  const referralService = req.scope.resolve(REFERRAL_MODULE) as any
+  const analyticsService = req.scope.resolve(ANALYTICS_MODULE) as any
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
+  const { product_id: productId, filter: filterKey } = req.query as {
+    product_id?: string
+    filter?: string
+  }
+  const since = new Date(Date.now() - INSIGHTS_LOOKBACK_DAYS * 24 * 60 * 60 * 1000)
 
   // Member counts: use targeted group filters instead of loading all customers.
   // listAndCountCustomers with a group filter avoids materialising the full table.
@@ -73,14 +89,23 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
   // Revenue + AOV over the last 30 days (order.total stored as-is, not cents)
   let revenue30d = 0
   let orders30d = 0
+  let capturedOrders: any[] = []
   try {
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
     const { data: orders } = await query.graph({
       entity: "order",
-      fields: ["id", "total", "created_at"],
-      filters: { created_at: { $gte: thirtyDaysAgo } } as any,
+      fields: [
+        "id",
+        "display_id",
+        "total",
+        "created_at",
+        "customer_id",
+        "payment_collections.status",
+        "payment_collections.captured_amount",
+      ],
+      filters: { created_at: { $gte: since.toISOString() } } as any,
     })
-    for (const o of orders as any[]) {
+    capturedOrders = (orders as any[]).filter(hasCapturedPayment)
+    for (const o of capturedOrders) {
       revenue30d += Number(o.total || 0)
       orders30d++
     }
@@ -155,6 +180,17 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
     }
   } catch {}
 
+  const events: any[] = await listAnalyticsEvents(analyticsService)
+  const demand = buildDemandMetrics(events, since)
+  const funnel = buildCheckoutFunnel(events, since)
+  const productDrilldown = productId
+    ? await hydrateCustomerDrilldown(req.scope, buildProductDrilldown(events, productId, since))
+    : null
+  const filterDrilldown = filterKey
+    ? await hydrateFilterDrilldown(req.scope, buildFilterDrilldown(events, filterKey, since))
+    : null
+  const referrals = await buildReferralInsights(req.scope, referralService, capturedOrders)
+
   res.json({
     members: {
       total: totalMembers,
@@ -174,104 +210,192 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
       pending_offers: pendingOffers,
       approved_offers: approvedOffers,
     },
-    demand: await buildDemandMetrics(req.scope.resolve(ANALYTICS_MODULE) as any),
+    demand,
+    funnel,
+    referrals,
+    product_drilldown: productDrilldown,
+    filter_drilldown: filterDrilldown,
   })
 }
 
-async function buildDemandMetrics(analyticsService: any) {
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-  const empty = {
-    top_products: [],
-    top_breweries: [],
-    filter_usage: [],
-    hop_counts: [],
-    untappd_bands: [],
+async function listAnalyticsEvents(analyticsService: any) {
+  try {
+    return (await analyticsService.listRecentStorefrontEvents({
+      since: new Date(Date.now() - INSIGHTS_LOOKBACK_DAYS * 24 * 60 * 60 * 1000),
+      eventTypes: [...INSIGHTS_EVENT_TYPES],
+      batchSize: 500,
+      maxResults: 5000,
+    })) as any[]
+  } catch {
+    return []
+  }
+}
+
+function hasCapturedPayment(order: any): boolean {
+  const collections = order?.payment_collections ?? []
+  return collections.some(
+    (collection: any) =>
+      collection?.status === "completed" || Number(collection?.captured_amount ?? 0) > 0
+  )
+}
+
+async function hydrateCustomerDrilldown(scope: any, rows: any[]) {
+  const customerIds = rows.map((row) => row.customer_id).filter(Boolean)
+  const customersById = await loadCustomersById(scope, customerIds)
+  return rows.map((row) => ({
+    ...row,
+    customer: customersById.get(row.customer_id) ?? null,
+  }))
+}
+
+async function hydrateFilterDrilldown(scope: any, drilldown: any) {
+  const customerIds = drilldown.members.map((member: any) => member.customer_id).filter(Boolean)
+  const customersById = await loadCustomersById(scope, customerIds)
+  return {
+    values: drilldown.values,
+    members: drilldown.members.map((member: any) => ({
+      ...member,
+      customer: customersById.get(member.customer_id) ?? null,
+    })),
+  }
+}
+
+async function loadCustomersById(scope: any, ids: string[]) {
+  const uniqueIds = [...new Set(ids)].filter(Boolean)
+  if (!uniqueIds.length) return new Map<string, any>()
+
+  const customerModule = scope.resolve(Modules.CUSTOMER) as any
+  const vipScoreService = scope.resolve(VIP_SCORE_MODULE) as any
+  const [customers, scores] = await Promise.all([
+    customerModule.listCustomers({ id: uniqueIds }, { relations: ["groups"] }),
+    vipScoreService.listVipScores({ customer_id: uniqueIds }),
+  ])
+  const scoreById = new Map(scores.map((score: any) => [score.customer_id, score]))
+
+  return new Map(
+    customers.map((customer: any) => {
+      const typedCustomer = customer as any
+      const score = scoreById.get(typedCustomer.id) as any
+      return [
+        typedCustomer.id,
+        {
+          id: typedCustomer.id,
+          email: typedCustomer.email,
+          name:
+            `${typedCustomer.first_name || ""} ${typedCustomer.last_name || ""}`.trim() ||
+            typedCustomer.email,
+          tier:
+            score?.current_tier ||
+            (typedCustomer.groups?.some((group: any) => /^vip\d/.test(group.name))
+              ? typedCustomer.groups.find((group: any) => /^vip\d/.test(group.name))?.name
+              : typedCustomer.groups?.some((group: any) => group.name === "approved")
+                ? "approved"
+                : typedCustomer.groups?.some((group: any) => group.name === "suspended")
+                  ? "suspended"
+                  : "pending"),
+        },
+      ]
+    })
+  )
+}
+
+async function buildReferralInsights(scope: any, referralService: any, capturedOrders: any[]) {
+  const customerModule = scope.resolve(Modules.CUSTOMER) as any
+  const vipScoreService = scope.resolve(VIP_SCORE_MODULE) as any
+  let referrals: any[] = []
+  try {
+    referrals = (await referralService.listReferrals({})) as any[]
+  } catch {
+    referrals = []
   }
 
-  try {
-    const events: any[] = await analyticsService.listStorefrontEvents({})
-    const recent = events.filter((e) => new Date(e.created_at) >= thirtyDaysAgo)
+  const convertedByCustomer = new Map<string, { count: number; revenue: number }>()
+  for (const order of capturedOrders) {
+    const customerId = order.customer_id as string | null | undefined
+    if (!customerId) continue
+    const current = convertedByCustomer.get(customerId) ?? { count: 0, revenue: 0 }
+    current.count += 1
+    current.revenue += Number(order.total || 0) || 0
+    convertedByCustomer.set(customerId, current)
+  }
 
-    const productViews = new Map<string, { handle: string; views: number; cart_adds: number }>()
-    const breweryViews = new Map<string, number>()
-    const filterUsage = new Map<string, number>()
-    const hopCounts = new Map<string, number>()
-    const untappdBands = new Map<string, number>()
+  const referrerIds = [
+    ...new Set(referrals.map((referral) => referral.referrer_customer_id).filter(Boolean)),
+  ]
+  const [referrers, scores] = await Promise.all([
+    referrerIds.length ? customerModule.listCustomers({ id: referrerIds }, {}) : [],
+    referrerIds.length ? vipScoreService.listVipScores({ customer_id: referrerIds }) : [],
+  ])
+  const referrerById = new Map(referrers.map((customer: any) => [customer.id, customer]))
+  const scoreById = new Map(scores.map((score: any) => [score.customer_id, score]))
 
-    for (const e of recent) {
-      const p = e.payload ?? {}
+  const aggregate = new Map<
+    string,
+    {
+      referrer_customer_id: string
+      referrals: number
+      converted_referrals: number
+      converted_orders: number
+      revenue: number
+      stealth_referrals: number
+    }
+  >()
 
-      if (e.event_type === "product.viewed") {
-        if (p.product_id) {
-          const cur = productViews.get(p.product_id) ?? {
-            handle: p.handle ?? "",
-            views: 0,
-            cart_adds: 0,
-          }
-          productViews.set(p.product_id, { ...cur, views: cur.views + 1 })
-        }
-        if (p.untappd_rating != null) {
-          const rating = parseFloat(p.untappd_rating)
-          if (!isNaN(rating)) {
-            const floor = Math.floor(rating * 2) / 2
-            const band = `${floor.toFixed(1)}–${(floor + 0.5).toFixed(1)}`
-            untappdBands.set(band, (untappdBands.get(band) ?? 0) + 1)
-          }
-        }
-      }
+  for (const referral of referrals) {
+    const key = referral.referrer_customer_id as string
+    const current = aggregate.get(key) ?? {
+      referrer_customer_id: key,
+      referrals: 0,
+      converted_referrals: 0,
+      converted_orders: 0,
+      revenue: 0,
+      stealth_referrals: 0,
+    }
+    current.referrals += 1
+    if (referral.stealth_mode) current.stealth_referrals += 1
+    const converted = convertedByCustomer.get(referral.referred_customer_id)
+    if (converted) {
+      current.converted_referrals += 1
+      current.converted_orders += converted.count
+      current.revenue += converted.revenue
+    }
+    aggregate.set(key, current)
+  }
 
-      if (e.event_type === "cart.item_added" && p.product_id) {
-        const cur = productViews.get(p.product_id) ?? { handle: "", views: 0, cart_adds: 0 }
-        productViews.set(p.product_id, { ...cur, cart_adds: cur.cart_adds + 1 })
-      }
-
-      if (e.event_type === "brewery.viewed" && p.slug) {
-        breweryViews.set(p.slug as string, (breweryViews.get(p.slug as string) ?? 0) + 1)
-      }
-
-      if (e.event_type === "filter.applied") {
-        const filters = (p.filters ?? {}) as Record<string, string>
-        for (const [key, value] of Object.entries(filters)) {
-          if (value) {
-            filterUsage.set(key, (filterUsage.get(key) ?? 0) + 1)
-            if (key === "hops") {
-              for (const hop of value.split(",")) {
-                const h = hop.trim()
-                if (h) hopCounts.set(h, (hopCounts.get(h) ?? 0) + 1)
+  return {
+    summary: {
+      total_referrals: referrals.length,
+      converted_referrals: referrals.filter((referral) =>
+        convertedByCustomer.has(referral.referred_customer_id)
+      ).length,
+      stealth_referrals: referrals.filter((referral) => referral.stealth_mode).length,
+      // Scoped to customers who were actually referred — NOT every captured
+      // order in the store. convertedByCustomer is keyed by customer_id for
+      // ALL captured orders; summing it directly would attribute unrelated
+      // members' revenue to "referral revenue".
+      revenue: referrals.reduce((total, referral) => {
+        const converted = convertedByCustomer.get(referral.referred_customer_id)
+        return converted ? total + converted.revenue : total
+      }, 0),
+    },
+    top_referrers: Array.from(aggregate.values())
+      .map((entry) => {
+        const customer = referrerById.get(entry.referrer_customer_id) as any
+        return {
+          ...entry,
+          customer: customer
+            ? {
+                id: customer.id,
+                email: customer.email,
+                name:
+                  `${customer.first_name || ""} ${customer.last_name || ""}`.trim() ||
+                  customer.email,
+                tier: (scoreById.get(customer.id) as any)?.current_tier || "approved",
               }
-            }
-          }
+            : null,
         }
-      }
-    }
-
-    return {
-      top_products: Array.from(productViews.entries())
-        .map(([product_id, d]) => ({
-          product_id,
-          handle: d.handle,
-          views: d.views,
-          cart_adds: d.cart_adds,
-          view_to_cart_rate: d.views > 0 ? Math.round((d.cart_adds / d.views) * 100) / 100 : 0,
-        }))
-        .sort((a, b) => b.views - a.views)
-        .slice(0, 10),
-      top_breweries: Array.from(breweryViews.entries())
-        .map(([slug, views]) => ({ slug, views }))
-        .sort((a, b) => b.views - a.views)
-        .slice(0, 10),
-      filter_usage: Array.from(filterUsage.entries())
-        .map(([filter, count]) => ({ filter, count }))
-        .sort((a, b) => b.count - a.count),
-      hop_counts: Array.from(hopCounts.entries())
-        .map(([hop, count]) => ({ hop, count }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 20),
-      untappd_bands: Array.from(untappdBands.entries())
-        .map(([band, views]) => ({ band, views }))
-        .sort((a, b) => parseFloat(a.band) - parseFloat(b.band)),
-    }
-  } catch {
-    return empty
+      })
+      .sort((a, b) => b.converted_referrals - a.converted_referrals || b.referrals - a.referrals)
+      .slice(0, 20),
   }
 }

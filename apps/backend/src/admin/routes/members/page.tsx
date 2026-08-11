@@ -47,6 +47,35 @@ type OrderLite = {
   created_at: string
 }
 
+type MemberActivityData = {
+  summary: {
+    sessions: number
+    completed_orders: number
+    last_fulfilment_method: "pickup" | "delivery" | null
+    highest_stage: string | null
+  }
+  sessions: Array<{
+    session_id: string
+    started_at: string | null
+    last_at: string | null
+    fulfilment_method: "pickup" | "delivery" | null
+    max_stage: string
+    outcome: "completed" | "dropped"
+    order_ids: string[]
+  }>
+  products: Array<{
+    product_id: string
+    handle: string
+    views: number
+    cart_adds: number
+  }>
+  filters: Array<{
+    filter: string
+    uses: number
+    values: string[]
+  }>
+}
+
 const TABS: { key: string; label: string; countKey: keyof Counts }[] = [
   { key: "pending", label: "Pending", countKey: "pending" },
   { key: "approved", label: "Approved", countKey: "approved" },
@@ -140,6 +169,7 @@ const MembersPage = () => {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [drawer, setDrawer] = useState<Member | null>(null)
   const [orders, setOrders] = useState<{ count: number; latest?: OrderLite } | null>(null)
+  const [activity, setActivity] = useState<MemberActivityData | null>(null)
   const [actioning, setActioning] = useState(false)
   const prompt = usePrompt()
 
@@ -181,19 +211,26 @@ const MembersPage = () => {
   useEffect(() => {
     if (!drawer || memberStatus(drawer) === "pending") {
       setOrders(null)
+      setActivity(null)
       return
     }
-    sdk.admin.order
-      .list({
+    Promise.all([
+      sdk.admin.order.list({
         customer_id: drawer.id,
         limit: 5,
         fields: "id,display_id,total,currency_code,created_at",
         order: "-created_at",
-      } as any)
-      .then((r: any) => {
-        setOrders({ count: r.count || 0, latest: r.orders?.[0] })
+      } as any),
+      sdk.client.fetch<{ activity: MemberActivityData }>(`/admin/members/${drawer.id}/activity`),
+    ])
+      .then(([ordersResponse, activityResponse]: any) => {
+        setOrders({ count: ordersResponse.count || 0, latest: ordersResponse.orders?.[0] })
+        setActivity(activityResponse.activity)
       })
-      .catch(() => setOrders(null))
+      .catch(() => {
+        setOrders(null)
+        setActivity(null)
+      })
   }, [drawer])
 
   const reload = () => load(activeTab, search, offset)
@@ -513,6 +550,7 @@ const MembersPage = () => {
       <MemberDrawer
         member={drawer}
         orders={orders}
+        activity={activity}
         actioning={actioning}
         onClose={() => setDrawer(null)}
         onApprove={approve}
@@ -564,6 +602,7 @@ const Section = ({ title, children }: { title: string; children: React.ReactNode
 const MemberDrawer = ({
   member,
   orders,
+  activity,
   actioning,
   onClose,
   onApprove,
@@ -573,6 +612,7 @@ const MemberDrawer = ({
 }: {
   member: Member | null
   orders: { count: number; latest?: OrderLite } | null
+  activity: MemberActivityData | null
   actioning: boolean
   onClose: () => void
   onApprove: (id: string) => void
@@ -652,26 +692,86 @@ const MemberDrawer = ({
                   </Text>
                 </div>
               ) : (
-                <Section title="VIP &amp; orders">
-                  <Row label="Tier">
-                    <Badge size="2xsmall" color={tierColor(status)}>
-                      {member.current_tier}
-                    </Badge>
-                  </Row>
-                  <Row label="VIP score">{fmtAud(member.vip_score)}</Row>
-                  {threshold && (
-                    <Text size="small" className="text-ui-fg-muted block pt-1">
-                      Reaches {threshold.next} at {threshold.orders} orders or{" "}
-                      {fmtAud(threshold.spend)} — whichever comes first.
-                    </Text>
-                  )}
-                  <Row label="Orders">{orders ? `${orders.count} orders` : "…"}</Row>
-                  {orders?.latest && (
-                    <Row label="Last order">
-                      #{orders.latest.display_id} · {fmtDate(orders.latest.created_at)}
+                <>
+                  <Section title="VIP &amp; orders">
+                    <Row label="Tier">
+                      <Badge size="2xsmall" color={tierColor(status)}>
+                        {member.current_tier}
+                      </Badge>
                     </Row>
-                  )}
-                </Section>
+                    <Row label="VIP score">{fmtAud(member.vip_score)}</Row>
+                    {threshold && (
+                      <Text size="small" className="text-ui-fg-muted block pt-1">
+                        Reaches {threshold.next} at {threshold.orders} orders or{" "}
+                        {fmtAud(threshold.spend)} — whichever comes first.
+                      </Text>
+                    )}
+                    <Row label="Orders">{orders ? `${orders.count} orders` : "…"}</Row>
+                    {orders?.latest && (
+                      <Row label="Last order">
+                        #{orders.latest.display_id} · {fmtDate(orders.latest.created_at)}
+                      </Row>
+                    )}
+                  </Section>
+
+                  <Section title="Activity">
+                    <Row label="Checkout sessions">
+                      {activity ? activity.summary.sessions : "…"}
+                    </Row>
+                    <Row label="Completed orders">
+                      {activity ? activity.summary.completed_orders : "…"}
+                    </Row>
+                    <Row label="Last fulfilment">
+                      {activity?.summary.last_fulfilment_method ?? "—"}
+                    </Row>
+                    <Row label="Highest stage">{activity?.summary.highest_stage ?? "—"}</Row>
+                    <div className="pt-2 space-y-2">
+                      {(activity?.sessions ?? []).slice(0, 3).map((session) => (
+                        <div
+                          key={session.session_id}
+                          className="rounded-md border border-ui-border-base p-3"
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <Text size="small" weight="plus">
+                              {session.fulfilment_method ?? "unknown"} · {session.max_stage}
+                            </Text>
+                            <Badge
+                              size="2xsmall"
+                              color={session.outcome === "completed" ? "green" : "grey"}
+                            >
+                              {session.outcome}
+                            </Badge>
+                          </div>
+                          <Text size="small" className="text-ui-fg-muted mt-1">
+                            {fmtDate(session.last_at ?? undefined)}
+                          </Text>
+                        </div>
+                      ))}
+                    </div>
+                    {(activity?.products.length ?? 0) > 0 && (
+                      <div className="pt-3">
+                        <Text size="small" weight="plus" className="mb-2 block">
+                          Products
+                        </Text>
+                        <div className="space-y-1">
+                          {activity!.products.slice(0, 5).map((product) => (
+                            <div
+                              key={product.product_id}
+                              className="flex items-center justify-between gap-2"
+                            >
+                              <Text size="small">
+                                {product.handle || product.product_id.slice(-8)}
+                              </Text>
+                              <Text size="small" className="text-ui-fg-muted">
+                                {product.views} views · {product.cart_adds} carts
+                              </Text>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </Section>
+                </>
               )}
             </Drawer.Body>
             <Drawer.Footer>

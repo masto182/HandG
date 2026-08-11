@@ -3,6 +3,7 @@ import Summary from "./summary"
 import EmptyCartMessage from "../components/empty-cart-message"
 import SignInPrompt from "../components/sign-in-prompt"
 import Divider from "@modules/common/components/divider"
+import TrackPageView from "@modules/common/components/track-page-view"
 import ThemeToggle from "@modules/layout/components/theme-toggle"
 import { HttpTypes } from "@medusajs/types"
 
@@ -17,6 +18,12 @@ const CartTemplate = ({
 }) => {
   return (
     <div>
+      {cart?.id ? (
+        <TrackPageView
+          event="cart.viewed"
+          payload={{ cart_id: cart.id, item_count: cart.items?.length ?? 0 }}
+        />
+      ) : null}
       <div
         className="border-b border-hg-border shadow-sm backdrop-blur-xl"
         style={{
