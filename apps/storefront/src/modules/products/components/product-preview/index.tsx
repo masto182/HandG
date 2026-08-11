@@ -130,7 +130,7 @@ export default async function ProductPreview({
           />
           <ProductPill product={product} activeSpecial={activeSpecial} />
           {canSeePricing && untappdScore && (
-            <div className="absolute top-3 right-3 z-10 flex items-center gap-1 px-2 py-1 rounded-lg bg-hg-bg/70 backdrop-blur-sm border border-hg-gold/30 shadow-sm">
+            <div className="absolute top-3 right-3 z-10 flex items-center gap-1 px-2 py-1 rounded-lg bg-hg-bg/90 backdrop-blur-sm border border-hg-gold/60 shadow-md">
               <svg
                 width="10"
                 height="10"
@@ -140,7 +140,7 @@ export default async function ProductPreview({
               >
                 <path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.7 7-6.3-3.9-6.3 3.9 1.7-7-5.4-4.7 7.1-.6z" />
               </svg>
-              <span className="text-hg-gold font-bold text-[10px] leading-none">
+              <span className="text-hg-gold font-extrabold text-[11px] leading-none">
                 {untappdScore}
               </span>
             </div>
