@@ -53,8 +53,10 @@ export default async function orderEmailHandler({
         "id",
         "email",
         "display_id",
-        "first_name",
         "customer_id",
+        "customer.first_name",
+        "shipping_address.first_name",
+        "billing_address.first_name",
         "total",
         "currency_code",
         "items.title",
@@ -75,6 +77,11 @@ export default async function orderEmailHandler({
     const customerId = order.customer_id || undefined
     const orderDisplayId = String(order.display_id ?? order.id)
     const storeUrl = getStoreUrl()
+    const firstName =
+      order.customer?.first_name ||
+      order.shipping_address?.first_name ||
+      order.billing_address?.first_name ||
+      "Collector"
 
     if (event.name === "order.placed") {
       const items = (order.items || []).map((it: any) => ({
@@ -82,7 +89,7 @@ export default async function orderEmailHandler({
         quantity: it.quantity || 1,
         unit_price: it.unit_price || 0,
       }))
-      const total = order.total ?? 0
+      const total = Number(order.total ?? 0) || 0
       const currencyCode = order.currency_code || "aud"
       const isPickup =
         (order.shipping_methods || []).some((sm: any) =>
@@ -107,7 +114,7 @@ export default async function orderEmailHandler({
         category: "orders",
         template: OrderPlacedTpl,
         props: {
-          name: order.first_name || "Collector",
+          name: firstName,
           orderDisplayId,
           items,
           total,
@@ -132,7 +139,7 @@ export default async function orderEmailHandler({
         category: "orders",
         template: OrderPaymentCapturedTpl,
         props: {
-          name: order.first_name || "Collector",
+          name: firstName,
           orderDisplayId,
           storeUrl,
         },

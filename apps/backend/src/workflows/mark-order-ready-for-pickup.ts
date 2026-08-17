@@ -4,7 +4,7 @@ import {
   StepResponse,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
-import { Modules } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { sendTemplate, refreshEmailConfig, getStoreUrl } from "../lib/email"
 import * as OrderReadyForPickupTpl from "../emails/order-ready-for-pickup"
 
@@ -81,6 +81,18 @@ export async function markOrderReadyForPickupAndNotify(
   const { result } = await markOrderReadyForPickupWorkflow(scope).run({ input })
   const { order, locationName, locationAddress, locationHours } = result as any
 
+  const query = scope.resolve(ContainerRegistrationKeys.QUERY)
+  const { data: orders } = await query.graph({
+    entity: "order",
+    fields: ["customer.first_name", "shipping_address.first_name", "billing_address.first_name"],
+    filters: { id: order.id },
+  })
+  const firstName =
+    (orders[0] as any)?.customer?.first_name ||
+    (orders[0] as any)?.shipping_address?.first_name ||
+    (orders[0] as any)?.billing_address?.first_name ||
+    "Collector"
+
   await refreshEmailConfig(scope)
   const emailResult = await sendTemplate({
     to: order.email,
@@ -88,7 +100,7 @@ export async function markOrderReadyForPickupAndNotify(
     category: "orders",
     template: OrderReadyForPickupTpl,
     props: {
-      name: order.first_name || "Collector",
+      name: firstName,
       orderDisplayId: String(order.display_id ?? order.id),
       locationName,
       locationAddress,
