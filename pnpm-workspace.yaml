@@ -25,6 +25,7 @@ overrides:
   protobufjs: ">=7.6.1 <8"
   vite: ">=6.4.3 <7"
   multer: ">=2.2.0 <3"
+  nanoid: ">=3.3.18"
   # Jest 30.4.2 broke jest-mock/jest-runtime API compatibility; pin the whole
   # jest family at 30.4.1 until a cohesive patch is published.
   jest: "30.4.1"
