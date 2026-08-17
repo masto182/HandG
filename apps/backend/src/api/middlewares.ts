@@ -83,6 +83,13 @@ export default defineMiddlewares({
       ],
     },
     {
+      // Restock alert subscribe/list/unsubscribe requires a logged-in customer;
+      // route handlers read req.auth_context.actor_id unconditionally.
+      matcher: "/store/customers/me/restock-alerts*",
+      method: ["GET", "POST", "DELETE"],
+      middlewares: [authenticate("customer", ["bearer", "session"])],
+    },
+    {
       matcher: "/auth/customer/emailpass",
       method: "POST",
       middlewares: [normalizeAuthEmail, rateLimit(30, 60000)],

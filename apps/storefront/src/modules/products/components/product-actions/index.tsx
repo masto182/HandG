@@ -137,7 +137,8 @@ export default function ProductActions({
       if (!alertId) throw new Error("No alert id")
       setRestockAlertId(alertId)
       setRestockState("subscribed")
-    } catch {
+    } catch (e) {
+      console.error("restock-alert subscribe failed", e)
       setRestockState("error")
     }
   }
@@ -153,7 +154,8 @@ export default function ProductActions({
       )
       setRestockAlertId(null)
       setRestockState("idle")
-    } catch {
+    } catch (e) {
+      console.error("restock-alert unsubscribe failed", e)
       setRestockState("error")
     }
   }
