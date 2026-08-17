@@ -17,6 +17,7 @@ export type OrderPlacedProps = {
   total: number
   currencyCode: string
   isPickup: boolean
+  isCash?: boolean
   payidAlias?: string
   holdHours?: number
   ordersEmail?: string
@@ -41,6 +42,7 @@ export default function OrderPlacedEmail({
   total = 11800,
   currencyCode = "aud",
   isPickup = false,
+  isCash = false,
   payidAlias = "payments@hopsandglory.au",
   holdHours = 24,
   ordersEmail = "orders@hopsandglory.au",
@@ -95,7 +97,22 @@ export default function OrderPlacedEmail({
         </Row>
       </Section>
 
-      {!isPickup && payidAlias ? (
+      {isCash ? (
+        <Section style={payidBox}>
+          <Text style={payidLabel}>Payment instructions</Text>
+          <Text style={payidBody}>
+            Pay <span style={payidEmail}>{fmt(total, currencyCode)}</span> in cash when you collect
+            your order. We&apos;ll be in touch to arrange a pickup time.
+          </Text>
+          <Text style={payidNote}>
+            Questions in the meantime? Email{" "}
+            <a href={`mailto:${ordersEmail}`} style={{ color: "#A06A2C" }}>
+              {ordersEmail}
+            </a>
+            .
+          </Text>
+        </Section>
+      ) : payidAlias ? (
         <Section style={payidBox}>
           <Text style={payidLabel}>Payment instructions</Text>
           <Text style={payidBody}>
@@ -116,7 +133,7 @@ export default function OrderPlacedEmail({
 
       <Text style={nextSteps}>
         {isPickup
-          ? "We'll send a notification when your order is ready to collect."
+          ? "We'll be in touch to arrange a time for pickup."
           : "We'll send a shipping notification once your order is dispatched."}
       </Text>
 

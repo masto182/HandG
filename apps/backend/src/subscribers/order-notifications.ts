@@ -1,5 +1,5 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
-import { Modules } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { sendTemplate, refreshEmailConfig, getStoreUrl } from "../lib/email"
 import * as OrderPlacedTpl from "../emails/order-placed"
 import * as OrderPaymentCapturedTpl from "../emails/order-payment-captured"
@@ -43,35 +43,62 @@ export default async function orderEmailHandler({
   container,
 }: SubscriberArgs<{ id: string }>) {
   const logger = container.resolve("logger") as Logger
-  const orderModule = container.resolve(Modules.ORDER)
+  const query = container.resolve(ContainerRegistrationKeys.QUERY)
 
   try {
     await refreshEmailConfig(container)
-    const order = await orderModule.retrieveOrder(event.data.id, {
-      relations: ["payment_collections.payments", "items"],
-    } as any)
+    const { data: orders } = await query.graph({
+      entity: "order",
+      fields: [
+        "id",
+        "email",
+        "display_id",
+        "first_name",
+        "customer_id",
+        "total",
+        "currency_code",
+        "items.title",
+        "items.product_title",
+        "items.quantity",
+        "items.unit_price",
+        "shipping_methods.name",
+        "payment_collections.payments.provider_id",
+      ],
+      filters: { id: event.data.id },
+    })
+    const order = orders[0] as any
     if (!order?.email) {
       logger.info(`[Notification] Order ${event.data.id} has no email; skipping.`)
       return
     }
 
-    const customerId = (order as any).customer_id || undefined
+    const customerId = order.customer_id || undefined
     const orderDisplayId = String(order.display_id ?? order.id)
     const storeUrl = getStoreUrl()
 
     if (event.name === "order.placed") {
-      const items = ((order as any).items || []).map((it: any) => ({
+      const items = (order.items || []).map((it: any) => ({
         title: it.title || it.product_title || "Item",
         quantity: it.quantity || 1,
         unit_price: it.unit_price || 0,
       }))
-      const total = (order as any).total ?? 0
-      const currencyCode = (order as any).currency_code || "aud"
+      const total = order.total ?? 0
+      const currencyCode = order.currency_code || "aud"
       const isPickup =
-        ((order as any).shipping_methods || []).some((sm: any) =>
-          (sm.shipping_option?.name || sm.name || "").toLowerCase().includes("pickup")
+        (order.shipping_methods || []).some((sm: any) =>
+          (sm.name || "").toLowerCase().includes("pickup")
         ) || false
-      const payidAlias = await resolvePayidAlias(container)
+
+      const payments = (order.payment_collections || []).flatMap((pc: any) => pc?.payments || [])
+      const isCash = payments.some(
+        (p: any) =>
+          typeof p.provider_id === "string" && p.provider_id.startsWith("pp_system_default")
+      )
+      const isPayId = payments.some(
+        (p: any) => typeof p.provider_id === "string" && p.provider_id.startsWith("pp_payid")
+      )
+
+      const payidAlias = isPayId ? await resolvePayidAlias(container) : undefined
       const { holdHours, ordersEmail } = await resolveSiteConfigValues(container)
 
       const result = await sendTemplate({
@@ -80,12 +107,13 @@ export default async function orderEmailHandler({
         category: "orders",
         template: OrderPlacedTpl,
         props: {
-          name: (order as any).first_name || "Collector",
+          name: order.first_name || "Collector",
           orderDisplayId,
           items,
           total,
           currencyCode,
           isPickup,
+          isCash,
           payidAlias,
           holdHours,
           ordersEmail,
@@ -104,7 +132,7 @@ export default async function orderEmailHandler({
         category: "orders",
         template: OrderPaymentCapturedTpl,
         props: {
-          name: (order as any).first_name || "Collector",
+          name: order.first_name || "Collector",
           orderDisplayId,
           storeUrl,
         },
