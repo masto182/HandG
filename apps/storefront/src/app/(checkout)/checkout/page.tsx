@@ -3,6 +3,7 @@ import { retrieveCustomer } from "@lib/data/customer"
 import { listCartShippingMethods } from "@lib/data/fulfillment"
 import { listCartPaymentMethods } from "@lib/data/payment"
 import { getHeatHold } from "@lib/data/heat-hold"
+import { getPickupLocations } from "@lib/data/pickup-locations"
 import {
   getPayidHoldHours,
   getOrdersEmail,
@@ -76,7 +77,14 @@ export default async function Checkout({
   const renderStep = async () => {
     switch (step) {
       case "fulfilment":
-        return <StepFulfilment cart={cart} shippingOptions={shippingMethods} />
+        const pickupLocations = await getPickupLocations()
+        return (
+          <StepFulfilment
+            cart={cart}
+            shippingOptions={shippingMethods}
+            pickupLocations={pickupLocations}
+          />
+        )
       case "address":
         if (isPickup) redirect("/checkout?step=payment")
         return <StepAddress cart={cart} customer={customer} />

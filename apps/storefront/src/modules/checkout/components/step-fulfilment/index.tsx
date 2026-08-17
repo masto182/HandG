@@ -2,6 +2,7 @@
 import { setShippingMethod, updateCart } from "@lib/data/cart"
 import { getPickupOptions, getDeliveryOptions } from "@lib/util/shipping"
 import { convertToLocale } from "@lib/util/money"
+import type { PickupLocationDTO } from "@lib/data/pickup-locations"
 import { HttpTypes } from "@medusajs/types"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -10,10 +11,21 @@ import { useTrack } from "@lib/hooks/use-track"
 type Props = {
   cart: HttpTypes.StoreCart
   shippingOptions: HttpTypes.StoreCartShippingOption[] | null
+  pickupLocations: PickupLocationDTO[]
 }
 
-function formatLocationAddress(option: any): string {
-  const addr = option.service_zone?.fulfillment_set?.location?.address
+// Pickup shipping options are matched to their pickup_location record via the
+// slug embedded in type.code ("pickup-{slug}", set in seed.ts). The option's
+// own fulfillment set is linked to the Warehouse for inventory purposes, so
+// its location is NOT the pickup point's address — the pickup_location's own
+// (distinct) stock_location is the correct address source.
+function slugFromOption(option: any): string | null {
+  const code = option?.type?.code as string | undefined
+  if (!code?.startsWith("pickup-")) return null
+  return code.slice("pickup-".length)
+}
+
+function formatAddress(addr: any): string {
   if (!addr) return ""
   const parts = [
     addr.address_1,
@@ -24,11 +36,22 @@ function formatLocationAddress(option: any): string {
   return parts.join(", ")
 }
 
-const StepFulfilment: React.FC<Props> = ({ cart, shippingOptions }) => {
+const StepFulfilment: React.FC<Props> = ({
+  cart,
+  shippingOptions,
+  pickupLocations,
+}) => {
   const router = useRouter()
   const track = useTrack()
   const pickupOptions = getPickupOptions(shippingOptions)
   const deliveryOptions = getDeliveryOptions(shippingOptions)
+  const pickupLocationBySlug = new Map(
+    pickupLocations.map((pl) => [pl.slug, pl]),
+  )
+  const pickupLocationForOption = (option: any): PickupLocationDTO | null => {
+    const slug = slugFromOption(option)
+    return slug ? (pickupLocationBySlug.get(slug) ?? null) : null
+  }
 
   useEffect(() => {
     track("checkout.step_reached", { cart_id: cart.id, step: "fulfilment" })
@@ -79,13 +102,15 @@ const StepFulfilment: React.FC<Props> = ({ cart, shippingOptions }) => {
           // Snapshot the chosen pickup location to cart metadata so renames or
           // deletions don't change historical orders. Order confirmation, the
           // fulfilment queue, and admin order detail read from this snapshot.
-          const loc = (pickupOption as any).service_zone?.fulfillment_set
-            ?.location
-          const addr = loc?.address
+          // Sourced from the pickup_location record (its own distinct
+          // stock_location address), NOT from the shipping option's
+          // fulfillment set — that's linked to the Warehouse for inventory.
+          const pl = pickupLocationForOption(pickupOption)
+          const addr = pl?.stock_location?.address
           const snapshot = {
             shipping_option_id: pickupOption.id,
-            location_id: loc?.id ?? null,
-            name: loc?.name ?? pickupOption.name,
+            location_id: pl?.stock_location?.id ?? null,
+            name: pl?.stock_location?.name ?? pickupOption.name,
             address_line_1: addr?.address_1 ?? null,
             address_line_2: addr?.address_2 ?? null,
             city: addr?.city ?? null,
@@ -255,7 +280,10 @@ const StepFulfilment: React.FC<Props> = ({ cart, shippingOptions }) => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {pickupOptions.map((option) => {
                       const isActive = selectedPickupId === option.id
-                      const address = formatLocationAddress(option)
+                      const address = formatAddress(
+                        pickupLocationForOption(option)?.stock_location
+                          ?.address,
+                      )
                       return (
                         <button
                           key={option.id}

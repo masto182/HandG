@@ -366,13 +366,18 @@ export default async function seed({ container }: ExecArgs) {
       const zoneName = `${pl.stock_location_name} Pickup`
       const pickupSet = await findOrCreateFulfillmentSet(setName, "pickup")
       const pickupZone = await findOrCreateServiceZone(zoneName, pickupSet.id)
-      // Link pickup location to fulfillment set BEFORE creating the option
+      // Link the pickup fulfillment set to the WAREHOUSE (not the pickup's own
+      // stock location) BEFORE creating the option. All stock physically lives
+      // in one warehouse regardless of hand-off method (ship vs. pickup), so
+      // fulfillment/inventory must single-source from there. The pickup's own
+      // stock location still exists and is used only for its distinct address
+      // (via the pickup_location module, see step 7) — never for inventory.
       await safeLink(
         {
-          [Modules.STOCK_LOCATION]: { stock_location_id: pickupStockLocations[pl.slug].id },
+          [Modules.STOCK_LOCATION]: { stock_location_id: warehouse.id },
           [Modules.FULFILLMENT]: { fulfillment_set_id: pickupSet.id },
         },
-        `${pl.stock_location_name} → pickup set`
+        `warehouse → ${pl.stock_location_name} pickup set`
       )
       await findOrCreateShippingOption(pl.stock_location_name, {
         name: pl.stock_location_name,
