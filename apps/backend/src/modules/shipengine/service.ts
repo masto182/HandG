@@ -109,8 +109,7 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
     if (this.siteConfigResolver_) {
       try {
         const svc = this.siteConfigResolver_("siteConfig") as
-          | { get?: (k: string) => Promise<unknown> | unknown }
-          | undefined
+          { get?: (k: string) => Promise<unknown> | unknown } | undefined
         if (svc && typeof svc.get === "function") {
           const v = await svc.get(key)
           if (v !== undefined) return v as T
@@ -234,6 +233,8 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
     // rate-quote network type); Medusa stores cart money in major units, so
     // divide here at the boundary.
     const toMajor = (cents: number) => cents / 100
+    const handlingFeeAud = await this.siteConfigGet<number>("shipping_handling_fee_aud", 0)
+    const handlingFeeCents = Math.round(handlingFeeAud * 100)
     try {
       const cachedAmount = typeof data?.amount === "number" ? (data.amount as number) : undefined
       if (
@@ -241,7 +242,7 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
         this.isRateCacheFresh(data?.rate_quoted_at as string | undefined)
       ) {
         return {
-          calculated_amount: toMajor(cachedAmount),
+          calculated_amount: toMajor(cachedAmount + handlingFeeCents),
           is_calculated_price_tax_inclusive: false,
         }
       }
@@ -289,7 +290,10 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
 
       try {
         const opt = rateToShippingOption(matched, currency)
-        return { calculated_amount: toMajor(opt.amount), is_calculated_price_tax_inclusive: false }
+        return {
+          calculated_amount: toMajor(opt.amount + handlingFeeCents),
+          is_calculated_price_tax_inclusive: false,
+        }
       } catch (err) {
         if (err instanceof CurrencyMismatchError) {
           this.logger_.error(`[shipengine] currency mismatch: ${err.message}`)
@@ -362,8 +366,7 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const shippingAddress = ((order as any)?.shipping_address ??
       (fulfillment as any)?.shipping_address) as
-      | NonNullable<CalculateShippingOptionPriceDTO["context"]["shipping_address"]>
-      | undefined
+      NonNullable<CalculateShippingOptionPriceDTO["context"]["shipping_address"]> | undefined
 
     if (autoPick && shippingAddress) {
       try {

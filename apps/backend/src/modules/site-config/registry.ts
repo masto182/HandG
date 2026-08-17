@@ -389,6 +389,17 @@ export const SITE_CONFIG_REGISTRY: Record<string, SiteConfigDefinition> = {
     description: "Cart subtotal at which shipping becomes free. 0 disables.",
     validate: requireNumber(0, 10000),
   },
+  shipping_handling_fee_aud: {
+    key: "shipping_handling_fee_aud",
+    type: "number",
+    isPublic: false,
+    default: 0,
+    group: "shipping",
+    label: "Handling fee (AUD)",
+    description:
+      "Flat amount added on top of every live ShipEngine rate shown at checkout and charged on fulfillment, to cover packing materials/labour. 0 disables.",
+    validate: requireNumber(0, 50),
+  },
   shipping_from_name: {
     key: "shipping_from_name",
     type: "string",
@@ -710,9 +721,9 @@ export const SITE_CONFIG_REGISTRY: Record<string, SiteConfigDefinition> = {
 
 export type SiteConfigKey = keyof typeof SITE_CONFIG_REGISTRY
 export type PublicSiteConfigKey = {
-  [K in keyof typeof SITE_CONFIG_REGISTRY]: (typeof SITE_CONFIG_REGISTRY)[K]["isPublic"] extends true
-    ? K
-    : never
+  [
+    K in keyof typeof SITE_CONFIG_REGISTRY
+  ]: (typeof SITE_CONFIG_REGISTRY)[K]["isPublic"] extends true ? K : never
 }[keyof typeof SITE_CONFIG_REGISTRY]
 
 export const PUBLIC_SITE_CONFIG_KEYS: SiteConfigKey[] = Object.values(SITE_CONFIG_REGISTRY)
