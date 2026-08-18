@@ -119,10 +119,10 @@ export async function getOrderPlacedSample(container: any) {
         name: "Alex",
         orderDisplayId: "1234",
         items: [
-          { title: "Hill Farmstead Everett · 750ml", quantity: 1, unit_price: 4200 },
-          { title: "Cantillon Gueuze · 375ml", quantity: 2, unit_price: 3800 },
+          { title: "Hill Farmstead Everett · 750ml", quantity: 1, unit_price: 42 },
+          { title: "Cantillon Gueuze · 375ml", quantity: 2, unit_price: 38 },
         ],
-        total: 11800,
+        total: 118,
         currencyCode: "aud",
         isPickup: false,
         isCash: false,

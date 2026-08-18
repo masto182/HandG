@@ -30,16 +30,16 @@ const fmt = (n: number, ccy: string) =>
   new Intl.NumberFormat("en-AU", {
     style: "currency",
     currency: ccy.toUpperCase(),
-  }).format(n / 100)
+  }).format(n)
 
 export default function OrderPlacedEmail({
   name = "Alex",
   orderDisplayId = "1234",
   items = [
-    { title: "Hill Farmstead Everett · 750ml", quantity: 1, unit_price: 4200 },
-    { title: "Cantillon Gueuze · 375ml", quantity: 2, unit_price: 3800 },
+    { title: "Hill Farmstead Everett · 750ml", quantity: 1, unit_price: 42 },
+    { title: "Cantillon Gueuze · 375ml", quantity: 2, unit_price: 38 },
   ],
-  total = 11800,
+  total = 118,
   currencyCode = "aud",
   isPickup = false,
   isCash = false,
