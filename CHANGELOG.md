@@ -1,5 +1,101 @@
 # Changelog
 
+## [0.1.2](https://github.com/masto182/HandG/compare/v0.1.1...v0.1.2) (2026-08-17)
+
+
+### Features
+
+* add self-service forgot-password / reset-password flow ([000fab4](https://github.com/masto182/HandG/commit/000fab48079582ac98b7ff07019fa06b5d9248d2))
+* add Untappd rating to product cards/list and fix card height bug ([a0f1e64](https://github.com/masto182/HandG/commit/a0f1e645f73154c33016ef8c7229e78799a99113))
+* **admin:** add Reindex Catalogue button to Stock Import page ([f5c93ef](https://github.com/masto182/HandG/commit/f5c93ef31e3288e190e8709ad744c8e77bc72299))
+* **analytics:** member funnel, product/filter drill-down, referrals ([64255d8](https://github.com/masto182/HandG/commit/64255d8851a812de95c19e1af534641f28e91130))
+* **analytics:** storefront event-tracking pipeline + Demand & Behaviour dashboard tab ([bee2075](https://github.com/masto182/HandG/commit/bee20751f6ea9aac7661d2ebf4565bda8968d7f8))
+* **banners:** site-wide announcement banner management + onboarding fixes ([e00e05c](https://github.com/masto182/HandG/commit/e00e05c291c06825ace62f5fab4725d75d32300c))
+* **import:** add sale pricing via SALE price lists (Option A) ([3ac04e3](https://github.com/masto182/HandG/commit/3ac04e300014d5105c257160d783ffa869ab848f))
+* **import:** update import-us-beers with real prices and idempotency ([a4ff4e5](https://github.com/masto182/HandG/commit/a4ff4e539988d3165303ef717ac7fc512f40819b))
+* **onboarding:** gamified getting-started page with VIP event ledger ([54a18ac](https://github.com/masto182/HandG/commit/54a18ac73371cdd20d8b50db6def74c552880de5))
+* **onboarding:** move progress banner site-wide + add dismiss ([a53f6a2](https://github.com/masto182/HandG/commit/a53f6a29c6fda18e962744cbdd29914439037a44))
+* **onboarding:** persistent progress banner on all account pages ([d845bc8](https://github.com/masto182/HandG/commit/d845bc8669210809719bc1e42c1018b1f90b41fa))
+
+
+### Bug Fixes
+
+* **admin:** rename reserved `ref` prop in ReferredByCell to `referrer` ([6524e04](https://github.com/masto182/HandG/commit/6524e04d515d4c2bedc6b4ae263c4e2a69c472ce))
+* **analytics:** add x-publishable-api-key header to useTrack event requests ([f6ec8f7](https://github.com/masto182/HandG/commit/f6ec8f75923d5cb6fedb522506520ea163fa4435))
+* **announcement-strip:** correct dismiss button position on absolute element ([61ebbdb](https://github.com/masto182/HandG/commit/61ebbdbc6a6f153adb3f3c60080f1bbd106b0ed6))
+* authenticate restock-alert routes, log real subscribe errors ([05d6048](https://github.com/masto182/HandG/commit/05d604890ba3a87aad4a050d9fa15b84b4b6df4d))
+* **backend:** add pg-god as explicit devDependency for test-utils ([3dede0f](https://github.com/masto182/HandG/commit/3dede0f2e84f398b2170ea4acd2565ec85b71b07))
+* **backend:** exclude integration-tests from tsc compilation ([a41efce](https://github.com/masto182/HandG/commit/a41efce6ce47be9ab3dc94836c7d316aa7b37381))
+* **backend:** resolve ambiguous sales channel lookup before product import ([b027e8d](https://github.com/masto182/HandG/commit/b027e8d48b344f12bb3066ddeb8afe0e539b0d46))
+* bake STOREFRONT_IMAGE_HOSTS into storefront Docker image ([0453893](https://github.com/masto182/HandG/commit/0453893e9b4d760c311d12453adca3439237c04a))
+* **checkout:** wire getPayidAlias() from site-config into payment and confirm steps ([4eff478](https://github.com/masto182/HandG/commit/4eff47864aec74906d322ee61c6f09ddf08e73e8))
+* **ci:** add explicit field select to fix workflow-context list queries ([5818c71](https://github.com/masto182/HandG/commit/5818c712872d97850a6b5484da40befbfdf55d2c))
+* **ci:** add NODE_OPTIONS heap to build job; bump @types/jest to v30 ([9362924](https://github.com/masto182/HandG/commit/936292457f51298fb9e4d13e93c23dd115c17fa6))
+* **ci:** add NODE_OPTIONS heap to E2E workflow build steps ([78c17b6](https://github.com/masto182/HandG/commit/78c17b62b40168be98e023f797309db78a27b13e))
+* **ci:** build shared-types before storefront in Lighthouse CI ([1e15307](https://github.com/masto182/HandG/commit/1e15307346f5a5165d7b9c04585b788fad6b5978))
+* **ci:** disable SSL for PostgreSQL connections in integration tests ([e928700](https://github.com/masto182/HandG/commit/e92870015fc556c8f6aa0ab7c41ea7d7839dc0e9))
+* **ci:** pin jest 30.4.1 and restore --experimental-vm-modules for unit tests ([0387b3d](https://github.com/masto182/HandG/commit/0387b3d61c658c31b8fe1820d218e0a0c8b73451))
+* **ci:** remove docker login — ghcr is public, env vars don't reach ssh session ([675ae2d](https://github.com/masto182/HandG/commit/675ae2d34eccfd36a894428657e566d8c6c261c4))
+* **ci:** remove lighthouse:recommended preset to make CI informational-only ([1dbff09](https://github.com/masto182/HandG/commit/1dbff091b7e7bb0e74489005c9e0a5a786f8b071))
+* **ci:** resolve 4 integration test failures and Lighthouse CI exit-code-1 ([b350575](https://github.com/masto182/HandG/commit/b35057555acffc5909a679029f35e026131b0da7))
+* **ci:** resolve 4 Turbopack build errors for Next.js 16 ([c6ac82d](https://github.com/masto182/HandG/commit/c6ac82d868a3822acbc2a0589e542fe2c0845a4a))
+* **ci:** restore --experimental-vm-modules in run-http.mjs for integration tests ([96abf4c](https://github.com/masto182/HandG/commit/96abf4c8c296f680af5c787f8e0a42c96a0e1aba))
+* **config:** use MEDUSA_PUBLISHABLE_KEY for server-side to decouple from baked bundle ([c404a12](https://github.com/masto182/HandG/commit/c404a12dd3b8bf1ac88b23ca4368d9ad31f1fcfb))
+* correct order-confirmed email totals and payment/pickup copy ([ca2c268](https://github.com/masto182/HandG/commit/ca2c2688831956c5dff79b78c215fbd5e856deeb))
+* **deploy:** forward PAYID_ALIAS, AUSPOST_API_KEY, MEDUSA_WORKER_MODE into backend container ([0b4f5f2](https://github.com/masto182/HandG/commit/0b4f5f2adb3b3660b8c8af08727f7753c00a4486))
+* **deploy:** forward SHIPENGINE_API_KEY into backend container ([c076153](https://github.com/masto182/HandG/commit/c076153080d60a813aa88826e2e028da5825a4df))
+* **docker:** increase Node heap for medusa build in Dockerfile ([f39225e](https://github.com/masto182/HandG/commit/f39225e55e893459c9e516c5e4a753d5db631896))
+* **docker:** stop pnpm 11 re-resolving the workspace during image builds ([ace8356](https://github.com/masto182/HandG/commit/ace83567329c7488a0a303c793605b29c896030a))
+* **e2e:** add prettier-ignore to keep workflow-exempt comment inline ([ab92528](https://github.com/masto182/HandG/commit/ab92528cefe866f54d91fabfe00da52d227a549b))
+* **e2e:** migrate raw fetch() to sdk.client.fetch() for sdk-enforcement compliance ([4091266](https://github.com/masto182/HandG/commit/4091266c4608305d2c37ae115db05ff3443e7d57))
+* **e2e:** move exemption comments inline with the matched grep line ([7dcdb05](https://github.com/masto182/HandG/commit/7dcdb055a933933de53ab007909415041d772148))
+* **e2e:** resolve all pre-existing enforcement test violations ([ccfc40b](https://github.com/masto182/HandG/commit/ccfc40bc26a4205ef8f31744a38f0fc1ac715c1a))
+* **e2e:** satisfy sdk/workflow enforcement guards, unblock E2E Nightly ([a9c67c8](https://github.com/masto182/HandG/commit/a9c67c8f874c9b3bb82125278d456e171aaffd0f))
+* **forgot-password:** pass email template module, not default component ([1a3ffb5](https://github.com/masto182/HandG/commit/1a3ffb58fc42b3b3b0fa86766cc1ecd00b994f7f))
+* hardcode OCI ap-sydney-1 hostnames in storefront remotePatterns ([ba49b17](https://github.com/masto182/HandG/commit/ba49b176c02cc9e9b40a835e8e26e63a26752a01))
+* **hops:** fix inventory filter on hop detail route; add hop linking to US beer import ([fffe586](https://github.com/masto182/HandG/commit/fffe58666f75fc2cc4d321783d407ba93c58116e))
+* **import:** fix applyStock — skip variant_id filter, use SKU lookup ([e8e23db](https://github.com/masto182/HandG/commit/e8e23db478523c03cd7b5f4b0ee07fcb50ed5f25))
+* improve contrast of Untappd rating badge on product cards ([540dc4b](https://github.com/masto182/HandG/commit/540dc4b97e4bbf2dc3e824094102b84bfe5828b5))
+* **onboarding-banner:** fetch progress server-side via nav template ([c91b76a](https://github.com/masto182/HandG/commit/c91b76acd4cd37de78e8f6a3341511e4bcf0424c))
+* **onboarding-banner:** router.refresh() after step completion ([4da599d](https://github.com/masto182/HandG/commit/4da599daab62c938794c764d8d6a5015c7b42aa7))
+* **onboarding-banner:** switch to plain fetch + gate on isApproved ([8f68790](https://github.com/masto182/HandG/commit/8f687902a1bb2ca59b36a15df1d80ad8ea0ae6ea))
+* **onboarding:** checklist row UI + fix browse step auth gating ([0925e6f](https://github.com/masto182/HandG/commit/0925e6f4e492cb7786171c1606b286a7f28b9dde))
+* **onboarding:** correct endpoint path for step completion ([67b24cc](https://github.com/masto182/HandG/commit/67b24cc52e5808ac4a4d66d39ec6e533e6a56d3f))
+* **onboarding:** toast on CTA click + persistent cross-page watcher ([3dbeb47](https://github.com/masto182/HandG/commit/3dbeb47a8a822118e9e0f0bdc7e05e8394abec58))
+* **onboarding:** use server action for step completion (auth fix) ([c996104](https://github.com/masto182/HandG/commit/c9961049a4bf58a99f20b4bd6ed10dbc98c7115d))
+* **sdk:** always inject x-publishable-api-key in sdk.client.fetch wrapper ([f0daf9b](https://github.com/masto182/HandG/commit/f0daf9b1b542436490f0c93958aec3dd0e176789))
+* **seed:** auto-populate shipengine_carrier_ids in site_config from listCarriers() ([f50c1e7](https://github.com/masto182/HandG/commit/f50c1e74db0e06984bdfe18559b59adc24f6c73a))
+* **seed:** catch 'Cannot create multiple links' in safeLink for idempotency on prod ([bf2b1cb](https://github.com/masto182/HandG/commit/bf2b1cb19972409e3d2e7f77a808cb85e51c67d2))
+* **seed:** look up pickup locations by stock_location_id for idempotency on prod ([3ad9209](https://github.com/masto182/HandG/commit/3ad92095c6264b05fa7a760813e9890604db021e))
+* **shared-types:** add ignoreDeprecations:6.0 and explicit rootDir to tsconfig ([ff748a6](https://github.com/masto182/HandG/commit/ff748a66238ebd347fca20dbda505c30f7c5d0eb))
+* single-source pickup fulfillment inventory at warehouse ([dbdc576](https://github.com/masto182/HandG/commit/dbdc57624c8d541fe5a4256f36c15ace9f0931a4))
+* **stock-import:** strip trailing % from ABV values before storing ([5b6a2be](https://github.com/masto182/HandG/commit/5b6a2be434431120680b02baf0ab3f3bcbac8933))
+* **store:** exclude sold-out products from filter panel facet counts by default ([5fc9857](https://github.com/masto182/HandG/commit/5fc985700b834da68f21119c8cf8c8e6e164ce84))
+* **store:** fetch all matching IDs from Medusa, not just first 200 ([99c5179](https://github.com/masto182/HandG/commit/99c5179418b8189951f738a9805baf8ff0fcae9a))
+* **store:** filter sold-out products from related, brewery, and hops sections ([20f0005](https://github.com/masto182/HandG/commit/20f0005d53d80d31385d0ebbef98790411e13f9a))
+* **storefront:** add downlevelIteration to tsconfig to fix Set spread with es5 target ([b2a0dd0](https://github.com/masto182/HandG/commit/b2a0dd077357f4ca524e31ef1db801f24d7c41a9))
+* **storefront:** NodeJS.Timer → NodeJS.Timeout for @types/node v20 ([ab2121b](https://github.com/masto182/HandG/commit/ab2121b987f3cb184533a74cf74d0193a48ba228))
+* **storefront:** revert revalidateTag to single-arg form — profile breaks cache invalidation ([ca58317](https://github.com/masto182/HandG/commit/ca5831792763db76543b3fea306182b680efb1fe))
+* **store:** hide sold-out products by default; show disabled with badge when toggled ([86d16fc](https://github.com/masto182/HandG/commit/86d16fc80a84853cb65d821f9fe7a8188ae6f9ed))
+* **store:** use hydrated Medusa inventory for sold-out filtering, not stale MeiliSearch data ([95b112d](https://github.com/masto182/HandG/commit/95b112df9f2fd9b3546bd8489e7e2121812258d7))
+* **tests:** add missing getBonusPointsInWindow + getLifetimeBonusPoints to vipScore mock ([aaee17a](https://github.com/masto182/HandG/commit/aaee17a1e10b8335433ada85910d575e29a88470))
+* **tests:** make sequential integration tests self-contained for Medusa 2.17 ([b8e1c04](https://github.com/masto182/HandG/commit/b8e1c0446376916a56fca3e6c93eb6878c54646c))
+* **tests:** mirror route's channel lookup in stock-import test setup ([2c64725](https://github.com/masto182/HandG/commit/2c64725691b1ccca32621cf34a7888896dbdef02))
+* **tests:** use correct channel name in stock-import integration test setup ([f80a952](https://github.com/masto182/HandG/commit/f80a952d8b560b3eeea71d50daae62ed7d782bc7))
+* use server action for email pref toggle to include auth headers ([f0a7327](https://github.com/masto182/HandG/commit/f0a73276511541a5a1f796232c8c9bae827b1fcd))
+
+
+### Performance
+
+* **typecheck:** break Zod v4 deep type chain, cut heap 8.2GB -&gt; 682MB ([4c3930d](https://github.com/masto182/HandG/commit/4c3930d63e515c7218c440b70675d688f9b534d2))
+
+
+### CI/CD
+
+* drop the 8GB heap flag from the build job ([ed5b1d3](https://github.com/masto182/HandG/commit/ed5b1d39169e3e835ea75a561847511bd6a98644))
+* **e2e-nightly:** drop the 8GB heap flags from both build steps ([2ab3a4e](https://github.com/masto182/HandG/commit/2ab3a4ec59c6d47f76ff7169b25ddaf842a0d099))
+* **prod:** bootstrap prod DB via idempotent seed chain; provision script; caddy admin route ([c29f301](https://github.com/masto182/HandG/commit/c29f301dbea981540ec58f5f3436f497482d760d))
+
 ## [0.1.1](https://github.com/masto182/HandG/compare/v0.1.0...v0.1.1) (2026-07-05)
 
 
