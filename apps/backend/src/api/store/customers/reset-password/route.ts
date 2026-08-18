@@ -51,7 +51,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
 
   // Clear reset token from metadata
   const { password_reset: _removed, ...restMeta } = customer.metadata || {}
-  await customerModule.updateCustomer(customer.id, { metadata: restMeta }) // workflow-exempt: clears reset token metadata
+  await customerModule.updateCustomers(customer.id, { metadata: restMeta }) // workflow-exempt: clears reset token metadata
 
   return res.json({ ok: true })
 }

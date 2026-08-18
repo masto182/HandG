@@ -21,7 +21,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         ...(customer.metadata || {}),
         password_reset: { token_hash: tokenHash, expires_at: expiresAt },
       }
-      await customerModule.updateCustomer(customer.id, { metadata: resetMetadata }) // workflow-exempt: password-reset token issuance
+      await customerModule.updateCustomers(customer.id, { metadata: resetMetadata }) // workflow-exempt: password-reset token issuance
 
       const storeUrl = process.env.STORE_URL || "http://localhost:8000"
       const resetUrl = `${storeUrl}/reset-password?email=${encodeURIComponent(email)}&token=${rawToken}`
