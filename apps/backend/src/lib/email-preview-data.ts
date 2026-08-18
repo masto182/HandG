@@ -84,6 +84,16 @@ export async function getApplicationRejectedSample(container: any) {
 
 async function mostRecentOrderRaw(container: any) {
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
+
+  // `total` is a computed getter reading from the order's `summary` relation.
+  // Requesting `items.*` in the SAME query.graph call as `total` breaks that
+  // getter's hydration and it silently resolves to 0 — confirmed by isolating
+  // each additional relation field one at a time against the DB's real
+  // order_summary row (customer/shipping_address/shipping_methods/
+  // payment_collections are all safe; only items.* interferes). So fetch the
+  // order's totals/relations and its items in two separate calls. Excludes
+  // canceled orders — their totals reflect post-cancellation state, a
+  // misleading sample for a "new order" template preview.
   const { data: orders } = await query.graph({
     entity: "order",
     fields: [
@@ -96,16 +106,22 @@ async function mostRecentOrderRaw(container: any) {
       "billing_address.first_name",
       "total",
       "currency_code",
-      "items.title",
-      "items.product_title",
-      "items.quantity",
-      "items.unit_price",
       "shipping_methods.name",
       "payment_collections.payments.provider_id",
     ],
+    filters: { status: { $ne: "canceled" } } as any,
     pagination: { take: 1, order: { created_at: "DESC" } },
   })
-  return orders[0] as any
+  const order = orders[0] as any
+  if (!order) return null
+
+  const { data: withItems } = await query.graph({
+    entity: "order",
+    fields: ["id", "items.title", "items.product_title", "items.quantity", "items.unit_price"],
+    filters: { id: order.id },
+  })
+  order.items = (withItems[0] as any)?.items || []
+  return order
 }
 
 export async function getOrderPlacedSample(container: any) {
