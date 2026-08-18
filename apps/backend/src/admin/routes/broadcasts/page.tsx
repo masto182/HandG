@@ -82,6 +82,12 @@ const CATEGORIES = [
 ]
 const ACCOUNT_STATUSES = ["pending", "approved", "rejected", "suspended", "active"]
 
+// Radix Select.Item disallows an empty-string value, so "no filter" needs a
+// sentinel we translate back to "" when read.
+const ANY_VALUE = "__any__"
+const toSelectValue = (v: string) => v || ANY_VALUE
+const fromSelectValue = (v: string) => (v === ANY_VALUE ? "" : v)
+
 function statusBadge(status: Broadcast["status"]) {
   if (status === "sent") return <Badge color="green">Sent</Badge>
   if (status === "sending") return <Badge color="orange">Sending</Badge>
@@ -211,11 +217,15 @@ function ComposerForm({
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label className="mb-1 block">VIP tier and above</Label>
-            <Select value={form.vip_tier_min} onValueChange={(v) => set("vip_tier_min", v)}>
+            <Select
+              value={toSelectValue(form.vip_tier_min)}
+              onValueChange={(v) => set("vip_tier_min", fromSelectValue(v))}
+            >
               <Select.Trigger>
                 <Select.Value placeholder="Any tier" />
               </Select.Trigger>
               <Select.Content>
+                <Select.Item value={ANY_VALUE}>Any tier</Select.Item>
                 {VIP_TIERS.map((t) => (
                   <Select.Item key={t} value={t}>
                     {t}
@@ -226,11 +236,15 @@ function ComposerForm({
           </div>
           <div>
             <Label className="mb-1 block">Opted into category</Label>
-            <Select value={form.category_optin} onValueChange={(v) => set("category_optin", v)}>
+            <Select
+              value={toSelectValue(form.category_optin)}
+              onValueChange={(v) => set("category_optin", fromSelectValue(v))}
+            >
               <Select.Trigger>
                 <Select.Value placeholder="Any category" />
               </Select.Trigger>
               <Select.Content>
+                <Select.Item value={ANY_VALUE}>Any category</Select.Item>
                 {CATEGORIES.map((c) => (
                   <Select.Item key={c} value={c}>
                     {c}
@@ -241,11 +255,15 @@ function ComposerForm({
           </div>
           <div>
             <Label className="mb-1 block">Follows brewery</Label>
-            <Select value={form.brewery_id} onValueChange={(v) => set("brewery_id", v)}>
+            <Select
+              value={toSelectValue(form.brewery_id)}
+              onValueChange={(v) => set("brewery_id", fromSelectValue(v))}
+            >
               <Select.Trigger>
                 <Select.Value placeholder="Any brewery" />
               </Select.Trigger>
               <Select.Content>
+                <Select.Item value={ANY_VALUE}>Any brewery</Select.Item>
                 {breweries.map((b) => (
                   <Select.Item key={b.id} value={b.id}>
                     {b.name}
@@ -256,11 +274,15 @@ function ComposerForm({
           </div>
           <div>
             <Label className="mb-1 block">Follows hop</Label>
-            <Select value={form.hop_id} onValueChange={(v) => set("hop_id", v)}>
+            <Select
+              value={toSelectValue(form.hop_id)}
+              onValueChange={(v) => set("hop_id", fromSelectValue(v))}
+            >
               <Select.Trigger>
                 <Select.Value placeholder="Any hop" />
               </Select.Trigger>
               <Select.Content>
+                <Select.Item value={ANY_VALUE}>Any hop</Select.Item>
                 {hops.map((h) => (
                   <Select.Item key={h.id} value={h.id}>
                     {h.name}
@@ -271,11 +293,15 @@ function ComposerForm({
           </div>
           <div>
             <Label className="mb-1 block">Account status</Label>
-            <Select value={form.account_status} onValueChange={(v) => set("account_status", v)}>
+            <Select
+              value={toSelectValue(form.account_status)}
+              onValueChange={(v) => set("account_status", fromSelectValue(v))}
+            >
               <Select.Trigger>
                 <Select.Value placeholder="Any status" />
               </Select.Trigger>
               <Select.Content>
+                <Select.Item value={ANY_VALUE}>Any status</Select.Item>
                 {ACCOUNT_STATUSES.map((s) => (
                   <Select.Item key={s} value={s}>
                     {s}
