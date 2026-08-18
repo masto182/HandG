@@ -91,6 +91,13 @@ export const NOTIFICATION_CATEGORIES: ReadonlyArray<CategoryDefinition> = [
     order: 9,
     default_enabled: false,
   },
+  {
+    category: "announcements",
+    label: "Announcements",
+    description: "Product updates and news from Hops & Glory.",
+    transactional: false,
+    order: 10,
+  },
 ]
 
 export const TRANSACTIONAL_CATEGORIES: ReadonlySet<NotificationCategory> = new Set(

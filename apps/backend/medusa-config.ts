@@ -69,6 +69,7 @@ module.exports = defineConfig({
     { resolve: "./src/modules/announcement" },
     { resolve: "./src/modules/beer-style" },
     { resolve: "./src/modules/inbox" },
+    { resolve: "./src/modules/broadcast" },
     { resolve: "./src/modules/hop" },
     { resolve: "./src/modules/site-config" },
     { resolve: "./src/modules/pickup-location" },

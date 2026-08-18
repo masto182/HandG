@@ -12,6 +12,7 @@ type NotificationItem = {
   body: string
   read: boolean
   created_at: string
+  metadata?: { link_url?: string; link_text?: string } | null
 }
 
 import { filterNewAlertNotifications } from "@lib/util/notification-toast"
@@ -96,6 +97,7 @@ export default function NotificationDropdown() {
     new_drop: "new_releases",
     welcome: "waving_hand",
     onboarding_halfway: "emoji_events",
+    broadcast: "campaign",
   }
 
   return (
@@ -155,6 +157,14 @@ export default function NotificationDropdown() {
                       <p className="text-body-sm text-on-surface-variant line-clamp-2">
                         {n.body}
                       </p>
+                      {n.type === "broadcast" && n.metadata?.link_url ? (
+                        <a
+                          href={n.metadata.link_url}
+                          className="text-body-sm text-primary font-medium hover:underline"
+                        >
+                          {n.metadata.link_text || "Learn more"}
+                        </a>
+                      ) : null}
                       <p className="text-[11px] text-on-surface-variant/60 mt-1">
                         {new Date(n.created_at).toLocaleDateString()}
                       </p>
