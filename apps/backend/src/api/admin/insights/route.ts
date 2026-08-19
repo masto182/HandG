@@ -8,6 +8,8 @@ import {
   buildCheckoutFunnel,
   buildDemandMetrics,
   buildFilterDrilldown,
+  buildInterestingProducts,
+  buildSearchIntent,
   INSIGHTS_EVENT_TYPES,
   buildProductDrilldown,
 } from "../../../modules/analytics/lib/insights"
@@ -90,6 +92,7 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
   let revenue30d = 0
   let orders30d = 0
   let capturedOrders: any[] = []
+  const unitsSoldByProduct = new Map<string, number>()
   try {
     const { data: orders } = await query.graph({
       entity: "order",
@@ -101,6 +104,8 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
         "customer_id",
         "payment_collections.status",
         "payment_collections.captured_amount",
+        "items.variant_id",
+        "items.quantity",
       ],
       filters: { created_at: { $gte: since.toISOString() } } as any,
     })
@@ -108,9 +113,35 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
     for (const o of capturedOrders) {
       revenue30d += Number(o.total || 0)
       orders30d++
+      for (const line of o.items || []) {
+        if (!line.variant_id) continue
+        unitsSoldByProduct.set(
+          line.variant_id,
+          (unitsSoldByProduct.get(line.variant_id) || 0) + Number(line.quantity || 0)
+        )
+      }
     }
   } catch {}
   const aov = orders30d > 0 ? revenue30d / orders30d : 0
+
+  // Prior-period revenue (60–30 days ago) for comparison-first deltas.
+  let revenuePrior30d = 0
+  const priorSince = new Date(since.getTime() - INSIGHTS_LOOKBACK_DAYS * 24 * 60 * 60 * 1000)
+  try {
+    const { data: priorOrders } = await query.graph({
+      entity: "order",
+      fields: [
+        "total",
+        "created_at",
+        "payment_collections.status",
+        "payment_collections.captured_amount",
+      ],
+      filters: { created_at: { $gte: priorSince.toISOString(), $lt: since.toISOString() } } as any,
+    })
+    for (const o of (priorOrders as any[]).filter(hasCapturedPayment)) {
+      revenuePrior30d += Number(o.total || 0)
+    }
+  } catch {}
 
   // Top wishlisted products with title + thumbnail resolution
   let topWishlistProducts: Array<{
@@ -155,32 +186,80 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
     }
   } catch {}
 
-  // Catalogue stock health: sum available qty per product across variant levels
+  // Catalogue stock health: sum available qty per product across variant levels.
+  // Also capture on-hand per product and variant->product mapping (for the
+  // Operate sell-through table, which needs units sold rolled up to product).
   let lowStock = 0
   let soldOut = 0
+  const onHandByProduct = new Map<string, number>()
+  const variantToProduct = new Map<string, string>()
   try {
     const { data: variants } = await query.graph({
       entity: "product_variant",
-      fields: ["product_id", "inventory_items.inventory.location_levels.available_quantity"],
+      fields: [
+        "id",
+        "product_id",
+        "title",
+        "inventory_items.inventory.location_levels.available_quantity",
+      ],
     })
-    const stockByProduct = new Map<string, number>()
     for (const v of variants as any[]) {
+      variantToProduct.set(v.id, v.product_id)
       let qty = 0
       for (const ii of v.inventory_items || []) {
         for (const ll of ii.inventory?.location_levels || []) {
           qty += Number(ll.available_quantity || 0)
         }
       }
-      const prev = stockByProduct.get(v.product_id) || 0
-      stockByProduct.set(v.product_id, prev + qty)
+      onHandByProduct.set(v.product_id, (onHandByProduct.get(v.product_id) || 0) + qty)
     }
-    for (const qty of stockByProduct.values()) {
+    for (const qty of onHandByProduct.values()) {
       if (qty <= 0) soldOut++
       else if (qty <= LOW_STOCK_THRESHOLD) lowStock++
     }
   } catch {}
 
+  // Operate table: per-product 30d units sold, on-hand, weeks-of-supply.
+  const soldByProduct = new Map<string, number>()
+  for (const [variantId, qty] of unitsSoldByProduct) {
+    const productId = variantToProduct.get(variantId)
+    if (!productId) continue
+    soldByProduct.set(productId, (soldByProduct.get(productId) || 0) + qty)
+  }
+  const WEEKS_PER_MONTH = 4.33
+  const operate = Array.from(new Set([...onHandByProduct.keys(), ...soldByProduct.keys()]))
+    .map((productId) => {
+      const sold = soldByProduct.get(productId) || 0
+      const onHand = onHandByProduct.get(productId) || 0
+      const weeklyRate = sold / WEEKS_PER_MONTH
+      const weeksOfSupply =
+        weeklyRate > 0 ? Math.round((onHand / weeklyRate) * 10) / 10 : onHand > 0 ? 99 : 0
+      let status: "out" | "reorder" | "healthy" | "no_sales" = "healthy"
+      if (onHand <= 0) status = "out"
+      else if (weeksOfSupply > 0 && weeksOfSupply <= 12) status = "reorder"
+      else if (weeklyRate <= 0) status = "no_sales"
+      return {
+        product_id: productId,
+        sold,
+        on_hand: onHand,
+        weeks_of_supply: weeksOfSupply,
+        status,
+      }
+    })
+    .sort((a, b) => {
+      const rank = { out: 0, reorder: 1, no_sales: 2, healthy: 3 } as const
+      return rank[a.status] - rank[b.status] || b.sold - a.sold
+    })
+
   const events: any[] = await listAnalyticsEvents(analyticsService)
+  // Data Health: newest event timestamp + raw event volume for the lookback window.
+  let dataThrough: string | null = null
+  for (const event of events) {
+    const ts = event?.created_at
+    if (!ts) continue
+    const iso = new Date(ts).toISOString()
+    if (!dataThrough || iso > dataThrough) dataThrough = iso
+  }
   const demand = buildDemandMetrics(events, since)
   const funnel = buildCheckoutFunnel(events, since)
   const productDrilldown = productId
@@ -203,6 +282,110 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
     last_path: row.last_path ?? null,
   }))
 
+  const searchIntent = buildSearchIntent(events, since)
+  const interestingProducts = buildInterestingProducts(events, since)
+  const revenueDeltaPct =
+    revenuePrior30d > 0
+      ? Math.round(((revenue30d - revenuePrior30d) / revenuePrior30d) * 100)
+      : null
+
+  // Attention Queue: deterministic, exception-based items with an owner and a drill-down.
+  const attention: Array<{
+    id: string
+    severity: "high" | "medium" | "low"
+    title: string
+    detail: string
+    magnitude: number
+    magnitude_label: string
+    href?: string
+  }> = []
+  if (soldOut > 0) {
+    attention.push({
+      id: "sold_out",
+      severity: "high",
+      title: `${soldOut} product${soldOut > 1 ? "s" : ""} are sold out`,
+      detail: "Zero units available. Reorder to keep catalogue complete.",
+      magnitude: soldOut,
+      magnitude_label: `${soldOut} products`,
+      href: "/app/products",
+    })
+  }
+  if (lowStock > 0) {
+    attention.push({
+      id: "low_stock",
+      severity: "medium",
+      title: `${lowStock} product${lowStock > 1 ? "s" : ""} are running low`,
+      detail: `On-hand at or below ${LOW_STOCK_THRESHOLD} units. Check the Operate tab for reorder flags.`,
+      magnitude: lowStock,
+      magnitude_label: `${lowStock} products`,
+      href: "/app/products",
+    })
+  }
+  const noCart = interestingProducts.filter((p) => p.cart_adds === 0 && p.views < 60)
+  if (noCart.length > 0) {
+    attention.push({
+      id: "interest_no_cart",
+      severity: "medium",
+      title: `${noCart.length} products are seen but not added to cart`,
+      detail: "High exposure, zero cart adds. Consider price, stock visibility, or position.",
+      magnitude: Math.max(...noCart.map((p) => p.views)),
+      magnitude_label: `up to ${Math.max(...noCart.map((p) => p.views))} views`,
+      href: "/app/products",
+    })
+  }
+  const zeroResultSearches = searchIntent.filter((s) => s.zero_results > 0)
+  if (zeroResultSearches.length > 0) {
+    attention.push({
+      id: "zero_result_searches",
+      severity: "low",
+      title: `${zeroResultSearches.length} search${zeroResultSearches.length > 1 ? "s" : ""} returned nothing`,
+      detail: zeroResultSearches
+        .slice(0, 3)
+        .map((s) => `"${s.query}" (${s.zero_results}×)`)
+        .join(", "),
+      magnitude: zeroResultSearches.reduce((sum, s) => sum + s.zero_results, 0),
+      magnitude_label: `${zeroResultSearches.reduce((sum, s) => sum + s.zero_results, 0)} zero-result searches`, // prettier-ignore
+      href: "/app/products",
+    })
+  }
+  if (pendingOffers > 0) {
+    attention.push({
+      id: "pending_offers",
+      severity: "medium",
+      title: `${pendingOffers} buy-at-price offer${pendingOffers > 1 ? "s" : ""} pending review`,
+      detail: "A customer wants to set a price. Approving keeps momentum.",
+      magnitude: pendingOffers,
+      magnitude_label: `${pendingOffers} offers`,
+      href: "/app/buy-at-price",
+    })
+  }
+  if (pendingMembers > 0) {
+    attention.push({
+      id: "pending_applications",
+      severity: "medium",
+      title: `${pendingMembers} member application${pendingMembers > 1 ? "s" : ""} pending`,
+      detail: "Approve or decline to keep membership responsive.",
+      magnitude: pendingMembers,
+      magnitude_label: `${pendingMembers} applications`,
+      href: "/app/members",
+    })
+  }
+  if (demotionRisk > 0) {
+    attention.push({
+      id: "demotion_risk",
+      severity: "medium",
+      title: `${demotionRisk} VIP${demotionRisk > 1 ? "s" : ""} at risk of demotion`,
+      detail: "Falling below spend threshold. Consider a win-back touchpoint.",
+      magnitude: demotionRisk,
+      magnitude_label: `${demotionRisk} members`,
+      href: "/app/members",
+    })
+  }
+  attention.sort((a, b) => {
+    const rank = { high: 0, medium: 1, low: 2 }
+    return rank[a.severity] - rank[b.severity]
+  })
+
   res.json({
     members: {
       total: totalMembers,
@@ -213,10 +396,13 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
     tiers: tierDistribution,
     abandoned_carts: abandonedCarts,
     revenue_30d: revenue30d,
+    revenue_delta_pct: revenueDeltaPct,
     aov,
     orders_30d: orders30d,
     demotion_risk: demotionRisk,
     catalogue: { low_stock: lowStock, sold_out: soldOut },
+    operate,
+    attention,
     wishlist: {
       top_products: topWishlistProducts,
       pending_offers: pendingOffers,
@@ -224,6 +410,9 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
     },
     demand,
     funnel,
+    search_intent: searchIntent,
+    interesting_products: interestingProducts,
+    data: { through: dataThrough, events: events.length },
     referrals,
     recently_active,
     product_drilldown: productDrilldown,

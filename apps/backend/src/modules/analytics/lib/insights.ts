@@ -77,6 +77,25 @@ export type DemandMetrics = {
   untappd_bands: Array<{ band: string; views: number }>
 }
 
+export type SearchIntentRow = {
+  query: string
+  submissions: number
+  result_clicks: number
+  click_through: number // 0-100
+  avg_results: number
+  zero_results: number
+}
+
+export type AttentionAction = {
+  id: string
+  severity: "high" | "medium" | "low"
+  title: string
+  detail: string
+  magnitude: number
+  magnitude_label: string
+  href?: string
+}
+
 export const CHECKOUT_STAGE_RANK: Record<CheckoutStageKey, number> = {
   cart: 0,
   fulfilment: 1,
@@ -757,4 +776,79 @@ export function buildFilterDrilldown(
       }))
       .sort((a, b) => b.uses - a.uses),
   }
+}
+
+export function buildSearchIntent(events: AnalyticsEvent[], since?: Date): SearchIntentRow[] {
+  const merged = filterEvents(events, since)
+  const subs = new Map<string, { n: number; zero: number; results: number }>()
+  const clicks = new Map<string, number>()
+  for (const event of merged) {
+    const query =
+      typeof event.payload?.query_normalized === "string" ? event.payload.query_normalized : null
+    if (!query) continue
+    if (event.event_type === "search.submitted") {
+      const current = subs.get(query) ?? { n: 0, zero: 0, results: 0 }
+      current.n++
+      const resultCount = Number(event.payload?.result_count)
+      if (resultCount === 0) current.zero++
+      current.results += Number.isFinite(resultCount) ? resultCount : 0
+      subs.set(query, current)
+    } else if (event.event_type === "search.result_clicked") {
+      clicks.set(query, (clicks.get(query) ?? 0) + 1)
+    }
+  }
+  return Array.from(subs.entries())
+    .map(([query, data]) => ({
+      query,
+      submissions: data.n,
+      result_clicks: clicks.get(query) ?? 0,
+      click_through: data.n > 0 ? Math.round(((clicks.get(query) ?? 0) / data.n) * 100) : 0,
+      avg_results: data.n > 0 ? Math.round(data.results / data.n) : 0,
+      zero_results: data.zero,
+    }))
+    .sort((a, b) => b.submissions - a.submissions)
+    .slice(0, 15)
+}
+
+// Products with strong exposure (views) but little-to-no conversion (cart adds).
+// These are the "interest without intent" cases worth an attention row.
+export function buildInterestingProducts(
+  events: AnalyticsEvent[],
+  since?: Date,
+  minViews = 20
+): Array<{
+  product_id: string
+  handle: string
+  views: number
+  cart_adds: number
+  view_to_cart_rate: number
+}> {
+  const merged = filterEvents(events, since)
+  const byProduct = new Map<string, { handle: string; views: number; cart_adds: number }>()
+  for (const event of merged) {
+    const payload = event.payload ?? {}
+    if (!payload.product_id) continue
+    const current = byProduct.get(payload.product_id) ?? {
+      handle: typeof payload.handle === "string" ? payload.handle : "",
+      views: 0,
+      cart_adds: 0,
+    }
+    if (event.event_type === "product.viewed") current.views++
+    if (event.event_type === "cart.item_added") current.cart_adds++
+    if (current.handle || typeof payload.handle === "string") {
+      current.handle = current.handle || (typeof payload.handle === "string" ? payload.handle : "")
+    }
+    byProduct.set(payload.product_id, current)
+  }
+  return Array.from(byProduct.entries())
+    .map(([product_id, data]) => ({
+      product_id,
+      handle: data.handle,
+      views: data.views,
+      cart_adds: data.cart_adds,
+      view_to_cart_rate: data.views > 0 ? Math.round((data.cart_adds / data.views) * 100) / 100 : 0,
+    }))
+    .filter((p) => p.views >= minViews)
+    .sort((a, b) => b.views - a.views)
+    .slice(0, 10)
 }

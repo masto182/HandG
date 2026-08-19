@@ -1,8 +1,10 @@
 import {
   buildCheckoutFunnel,
   buildFilterDrilldown,
+  buildInterestingProducts,
   buildMemberActivity,
   buildProductDrilldown,
+  buildSearchIntent,
 } from "../../modules/analytics/lib/insights"
 import {
   mergeSessionCustomers,
@@ -450,6 +452,53 @@ describe("insights aggregation — unit (pure logic)", () => {
       expect(top[0]).toEqual({ product_id: "p1", count: 3 })
       expect(top[1]).toEqual({ product_id: "p2", count: 2 })
       expect(top.length).toBe(3)
+    })
+  })
+
+  describe("search intent", () => {
+    it("flags zero-result searches and computes click-through", () => {
+      const events = [
+        {
+          event_type: "search.submitted",
+          payload: { query_normalized: "milkshake ipa", result_count: 0 },
+        },
+        {
+          event_type: "search.submitted",
+          payload: { query_normalized: "milkshake ipa", result_count: 0 },
+        },
+        {
+          event_type: "search.submitted",
+          payload: { query_normalized: "hazy pale", result_count: 12 },
+        },
+        { event_type: "search.result_clicked", payload: { query_normalized: "hazy pale" } },
+      ]
+      const rows = buildSearchIntent(events)
+      expect(rows.find((r) => r.query === "milkshake ipa")?.zero_results).toBe(2)
+      const hazy = rows.find((r) => r.query === "hazy pale")
+      expect(hazy?.result_clicks).toBe(1)
+      expect(hazy?.click_through).toBe(100)
+      expect(hazy?.avg_results).toBe(12)
+    })
+  })
+
+  describe("interesting products", () => {
+    it("exposes high-view products with zero cart adds and sorts by views", () => {
+      const events = [
+        {
+          event_type: "product.viewed",
+          payload: { product_id: "p_high", handle: "high", views: 0 },
+        },
+        { event_type: "product.viewed", payload: { product_id: "p_high", handle: "high" } },
+        { event_type: "product.viewed", payload: { product_id: "p_high", handle: "high" } },
+        { event_type: "product.viewed", payload: { product_id: "p_high", handle: "high" } },
+        { event_type: "product.viewed", payload: { product_id: "p_bought", handle: "bought" } },
+        { event_type: "cart.item_added", payload: { product_id: "p_bought", handle: "bought" } },
+      ]
+      const rows = buildInterestingProducts(events, undefined, 1)
+      expect(rows[0].product_id).toBe("p_high")
+      expect(rows[0].views).toBe(4)
+      expect(rows[0].cart_adds).toBe(0)
+      expect(rows.find((r) => r.product_id === "p_bought")?.cart_adds).toBe(1)
     })
   })
 })

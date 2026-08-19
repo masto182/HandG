@@ -1,14 +1,36 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
-import { Container, Heading, Badge, Text, Tabs } from "@medusajs/ui"
+import { Container, Heading, Badge, Text, Tabs, Table } from "@medusajs/ui"
 import { useEffect, useState } from "react"
 import { sdk } from "../../lib/sdk"
 import { FunnelBar } from "../../components/funnel-bar"
+import { MetricCard } from "../../components/metric-card"
+import { ExceptionRow } from "../../components/exception-row"
+import { BulletGauge } from "../../components/bullet-gauge"
+import { DemandMatrix } from "../../components/demand-matrix"
 
 type CustomerLite = {
   id: string
   email: string
   name: string
   tier: string
+}
+
+type AttentionAction = {
+  id: string
+  severity: "high" | "medium" | "low"
+  title: string
+  detail: string
+  magnitude: number
+  magnitude_label: string
+  href?: string
+}
+
+type OperateRow = {
+  product_id: string
+  sold: number
+  on_hand: number
+  weeks_of_supply: number
+  status: "out" | "reorder" | "healthy" | "no_sales"
 }
 
 type InsightsData = {
@@ -21,10 +43,13 @@ type InsightsData = {
   tiers: Record<string, number>
   abandoned_carts: number
   revenue_30d: number
+  revenue_delta_pct: number | null
   aov: number
   orders_30d: number
   demotion_risk: number
   catalogue: { low_stock: number; sold_out: number }
+  operate: OperateRow[]
+  attention: AttentionAction[]
   wishlist: {
     top_products: Array<{
       product_id: string
@@ -58,6 +83,22 @@ type InsightsData = {
       conversion_rate: number
     }>
   }
+  search_intent: Array<{
+    query: string
+    submissions: number
+    result_clicks: number
+    click_through: number
+    avg_results: number
+    zero_results: number
+  }>
+  interesting_products: Array<{
+    product_id: string
+    handle: string
+    views: number
+    cart_adds: number
+    view_to_cart_rate: number
+  }>
+  data: { through: string | null; events: number }
   referrals: {
     summary: {
       total_referrals: number
@@ -81,16 +122,14 @@ type InsightsData = {
     last_seen_at: string
     last_path: string | null
   }>
-  product_drilldown:
-    | {
-        customer_id: string | null
-        session_id: string | null
-        views: number
-        cart_adds: number
-        last_at: string | null
-        customer: CustomerLite | null
-      }[]
-    | null
+  product_drilldown: Array<{
+    customer_id: string | null
+    session_id: string | null
+    views: number
+    cart_adds: number
+    last_at: string | null
+    customer: CustomerLite | null
+  }> | null
   filter_drilldown: {
     values: Array<{ value: string; count: number }>
     members: Array<{
@@ -111,41 +150,6 @@ const aud = (n: number) =>
     maximumFractionDigits: 0,
   }).format(n || 0)
 
-function Kpi({
-  label,
-  value,
-  sub,
-  tone,
-  href,
-}: {
-  label: string
-  value: string | number
-  sub?: string
-  tone?: "default" | "warn" | "danger"
-  href?: string
-}) {
-  const toneCls =
-    tone === "danger"
-      ? "text-ui-fg-error"
-      : tone === "warn"
-        ? "text-ui-tag-orange-text"
-        : "text-ui-fg-base"
-  const inner = (
-    <div className="rounded-lg border border-ui-border-base p-4 flex flex-col gap-1 h-full hover:border-ui-border-interactive transition-colors">
-      <span className="text-xs text-ui-fg-subtle uppercase tracking-wider">{label}</span>
-      <span className={`text-2xl font-bold ${toneCls}`}>{value}</span>
-      {sub && <span className="text-xs text-ui-fg-muted">{sub}</span>}
-    </div>
-  )
-  return href ? (
-    <a href={href} className="block">
-      {inner}
-    </a>
-  ) : (
-    inner
-  )
-}
-
 function BarRow({
   label,
   count,
@@ -160,7 +164,7 @@ function BarRow({
   const pct = max > 0 ? Math.round((count / max) * 100) : 0
   return (
     <div className="flex items-center gap-3">
-      <span className="text-xs w-20 text-ui-fg-subtle">{label}</span>
+      <span className="text-xs w-24 truncate text-ui-fg-subtle">{label}</span>
       <div className="flex-1 bg-ui-bg-subtle rounded h-5 overflow-hidden">
         <div className={`h-full ${color} rounded`} style={{ width: `${pct}%` }} />
       </div>
@@ -177,20 +181,27 @@ function MemberLink({
   sessionId?: string | null
 }) {
   if (!customer) {
-    if (sessionId) {
-      return (
-        <span className="text-ui-fg-muted" title={sessionId}>
-          Anonymous session · {sessionId.slice(0, 8)}
-        </span>
-      )
-    }
-    return <span className="text-ui-fg-muted">Unknown member</span>
+    return (
+      <span className="text-ui-fg-muted" title={sessionId ?? undefined}>
+        {sessionId ? `Anonymous session · ${sessionId.slice(0, 8)}` : "Unknown member"}
+      </span>
+    )
   }
   return (
     <a href={`/app/members`} className="text-ui-fg-interactive hover:underline">
       {customer.name}
     </a>
   )
+}
+
+const OPERATE_STATUS: Record<
+  OperateRow["status"],
+  { badge: "red" | "orange" | "green" | "grey"; label: string }
+> = {
+  out: { badge: "red", label: "Out of stock" },
+  reorder: { badge: "orange", label: "Reorder" },
+  no_sales: { badge: "grey", label: "No sales (30d)" },
+  healthy: { badge: "green", label: "Healthy" },
 }
 
 const InsightsPage = () => {
@@ -244,83 +255,164 @@ const InsightsPage = () => {
       </Container>
     )
 
-  const conversionRate =
-    data.members.applications_submitted > 0
-      ? ((data.members.approved / data.members.applications_submitted) * 100).toFixed(1)
-      : "0"
-
   const tierEntries = Object.entries(data.tiers).sort(([a], [b]) => a.localeCompare(b))
   const tierMax = Math.max(1, ...tierEntries.map(([, c]) => c))
   const funnelMax = Math.max(1, ...data.funnel.stages.map((stage) => stage.count))
+  const attentionMax = Math.max(1, ...data.attention.map((a) => a.magnitude))
+  const lastPlaced = data.funnel.stages[data.funnel.stages.length - 1]
+
+  // Demand matrix: exposure (views) vs conversion (view-to-cart rate).
+  const matrixPoints = data.demand.top_products
+    .filter((p) => p.views > 0)
+    .slice(0, 12)
+    .map((p) => ({
+      id: p.product_id,
+      label: p.handle || p.product_id.slice(-10),
+      x: p.views,
+      y: p.view_to_cart_rate * 100,
+    }))
+
+  // 30-day revenue sparkline is not persisted as a series; derive from nothing here,
+  // so pass undefined unless we later add a series. Keep the card comparison-first.
+  const revenueCard = {
+    label: "Revenue (30d)",
+    value: aud(data.revenue_30d),
+    sub: `${data.orders_30d} orders`,
+    deltaPct: data.revenue_delta_pct,
+  }
 
   return (
     <Container>
-      <Heading level="h1" className="mb-4">
-        Insights
-      </Heading>
-      <Tabs defaultValue="operations">
+      <div className="flex items-baseline justify-between mb-4 gap-4 flex-wrap">
+        <Heading level="h1">Insights</Heading>
+        {/* Data Health strip — persistent, never a tab (Few: trust before metrics) */}
+        <div className="flex items-center gap-2 text-xs text-ui-fg-muted">
+          <Badge size="2xsmall" color={data.data.through ? "green" : "grey"}>
+            {data.data.through ? "Live" : "No data"}
+          </Badge>
+          <span>
+            Data through{" "}
+            {data.data.through
+              ? new Date(data.data.through).toLocaleString("en-AU", {
+                  day: "numeric",
+                  month: "short",
+                  hour: "numeric",
+                  minute: "2-digit",
+                })
+              : "—"}
+            {data.data.through &&
+            data.data.through < new Date(Date.now() - 24 * 3600e3).toISOString()
+              ? " · STALE"
+              : null}
+          </span>
+          <span className="text-ui-fg-muted">·</span>
+          <span>{data.data.events} events (30d)</span>
+        </div>
+      </div>
+
+      <Tabs defaultValue="overview">
         <Tabs.List>
-          <Tabs.Trigger value="operations">Operations</Tabs.Trigger>
-          <Tabs.Trigger value="demand">Demand &amp; Behaviour</Tabs.Trigger>
-          <Tabs.Trigger value="checkout">Checkout Funnel</Tabs.Trigger>
+          <Tabs.Trigger value="overview">Overview</Tabs.Trigger>
+          <Tabs.Trigger value="operate">Operate</Tabs.Trigger>
+          <Tabs.Trigger value="demand">Demand</Tabs.Trigger>
+          <Tabs.Trigger value="funnel">Funnel</Tabs.Trigger>
+          <Tabs.Trigger value="members">Members</Tabs.Trigger>
           <Tabs.Trigger value="referrals">Referrals</Tabs.Trigger>
         </Tabs.List>
 
-        <Tabs.Content value="operations" className="pt-6 space-y-8">
-          {/* KPI row */}
+        {/* ============ OVERVIEW ============ */}
+        <Tabs.Content value="overview" className="pt-6 space-y-8">
+          {/* Headline metrics — comparison-first */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <Kpi
-              label="Revenue (30d)"
-              value={aud(data.revenue_30d)}
-              sub={`${data.orders_30d} orders`}
+            <MetricCard
+              label={revenueCard.label}
+              value={revenueCard.value}
+              sub={revenueCard.sub}
+              deltaPct={revenueCard.deltaPct}
             />
-            <Kpi label="Avg order value" value={aud(data.aov)} sub="Last 30 days" />
-            <Kpi
+            <MetricCard label="Avg order value" value={aud(data.aov)} sub="Last 30 days" />
+            <MetricCard
               label="Total members"
-              value={data.members.total}
+              value={String(data.members.total)}
               sub={`${data.members.approved} approved`}
               href="/app/members"
             />
-            <Kpi
-              label="Pending applications"
-              value={data.members.pending}
-              sub={`${conversionRate}% approval rate`}
-              tone={data.members.pending > 0 ? "warn" : "default"}
-              href="/app/members"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <Kpi
-              label="Demotion risk"
-              value={data.demotion_risk}
-              sub="VIPs at risk of demotion"
-              tone={data.demotion_risk > 0 ? "warn" : "default"}
-            />
-            <Kpi
+            <MetricCard
               label="Abandoned carts"
-              value={data.abandoned_carts}
+              value={String(data.abandoned_carts)}
               sub="Inactive 24h+ with items"
-              tone={data.abandoned_carts > 0 ? "warn" : "default"}
-            />
-            <Kpi
-              label="Low stock"
-              value={data.catalogue.low_stock}
-              sub="≤ 6 units left"
-              tone={data.catalogue.low_stock > 0 ? "warn" : "default"}
-              href="/app/products"
-            />
-            <Kpi
-              label="Sold out"
-              value={data.catalogue.sold_out}
-              sub="0 units available"
-              tone={data.catalogue.sold_out > 0 ? "danger" : "default"}
-              href="/app/products"
+              deltaPct={data.abandoned_carts > 0 ? 0 : null}
+              href="/app/carts"
             />
           </div>
 
-          {/* Two-column: tiers + offers */}
+          {/* Attention Queue — decisions, not data */}
+          <div>
+            <Heading level="h2" className="mb-2">
+              What needs attention
+            </Heading>
+            <div className="rounded-lg border border-ui-border-base px-1 py-1">
+              {data.attention.length === 0 && (
+                <div className="px-2 py-4 text-center">
+                  <Text size="small" className="text-ui-fg-muted">
+                    Nothing needs attention right now. 🎉
+                  </Text>
+                </div>
+              )}
+              {data.attention.map((action) => (
+                <ExceptionRow
+                  key={action.id}
+                  title={action.title}
+                  detail={action.detail}
+                  severity={action.severity}
+                  magnitude={action.magnitude}
+                  magnitudeLabel={action.magnitude_label}
+                  maxMagnitude={attentionMax}
+                  href={action.href}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Secondary reference, below the fold */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+              <Heading level="h2" className="mb-3">
+                Recently active members
+              </Heading>
+              <div className="space-y-1">
+                {data.recently_active.length === 0 && (
+                  <Text size="small" className="text-ui-fg-muted">
+                    No active sessions in the last 30 days.
+                  </Text>
+                )}
+                {data.recently_active.map((row) => (
+                  <a
+                    key={row.customer_id}
+                    href="/app/members"
+                    className="flex items-center justify-between gap-3 border-b border-ui-border-base py-2 hover:bg-ui-bg-subtle px-2 rounded"
+                  >
+                    <Text size="small">{row.customer?.name ?? row.customer_id.slice(-8)}</Text>
+                    <div className="flex items-center gap-2 text-ui-fg-muted text-sm">
+                      {row.last_path && (
+                        <span className="truncate max-w-[220px]">{row.last_path}</span>
+                      )}
+                      <Badge size="2xsmall" color="green">
+                        {new Date(row.last_seen_at) > new Date(Date.now() - 5 * 60 * 1000)
+                          ? "Online now"
+                          : new Date(row.last_seen_at).toLocaleString("en-AU", {
+                              day: "numeric",
+                              month: "short",
+                              hour: "numeric",
+                              minute: "2-digit",
+                            })}
+                      </Badge>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </div>
+
             <div>
               <Heading level="h2" className="mb-3">
                 VIP tier distribution
@@ -342,101 +434,71 @@ const InsightsPage = () => {
                 ))}
               </div>
             </div>
-
-            <div>
-              <Heading level="h2" className="mb-3">
-                Buy-at-Price offers
-              </Heading>
-              <div className="grid grid-cols-3 gap-3">
-                <Kpi
-                  label="Pending"
-                  value={data.wishlist.pending_offers}
-                  tone={data.wishlist.pending_offers > 0 ? "warn" : "default"}
-                  href="/app/buy-at-price"
-                />
-                <Kpi
-                  label="Approved"
-                  value={data.wishlist.approved_offers}
-                  href="/app/buy-at-price"
-                />
-                <Kpi
-                  label="Total"
-                  value={data.wishlist.pending_offers + data.wishlist.approved_offers}
-                />
-              </div>
-            </div>
           </div>
-
-          {/* Recently active members */}
-          <div>
-            <Heading level="h2" className="mb-3">
-              Recently active members
-            </Heading>
-            <div className="space-y-1">
-              {data.recently_active.length === 0 && (
-                <Text size="small" className="text-ui-fg-muted">
-                  No active sessions in the last 30 days.
-                </Text>
-              )}
-              {data.recently_active.map((row) => (
-                <a
-                  key={row.customer_id}
-                  href="/app/members"
-                  className="flex items-center justify-between gap-3 border-b border-ui-border-base py-2 hover:bg-ui-bg-subtle px-2 rounded"
-                >
-                  <Text size="small">{row.customer?.name ?? row.customer_id.slice(-8)}</Text>
-                  <div className="flex items-center gap-2 text-ui-fg-muted text-sm">
-                    {row.last_path && (
-                      <span className="truncate max-w-[220px]">{row.last_path}</span>
-                    )}
-                    <Badge size="2xsmall" color="green">
-                      {new Date(row.last_seen_at) > new Date(Date.now() - 5 * 60 * 1000)
-                        ? "Online now"
-                        : new Date(row.last_seen_at).toLocaleString("en-AU", {
-                            day: "numeric",
-                            month: "short",
-                            hour: "numeric",
-                            minute: "2-digit",
-                          })}
-                    </Badge>
-                  </div>
-                </a>
-              ))}
-            </div>
-          </div>
-
-          {/* Top wishlisted */}
-          {data.wishlist.top_products.length > 0 && (
-            <div>
-              <Heading level="h2" className="mb-3">
-                Top wishlisted products
-              </Heading>
-              <div className="space-y-1">
-                {data.wishlist.top_products.map((p, i) => (
-                  <a
-                    key={p.product_id}
-                    href={`/app/products/${p.product_id}`}
-                    className="flex items-center gap-3 border-b border-ui-border-base py-2 hover:bg-ui-bg-subtle px-2 rounded"
-                  >
-                    <span className="text-ui-fg-muted text-sm w-6">#{i + 1}</span>
-                    {p.thumbnail ? (
-                      <img src={p.thumbnail} alt="" className="w-8 h-8 rounded object-cover" />
-                    ) : (
-                      <div className="w-8 h-8 rounded bg-ui-bg-subtle" />
-                    )}
-                    <span className="text-sm flex-1">{p.title || p.product_id.slice(-12)}</span>
-                    <Badge color="blue" size="2xsmall">
-                      {p.count} wishlist{p.count > 1 ? "s" : ""}
-                    </Badge>
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
         </Tabs.Content>
 
+        {/* ============ OPERATE ============ */}
+        <Tabs.Content value="operate" className="pt-6 space-y-6">
+          <Heading level="h2" className="mb-2">
+            Stock & reorder
+          </Heading>
+          <Text size="small" className="text-ui-fg-muted">
+            Weeks of supply = on-hand ÷ average weekly sales (30d). Below ~12 weeks flags a reorder;
+            an empty shelf waits for no one.
+          </Text>
+          <div className="rounded-lg border border-ui-border-base overflow-hidden">
+            <Table>
+              <Table.Header>
+                <Table.Row>
+                  <Table.HeaderCell>Product</Table.HeaderCell>
+                  <Table.HeaderCell>Sold (30d)</Table.HeaderCell>
+                  <Table.HeaderCell>On hand</Table.HeaderCell>
+                  <Table.HeaderCell>Weeks of supply</Table.HeaderCell>
+                  <Table.HeaderCell>Status</Table.HeaderCell>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {data.operate.length === 0 && (
+                  <Table.Row>
+                    <Table.Cell>
+                      <Text size="small" className="text-ui-fg-muted">
+                        No product data yet.
+                      </Text>
+                    </Table.Cell>
+                  </Table.Row>
+                )}
+                {data.operate.slice(0, 40).map((row) => {
+                  const status = OPERATE_STATUS[row.status]
+                  return (
+                    <Table.Row key={row.product_id}>
+                      <Table.Cell>
+                        <a
+                          href={`/app/products/${row.product_id}`}
+                          className="text-ui-fg-interactive hover:underline"
+                        >
+                          {row.product_id.slice(-10)}
+                        </a>
+                      </Table.Cell>
+                      <Table.Cell>{row.sold}</Table.Cell>
+                      <Table.Cell>{row.on_hand}</Table.Cell>
+                      <Table.Cell>
+                        {row.weeks_of_supply >= 99 ? "—" : `${row.weeks_of_supply} wks`}
+                      </Table.Cell>
+                      <Table.Cell>
+                        <Badge color={status.badge} size="2xsmall">
+                          {status.label}
+                        </Badge>
+                      </Table.Cell>
+                    </Table.Row>
+                  )
+                })}
+              </Table.Body>
+            </Table>
+          </div>
+        </Tabs.Content>
+
+        {/* ============ DEMAND ============ */}
         <Tabs.Content value="demand" className="pt-6 space-y-8">
-          {/* Top products by views */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
               <Heading level="h2" className="mb-3">
@@ -476,6 +538,19 @@ const InsightsPage = () => {
 
             <div>
               <Heading level="h2" className="mb-3">
+                Demand vs conversion
+              </Heading>
+              <Text size="small" className="text-ui-fg-muted mb-2">
+                Products with lots of views but weak conversion fall bottom-right — seen but not
+                bought.
+              </Text>
+              <DemandMatrix points={matrixPoints} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+              <Heading level="h2" className="mb-3">
                 Top breweries (30d views)
               </Heading>
               {data.demand.top_breweries.length === 0 ? (
@@ -496,9 +571,40 @@ const InsightsPage = () => {
                 </div>
               )}
             </div>
+
+            <div>
+              <Heading level="h2" className="mb-3">
+                Search intent
+              </Heading>
+              {data.search_intent.length === 0 ? (
+                <Text size="small" className="text-ui-fg-muted">
+                  No search events yet.
+                </Text>
+              ) : (
+                <div className="space-y-2">
+                  {data.search_intent.slice(0, 8).map((s) => (
+                    <div key={s.query} className="flex items-center gap-3">
+                      <span className="text-xs flex-1 truncate text-ui-fg-subtle">{s.query}</span>
+                      <Badge
+                        color={
+                          s.zero_results > 0 ? "red" : s.click_through === 0 ? "orange" : "grey"
+                        }
+                        size="2xsmall"
+                      >
+                        {s.zero_results > 0
+                          ? "no results"
+                          : `${s.result_clicks}/${s.submissions} clicked`}
+                      </Badge>
+                      <span className="text-xs text-ui-fg-muted w-8 text-right">
+                        {s.submissions}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Filter usage + hop counts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
               <Heading level="h2" className="mb-3">
@@ -552,26 +658,6 @@ const InsightsPage = () => {
               )}
             </div>
           </div>
-
-          {/* Untappd rating band distribution */}
-          {data.demand.untappd_bands.length > 0 && (
-            <div>
-              <Heading level="h2" className="mb-3">
-                Views by Untappd rating band (30d)
-              </Heading>
-              <div className="space-y-2 max-w-lg">
-                {data.demand.untappd_bands.map((b) => (
-                  <BarRow
-                    key={b.band}
-                    label={b.band}
-                    count={b.views}
-                    max={Math.max(...data.demand.untappd_bands.map((x) => x.views))}
-                    color="bg-ui-tag-orange-icon"
-                  />
-                ))}
-              </div>
-            </div>
-          )}
 
           {selectedProductId && (
             <div>
@@ -649,18 +735,23 @@ const InsightsPage = () => {
           )}
         </Tabs.Content>
 
-        <Tabs.Content value="checkout" className="pt-6 space-y-8">
+        {/* ============ FUNNEL ============ */}
+        <Tabs.Content value="funnel" className="pt-6 space-y-8">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <Kpi label="Tracked sessions" value={data.funnel.total_sessions} />
-            <Kpi
+            <MetricCard label="Tracked sessions" value={String(data.funnel.total_sessions)} />
+            <MetricCard
               label="Order placed rate"
               value={`${data.funnel.stages.find((s) => s.key === "placed")?.conversion_rate ?? 0}%`}
             />
-            <Kpi
+            <MetricCard
               label="Payment confirmed rate"
-              value={`${data.funnel.stages[data.funnel.stages.length - 1]?.conversion_rate ?? 0}%`}
+              value={`${lastPlaced?.conversion_rate ?? 0}%`}
             />
-            <Kpi label="Completed orders" value={data.funnel.completed_orders} />
+            <MetricCard
+              label="Completed orders"
+              value={String(data.funnel.completed_orders)}
+              sub="Payment confirmed"
+            />
           </div>
           <Text size="small" className="text-ui-fg-muted">
             "Order placed" fires the instant checkout succeeds. "Payment confirmed" depends on
@@ -672,7 +763,7 @@ const InsightsPage = () => {
             <Heading level="h2" className="mb-3">
               Checkout funnel
             </Heading>
-            <div className="space-y-3">
+            <div className="space-y-3 max-w-3xl">
               {data.funnel.stages.map((stage) => (
                 <FunnelBar
                   key={stage.key}
@@ -683,15 +774,117 @@ const InsightsPage = () => {
                 />
               ))}
             </div>
+            <Heading level="h2" className="mt-8 mb-3">
+              Stage conversion — numerator/denominator
+            </Heading>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-3xl">
+              {data.funnel.stages
+                .filter((s) => s.key !== "cart")
+                .map((stage) => {
+                  const prev =
+                    data.funnel.stages[data.funnel.stages.findIndex((x) => x.key === stage.key) - 1]
+                  return (
+                    <BulletGauge
+                      key={stage.key}
+                      label={stage.label}
+                      value={stage.count}
+                      target={prev ? Math.round(prev.count * 0.8) : undefined}
+                      max={data.funnel.stages[0]?.count ?? 1}
+                    />
+                  )
+                })}
+            </div>
           </div>
         </Tabs.Content>
 
+        {/* ============ MEMBERS ============ */}
+        <Tabs.Content value="members" className="pt-6 space-y-8">
+          <Heading level="h2" className="mb-2">
+            Member activity
+          </Heading>
+          <Text size="small" className="text-ui-fg-muted">
+            Who is browsing vs buying. View per-member history from the Members page.
+          </Text>
+          <div>
+            <Heading level="h2" className="mb-3">
+              Recently active
+            </Heading>
+            <div className="rounded-lg border border-ui-border-base overflow-hidden">
+              <Table>
+                <Table.Header>
+                  <Table.Row>
+                    <Table.HeaderCell>Member</Table.HeaderCell>
+                    <Table.HeaderCell>Last path</Table.HeaderCell>
+                    <Table.HeaderCell>Last seen</Table.HeaderCell>
+                  </Table.Row>
+                </Table.Header>
+                <Table.Body>
+                  {data.recently_active.map((row) => (
+                    <Table.Row key={row.customer_id}>
+                      <Table.Cell>
+                        <MemberLink customer={row.customer} />
+                      </Table.Cell>
+                      <Table.Cell>
+                        <span className="text-ui-fg-muted truncate max-w-[240px] inline-block">
+                          {row.last_path ?? "—"}
+                        </span>
+                      </Table.Cell>
+                      <Table.Cell>
+                        <Badge size="2xsmall" color="green">
+                          {new Date(row.last_seen_at) > new Date(Date.now() - 5 * 60 * 1000)
+                            ? "Online now"
+                            : new Date(row.last_seen_at).toLocaleString("en-AU", {
+                                day: "numeric",
+                                month: "short",
+                                hour: "numeric",
+                                minute: "2-digit",
+                              })}
+                        </Badge>
+                      </Table.Cell>
+                    </Table.Row>
+                  ))}
+                </Table.Body>
+              </Table>
+            </div>
+          </div>
+
+          <div>
+            <Heading level="h2" className="mb-3">
+              Buy-at-Price offers
+            </Heading>
+            <div className="grid grid-cols-3 gap-3 max-w-lg">
+              <MetricCard
+                label="Pending"
+                value={String(data.wishlist.pending_offers)}
+                deltaPct={data.wishlist.pending_offers > 0 ? 0 : null}
+                href="/app/buy-at-price"
+              />
+              <MetricCard
+                label="Approved"
+                value={String(data.wishlist.approved_offers)}
+                href="/app/buy-at-price"
+              />
+              <MetricCard
+                label="Total"
+                value={String(data.wishlist.pending_offers + data.wishlist.approved_offers)}
+              />
+            </div>
+          </div>
+        </Tabs.Content>
+
+        {/* ============ REFERRALS ============ */}
         <Tabs.Content value="referrals" className="pt-6 space-y-8">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <Kpi label="Referrals" value={data.referrals.summary.total_referrals} />
-            <Kpi label="Converted referrals" value={data.referrals.summary.converted_referrals} />
-            <Kpi label="Stealth referrals" value={data.referrals.summary.stealth_referrals} />
-            <Kpi label="Referral revenue" value={aud(data.referrals.summary.revenue)} />
+            <MetricCard label="Referrals" value={String(data.referrals.summary.total_referrals)} />
+            <MetricCard
+              label="Converted referrals"
+              value={String(data.referrals.summary.converted_referrals)}
+            />
+            <MetricCard
+              label="Stealth referrals"
+              value={String(data.referrals.summary.stealth_referrals)}
+            />
+            <MetricCard label="Referral revenue" value={aud(data.referrals.summary.revenue)} />
           </div>
 
           <div>
@@ -720,11 +913,6 @@ const InsightsPage = () => {
                   </div>
                 </div>
               ))}
-              {data.referrals.top_referrers.length === 0 && (
-                <Text size="small" className="text-ui-fg-muted">
-                  No referral conversions yet.
-                </Text>
-              )}
             </div>
           </div>
         </Tabs.Content>
