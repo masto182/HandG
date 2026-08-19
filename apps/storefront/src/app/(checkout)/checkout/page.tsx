@@ -1,4 +1,8 @@
-import { retrieveCart, applyApprovedOffersToCart } from "@lib/data/cart"
+import {
+  retrieveCart,
+  applyApprovedOffersToCart,
+  applyAutomaticPromotionsToCart,
+} from "@lib/data/cart"
 import { retrieveCustomer } from "@lib/data/customer"
 import { listCartShippingMethods } from "@lib/data/fulfillment"
 import { listCartPaymentMethods } from "@lib/data/payment"
@@ -54,6 +58,10 @@ export default async function Checkout({
   // straight to checkout without visiting /cart). Best-effort; persisted on the
   // cart server-side so totals/order reflect it.
   await applyApprovedOffersToCart(cart)
+
+  // Same gap, generic case: brewery BOGO deals and other non-customer-scoped
+  // automatic promotions.
+  await applyAutomaticPromotionsToCart(cart)
 
   // customer + shipping methods are both always needed and independent — fetch
   // in parallel rather than waterfalling.

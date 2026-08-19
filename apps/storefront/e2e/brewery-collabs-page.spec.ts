@@ -35,14 +35,14 @@ test.describe("Brewery slug page collabs section", () => {
     await expect(collabLink.first()).toBeVisible({ timeout: 15_000 })
   })
 
-  test("primary brewery (tree-house-brewing) does NOT list the collab product as one of its collabs", async ({
+  test("primary brewery (tree-house) does NOT list the collab product as one of its collabs", async ({
     request,
   }) => {
-    // The collab product's primary is Tree House, so on /breweries/tree-house-brewing
+    // The collab product's primary is Tree House, so on /breweries/tree-house
     // the COLLABS section (reverse-lookup of where TH is a partner) should NOT
     // include this product. It may still appear in the brewery's own primary releases.
     const collabsRes = await request.get(
-      `${BACKEND}/store/breweries/tree-house-brewing/collabs`,
+      `${BACKEND}/store/breweries/tree-house/collabs`,
       { headers: { "x-publishable-api-key": PUBLISHABLE_KEY } },
     )
     expect(collabsRes.status()).toBe(200)
