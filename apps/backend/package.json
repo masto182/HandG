@@ -26,7 +26,11 @@
     "scrape:untappd": "npx tsx scripts/scrape-untappd-images.ts",
     "staging:sync": "npx tsx scripts/staging-image-sync.ts",
     "staging:scrape": "npx tsx scripts/staging-image-sync.ts --scrape-only",
-    "staging:upload": "npx tsx scripts/staging-image-sync.ts --upload-only"
+    "staging:upload": "npx tsx scripts/staging-image-sync.ts --upload-only",
+    "load-doctor": "npx tsx scripts/load-doctor.ts",
+    "prep-beers": "npx tsx scripts/prep-beers.ts",
+    "load-to-prod": "npx tsx scripts/load-to-production.ts",
+    "rescue-images": "npx tsx scripts/rescue-from-feedback.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1087.0",

@@ -6,6 +6,7 @@ import {
 } from "@medusajs/framework/workflows-sdk"
 import { BEER_STYLE_MODULE } from "../modules/beer-style"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { emitEventStep } from "@medusajs/medusa/core-flows"
 
 type CreateBeerStyleInput = {
   [key: string]: unknown
@@ -123,6 +124,13 @@ export const assignBeerStyleWorkflow = createWorkflow(
   "assign-beer-style",
   function (input: AssignBeerStyleInput) {
     const result = (assignBeerStyleStep as any)(input)
+    // Search index only re-reads beer_style on product.created/updated — the
+    // link.create above doesn't fire that event itself, so admin-assigned
+    // styles never reached MeiliSearch's style_family facet without this.
+    emitEventStep({
+      eventName: "product.updated",
+      data: { id: input.product_id },
+    })
     return new WorkflowResponse(result)
   }
 )

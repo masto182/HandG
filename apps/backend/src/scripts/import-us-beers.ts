@@ -11,6 +11,7 @@
  */
 import { ContainerRegistrationKeys, Modules, ProductStatus } from "@medusajs/framework/utils"
 import { HOP_MODULE } from "../modules/hop"
+import { BEER_STYLE_MODULE } from "../modules/beer-style"
 import type { ExecArgs } from "@medusajs/framework/types"
 import { createProductsWorkflow, createPriceListsWorkflow } from "@medusajs/medusa/core-flows"
 import * as fs from "fs"
@@ -43,14 +44,39 @@ function parseDate(str: string): string | null {
   return new Date(Date.UTC(year, month, day)).toISOString()
 }
 
+// Approximate packaging weight per ml, by container type — used only when a
+// CSV row supplies an explicit "Container type" / "Container size (ml)"
+// override (added for breweries like Messorem that mix Can/Bottle/multiple
+// sizes within the same brewery, where the old brewery-level hardcode below
+// can't express per-beer variation). Derived from the two hardcoded examples
+// already in this file: Can 473ml/500g (~1.05 g/ml), Bottle 510ml/700g
+// (~1.37 g/ml, glass is heavier). Crowler uses the Troon 950ml/1100g example
+// (~1.16 g/ml).
+const CONTAINER_WEIGHT_PER_ML: Record<string, number> = {
+  can: 1.05,
+  bottle: 1.37,
+  crowler: 1.16,
+}
+
 function getContainer(
   breweryName: string,
-  title: string
+  title: string,
+  containerTypeOverride?: string,
+  sizeMlOverride?: number
 ): {
   container: string
   volume_ml: number
   weight: number
 } {
+  if (containerTypeOverride && sizeMlOverride && !isNaN(sizeMlOverride)) {
+    const typeKey = containerTypeOverride.toLowerCase().trim()
+    const perMl = CONTAINER_WEIGHT_PER_ML[typeKey] ?? 1.1
+    return {
+      container: `${containerTypeOverride.trim()} ${sizeMlOverride}ml`,
+      volume_ml: sizeMlOverride,
+      weight: Math.round(sizeMlOverride * perMl),
+    }
+  }
   if (breweryName === "Troon") {
     return { container: "Crowler 950ml", volume_ml: 950, weight: 1100 }
   }
@@ -72,6 +98,63 @@ function slugify(str: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "")
+}
+
+// Mirrors backfill-beer-style-links.ts SYNONYMS/resolveStyle — scraped CSV
+// style strings rarely match BeerStyle canonical names exactly.
+const STYLE_SYNONYMS: Record<string, string> = {
+  "india pale ale": "ipa",
+  "indian pale ale": "ipa",
+  "ne ipa": "neipa",
+  "new england ipa": "neipa",
+  "hazy ipa": "neipa",
+  hazy: "neipa",
+  wcipa: "west-coast-ipa",
+  "wc ipa": "west-coast-ipa",
+  "west coast": "west-coast-ipa",
+  dipa: "double-ipa",
+  "imperial ipa": "double-ipa",
+  iipa: "double-ipa",
+  tipa: "triple-ipa",
+  apa: "american-pale-ale",
+  "american pale": "american-pale-ale",
+  "extra pale ale": "xpa",
+  weizen: "hefeweizen",
+  white: "witbier",
+  wheat: "hefeweizen",
+  lambic: "wild-ale",
+  pils: "pilsner",
+  marzen: "lager",
+  "vienna lager": "lager",
+  kolsch: "lager",
+  amber: "red-ale",
+  "robust porter": "porter",
+  "brown porter": "porter",
+  "baltic porter": "porter",
+  "session ipa": "session-ipa",
+  "fruit beer": "fruit-sour",
+}
+
+function normalizeStyle(s: string): string {
+  return s.trim().toLowerCase().replace(/\s+/g, " ")
+}
+
+function resolveStyle(raw: string, byName: Map<string, any>, bySlug: Map<string, any>): any | null {
+  if (!raw) return null
+  const norm = normalizeStyle(raw)
+  if (byName.has(norm)) return byName.get(norm)
+  const slug = slugify(raw)
+  if (bySlug.has(slug)) return bySlug.get(slug)
+  if (STYLE_SYNONYMS[norm] && bySlug.has(STYLE_SYNONYMS[norm])) {
+    return bySlug.get(STYLE_SYNONYMS[norm])
+  }
+  for (const [synKey, synSlug] of Object.entries(STYLE_SYNONYMS)) {
+    if (norm.includes(synKey) && bySlug.has(synSlug)) return bySlug.get(synSlug)
+  }
+  for (const [styleSlug, styleObj] of bySlug.entries()) {
+    if (norm.includes(styleSlug.replace(/-/g, " "))) return styleObj
+  }
+  return null
 }
 
 function parseCSV(filePath: string): Record<string, string>[] {
@@ -120,6 +203,9 @@ export default async function importProducts({ container }: ExecArgs) {
   const link = container.resolve(ContainerRegistrationKeys.LINK)
   const breweryService = container.resolve("brewery") as any
   const hopService = container.resolve(HOP_MODULE) as any
+  const beerStyleService = container.resolve(BEER_STYLE_MODULE) as any
+  const fulfillmentModule = container.resolve(Modules.FULFILLMENT)
+  const [defaultShippingProfile] = await fulfillmentModule.listShippingProfiles()
 
   const HOP_NORMALIZATION: Record<string, string> = {
     Nelson: "Nelson Sauvin",
@@ -155,6 +241,29 @@ export default async function importProducts({ container }: ExecArgs) {
   }
 
   const hopMap = await buildHopMap()
+
+  // Beer style map + link helper — see F3 in wi65 analysis: without this,
+  // style is written to metadata.style only and never becomes the
+  // beer_style<->product link that MeiliSearch's style_family facet reads.
+  const allStyles = await beerStyleService.listBeerStyles({})
+  const styleByName = new Map<string, any>(allStyles.map((s: any) => [normalizeStyle(s.name), s]))
+  const styleBySlug = new Map<string, any>(allStyles.map((s: any) => [s.slug, s]))
+
+  async function applyBeerStyleLink(productId: string, rawStyle: string) {
+    const style = resolveStyle(rawStyle, styleByName, styleBySlug)
+    if (!style) {
+      if (rawStyle) logger.warn(`Unresolved beer style "${rawStyle}" for product ${productId}`)
+      return
+    }
+    try {
+      await link.create({
+        [BEER_STYLE_MODULE]: { beer_style_id: style.id },
+        [Modules.PRODUCT]: { product_id: productId },
+      })
+    } catch {
+      // already linked — ignore
+    }
+  }
 
   const dryRun = process.env.DRY_RUN !== "false"
 
@@ -199,6 +308,23 @@ export default async function importProducts({ container }: ExecArgs) {
   const breweryMap: Record<string, any> = {}
   for (const b of existingBreweries) {
     breweryMap[b.name.toLowerCase()] = b
+  }
+
+  // Pre-load all products once for idempotent matching, keyed by handle (exact,
+  // authoritative — see slugify() below) and by lowercased title (fallback for
+  // rows whose stored title differs only in case, e.g. "Slumbering wraith" vs
+  // "slumbering wraith"). A single upfront listProducts({title}) exact-match
+  // query per row previously missed case-mismatched titles entirely, routing
+  // them to batch-create where they'd throw a handle collision and take out
+  // the other 9 products in that batch. take is set high — this catalog is a
+  // few hundred products, not paginated thousands.
+  const allProducts = await productModule.listProducts({}, { take: 10000 })
+  const productByHandle: Record<string, any> = {}
+  const productByTitleLower: Record<string, any> = {}
+  for (const p of allProducts as any[]) {
+    if (p.status !== "published") continue
+    if (p.handle) productByHandle[p.handle] = p
+    if (p.title) productByTitleLower[p.title.toLowerCase().trim()] = p
   }
 
   // Ensure all breweries exist (main + collab)
@@ -314,7 +440,12 @@ export default async function importProducts({ container }: ExecArgs) {
     const sku = `us-${slugify(breweryName)}-${slugify(title)}`.slice(0, 100)
     const handle = slugify(`${breweryName}-${title}`)
 
-    const { container, volume_ml, weight } = getContainer(breweryName, title)
+    const { container, volume_ml, weight } = getContainer(
+      breweryName,
+      title,
+      row["Container type"],
+      row["Container size (ml)"] ? parseFloat(row["Container size (ml)"]) : undefined
+    )
     const packedAtISO = parseDate(releasedDate)
     const dateAddedISO = parseDate(row["Date Added"])
 
@@ -336,9 +467,9 @@ export default async function importProducts({ container }: ExecArgs) {
     if (hops) metadata.hop_names = hops
     if (colab) metadata.collab_partner = colab
 
-    // Check if product already exists
-    const existingArr = await productModule.listProducts({ title })
-    const existing = existingArr.find((p: any) => p.title === title && p.status === "published")
+    // Check if product already exists — handle match first (exact, authoritative),
+    // then case-insensitive title fallback. See pre-load comment above for why.
+    const existing = productByHandle[handle] || productByTitleLower[title.toLowerCase().trim()]
 
     if (existing) {
       const variant = existing.variants?.[0]
@@ -374,6 +505,9 @@ export default async function importProducts({ container }: ExecArgs) {
             // link already exists — ignore
           }
         }
+
+        // Beer style link — see F3 in wi65 analysis
+        if (style) await applyBeerStyleLink(existing.id, style)
 
         // Hop links from metadata.hop_names
         if (hops) await linkHops(hopMap, hops, existing.id)
@@ -442,7 +576,12 @@ export default async function importProducts({ container }: ExecArgs) {
         const colab = row["Colab"] || ""
         const sku = `us-${slugify(breweryName)}-${slugify(title)}`.slice(0, 100)
         const handle = slugify(`${breweryName}-${title}`)
-        const { container, volume_ml, weight } = getContainer(breweryName, title)
+        const { container, volume_ml, weight } = getContainer(
+          breweryName,
+          title,
+          row["Container type"],
+          row["Container size (ml)"] ? parseFloat(row["Container size (ml)"]) : undefined
+        )
         const packedAtISO = parseDate(releasedDate)
         const dateAddedISO = parseDate(row["Date Added"])
 
@@ -487,6 +626,7 @@ export default async function importProducts({ container }: ExecArgs) {
           _brewery_name: breweryName,
           _colab: colab,
           _hops: hops,
+          _style: style,
           _stock: parseInt(row["Left"] || "0"),
           _sku: sku,
           _handle: handle,
@@ -496,8 +636,17 @@ export default async function importProducts({ container }: ExecArgs) {
 
       try {
         const input = workflowInput.map(
-          ({ _brewery_name, _colab, _hops, _stock, _sku, _handle, _sale_price, ...product }) =>
-            product
+          ({
+            _brewery_name,
+            _colab,
+            _hops,
+            _style,
+            _stock,
+            _sku,
+            _handle,
+            _sale_price,
+            ...product
+          }) => product
         )
         const { result: products } = await createProductsWorkflow(container).run({
           input: { products: input },
@@ -517,10 +666,31 @@ export default async function importProducts({ container }: ExecArgs) {
             }
           }
 
+          // Shipping profile link — without this, cart.complete() hard-fails
+          // at checkout with "shipping profiles that are not satisfied" for
+          // any cart containing this product. createProductsWorkflow does not
+          // auto-link to a shipping profile that already existed pre-import.
+          if (defaultShippingProfile) {
+            try {
+              await link.create({
+                [Modules.PRODUCT]: { product_id: products[j].id },
+                [Modules.FULFILLMENT]: { shipping_profile_id: defaultShippingProfile.id },
+              })
+            } catch (e: any) {
+              logger.warn(
+                `Shipping profile link failed for ${workflowInput[j].title}: ${e.message}`
+              )
+            }
+          }
+
           // Collab brewery links
           // Hop links for new products
           const newHops = workflowInput[j]._hops
           if (newHops) await linkHops(hopMap, newHops, products[j].id)
+
+          // Beer style link — see F3 in wi65 analysis
+          const newStyle = workflowInput[j]._style
+          if (newStyle) await applyBeerStyleLink(products[j].id, newStyle)
 
           const collabRaw = workflowInput[j]._colab
           if (collabRaw) {

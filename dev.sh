@@ -44,7 +44,7 @@ start_app() { # name, port, pnpm-filter
     echo "• $name already running on :$port — skipping"
     return 0
   fi
-  echo "• starting $name…"
+  echo "• starting ${name}…"
   ( cd "$ROOT" && nohup pnpm --filter "$filter" dev >"$LOG_DIR/$name.log" 2>&1 & echo $! >"$LOG_DIR/$name.pid" )
 }
 
@@ -85,7 +85,7 @@ cmd_stop() {
   stop_port "$STOREFRONT_PORT" storefront
   # belt & suspenders: kill stragglers by command pattern
   pkill -f "medusa develop" 2>/dev/null || true
-  pkill -f "next dev --turbopack -p $STOREFRONT_PORT" 2>/dev/null || true
+  pkill -f "next dev -p $STOREFRONT_PORT" 2>/dev/null || true
   if [ "${1:-}" = "--all" ]; then
     echo "• stopping docker infra…"
     ( cd "$ROOT" && docker compose down ) >/dev/null

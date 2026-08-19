@@ -9,6 +9,7 @@ import { normalizeAuthEmail } from "./store/middlewares/normalize-auth-email"
 import { normalizeAdminProductResponse } from "./admin/middlewares/normalize-product-response"
 import { productImageMiddlewares } from "./admin/product-images/validators"
 import { StoreEventRequestSchema } from "./store/events/validators"
+import { SessionHeartbeatRequestSchema } from "./store/sessions/heartbeat/validators"
 
 export default defineMiddlewares({
   routes: [
@@ -70,6 +71,17 @@ export default defineMiddlewares({
         authenticate("customer", ["bearer", "session"], { allowUnauthenticated: true }),
         validateBody(StoreEventRequestSchema),
         rateLimit(process.env.NODE_ENV === "production" ? 120 : 1200, 60000),
+      ],
+    },
+    {
+      // Session heartbeat — fires far more frequently than /store/events, so
+      // it gets a more generous rate limit ceiling.
+      matcher: "/store/sessions/heartbeat",
+      method: "POST",
+      middlewares: [
+        authenticate("customer", ["bearer", "session"], { allowUnauthenticated: true }),
+        validateBody(SessionHeartbeatRequestSchema),
+        rateLimit(process.env.NODE_ENV === "production" ? 240 : 2400, 60000),
       ],
     },
     {

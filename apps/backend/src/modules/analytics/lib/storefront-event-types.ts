@@ -9,6 +9,11 @@ export const STORE_EVENT_TYPES = [
   "checkout.fulfilment_selected",
   "checkout.shipping_method_selected",
   "order.confirmation_viewed",
+  "page.viewed",
+  "product.list_viewed",
+  "product.selected",
+  "search.submitted",
+  "search.result_clicked",
 ] as const
 
 export type StoreEventType = (typeof STORE_EVENT_TYPES)[number]

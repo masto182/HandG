@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { sdk } from "@lib/config"
 import { trackGoal } from "@lib/util/plausible"
+import { useTrack } from "@lib/hooks/use-track"
 
 type SearchHit = {
   id: string
@@ -26,6 +27,7 @@ export default function SearchBar({
   const inputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
+  const track = useTrack()
 
   useEffect(() => {
     if (open && inputRef.current) {
@@ -59,13 +61,18 @@ export default function SearchBar({
         totalHits?: number
       }>(`/store/search?q=${encodeURIComponent(q)}&limit=8`, { method: "GET" })
       setResults(data.hits || [])
+      const resultCount =
+        typeof data.totalHits === "number"
+          ? data.totalHits
+          : (data.hits?.length ?? 0)
       if (q.trim().length >= 2) {
         trackGoal("search", {
           q: q.trim().slice(0, 80),
-          resultCount:
-            typeof data.totalHits === "number"
-              ? data.totalHits
-              : (data.hits?.length ?? 0),
+          resultCount,
+        })
+        track("search.submitted", {
+          query_normalized: q.trim().toLowerCase().slice(0, 160),
+          result_count: resultCount,
         })
       }
     } catch {}
@@ -78,11 +85,16 @@ export default function SearchBar({
     debounceRef.current = setTimeout(() => search(value), 200)
   }
 
-  const handleSelect = (handle: string) => {
+  const handleSelect = (hit: SearchHit, position: number) => {
+    track("search.result_clicked", {
+      query_normalized: query.trim().toLowerCase().slice(0, 160),
+      product_id: hit.id,
+      position,
+    })
     setOpen(false)
     setQuery("")
     setResults([])
-    router.push(`/products/${handle}`)
+    router.push(`/products/${hit.handle}`)
   }
 
   const handleSeeAll = () => {
@@ -141,7 +153,7 @@ export default function SearchBar({
             {results.map((hit, i) => (
               <button
                 key={hit.id}
-                onClick={() => handleSelect(hit.handle)}
+                onClick={() => handleSelect(hit, i)}
                 className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-hg-gold/5 transition-colors text-left border-b border-hg-border/30 last:border-b-0"
               >
                 <div className="w-10 h-10 rounded-lg overflow-hidden bg-hg-bg border border-hg-border/50 flex-shrink-0 flex items-center justify-center relative">

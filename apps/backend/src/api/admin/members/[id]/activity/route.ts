@@ -18,5 +18,8 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
   })) as any[]
   const activity = buildMemberActivity(events, req.params.id)
 
-  res.json({ activity })
+  const lastActiveMap = await analyticsService.getLastActiveByCustomerIds([req.params.id])
+  const last_active = lastActiveMap.get(req.params.id) ?? null
+
+  res.json({ activity: { ...activity, last_active } })
 }

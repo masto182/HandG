@@ -6,6 +6,7 @@ const StorefrontEvent = model.define("storefront_event", {
   session_id: model.text(),
   customer_id: model.text().nullable(),
   payload: model.json(),
+  event_id: model.text().nullable(),
 })
 
 export default StorefrontEvent

@@ -75,9 +75,16 @@ type InsightsData = {
       customer: CustomerLite | null
     }>
   }
+  recently_active: Array<{
+    customer_id: string
+    customer: CustomerLite | null
+    last_seen_at: string
+    last_path: string | null
+  }>
   product_drilldown:
     | {
-        customer_id: string
+        customer_id: string | null
+        session_id: string | null
         views: number
         cart_adds: number
         last_at: string | null
@@ -87,7 +94,8 @@ type InsightsData = {
   filter_drilldown: {
     values: Array<{ value: string; count: number }>
     members: Array<{
-      customer_id: string
+      customer_id: string | null
+      session_id: string | null
       uses: number
       values: string[]
       last_at: string | null
@@ -161,8 +169,21 @@ function BarRow({
   )
 }
 
-function MemberLink({ customer }: { customer: CustomerLite | null }) {
+function MemberLink({
+  customer,
+  sessionId,
+}: {
+  customer: CustomerLite | null
+  sessionId?: string | null
+}) {
   if (!customer) {
+    if (sessionId) {
+      return (
+        <span className="text-ui-fg-muted" title={sessionId}>
+          Anonymous session · {sessionId.slice(0, 8)}
+        </span>
+      )
+    }
     return <span className="text-ui-fg-muted">Unknown member</span>
   }
   return (
@@ -346,6 +367,44 @@ const InsightsPage = () => {
             </div>
           </div>
 
+          {/* Recently active members */}
+          <div>
+            <Heading level="h2" className="mb-3">
+              Recently active members
+            </Heading>
+            <div className="space-y-1">
+              {data.recently_active.length === 0 && (
+                <Text size="small" className="text-ui-fg-muted">
+                  No active sessions in the last 30 days.
+                </Text>
+              )}
+              {data.recently_active.map((row) => (
+                <a
+                  key={row.customer_id}
+                  href="/app/members"
+                  className="flex items-center justify-between gap-3 border-b border-ui-border-base py-2 hover:bg-ui-bg-subtle px-2 rounded"
+                >
+                  <Text size="small">{row.customer?.name ?? row.customer_id.slice(-8)}</Text>
+                  <div className="flex items-center gap-2 text-ui-fg-muted text-sm">
+                    {row.last_path && (
+                      <span className="truncate max-w-[220px]">{row.last_path}</span>
+                    )}
+                    <Badge size="2xsmall" color="green">
+                      {new Date(row.last_seen_at) > new Date(Date.now() - 5 * 60 * 1000)
+                        ? "Online now"
+                        : new Date(row.last_seen_at).toLocaleString("en-AU", {
+                            day: "numeric",
+                            month: "short",
+                            hour: "numeric",
+                            minute: "2-digit",
+                          })}
+                    </Badge>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+
           {/* Top wishlisted */}
           {data.wishlist.top_products.length > 0 && (
             <div>
@@ -522,10 +581,10 @@ const InsightsPage = () => {
               <div className="space-y-2">
                 {(productDrilldown ?? []).map((row) => (
                   <div
-                    key={row.customer_id}
+                    key={row.customer_id ?? row.session_id ?? `${row.last_at}`}
                     className="flex items-center justify-between gap-3 border-b border-ui-border-base py-2"
                   >
-                    <MemberLink customer={row.customer} />
+                    <MemberLink customer={row.customer} sessionId={row.session_id} />
                     <div className="flex items-center gap-2 text-sm text-ui-fg-subtle">
                       <Badge color="blue" size="2xsmall">
                         {row.views} views
@@ -570,11 +629,11 @@ const InsightsPage = () => {
                 <div className="space-y-2">
                   {(filterDrilldown?.members ?? []).map((member) => (
                     <div
-                      key={member.customer_id}
+                      key={member.customer_id ?? member.session_id ?? member.values.join(",")}
                       className="flex items-center justify-between gap-3 border-b border-ui-border-base py-2"
                     >
                       <div>
-                        <MemberLink customer={member.customer} />
+                        <MemberLink customer={member.customer} sessionId={member.session_id} />
                         <Text size="small" className="text-ui-fg-muted">
                           {member.values.join(", ")}
                         </Text>
@@ -593,13 +652,21 @@ const InsightsPage = () => {
         <Tabs.Content value="checkout" className="pt-6 space-y-8">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <Kpi label="Tracked sessions" value={data.funnel.total_sessions} />
-            <Kpi label="Completed orders" value={data.funnel.completed_orders} />
             <Kpi
-              label="Overall conversion"
-              value={`${data.funnel.stages.at(-1)?.conversion_rate ?? 0}%`}
+              label="Order placed rate"
+              value={`${data.funnel.stages.find((s) => s.key === "placed")?.conversion_rate ?? 0}%`}
             />
-            <Kpi label="Terminal stage" value="Payment confirmed" />
+            <Kpi
+              label="Payment confirmed rate"
+              value={`${data.funnel.stages[data.funnel.stages.length - 1]?.conversion_rate ?? 0}%`}
+            />
+            <Kpi label="Completed orders" value={data.funnel.completed_orders} />
           </div>
+          <Text size="small" className="text-ui-fg-muted">
+            "Order placed" fires the instant checkout succeeds. "Payment confirmed" depends on
+            manual capture (PayID / cash-on-pickup) and will naturally lag — a gap here is expected,
+            not a broken funnel.
+          </Text>
 
           <div>
             <Heading level="h2" className="mb-3">

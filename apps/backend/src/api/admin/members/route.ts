@@ -2,11 +2,13 @@ import { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/
 import { Modules } from "@medusajs/framework/utils"
 import { VIP_SCORE_MODULE } from "../../../modules/vip-score"
 import { REFERRAL_MODULE } from "../../../modules/referral"
+import { ANALYTICS_MODULE } from "../../../modules/analytics"
 
 export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   const customerModule = req.scope.resolve(Modules.CUSTOMER) as any
   const vipScoreService = req.scope.resolve(VIP_SCORE_MODULE) as any
   const referralService = req.scope.resolve(REFERRAL_MODULE) as any
+  const analyticsService = req.scope.resolve(ANALYTICS_MODULE) as any
 
   const {
     group,
@@ -54,6 +56,10 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
     pageIds.length ? vipScoreService.listVipScores({ customer_id: pageIds }) : [],
     pageIds.length ? referralService.listReferrals({ referrer_customer_id: pageIds }) : [],
   ])
+
+  const lastActiveMap: Map<string, string> = pageIds.length
+    ? await analyticsService.getLastActiveByCustomerIds(pageIds)
+    : new Map()
 
   const scoreMap = new Map(pageScores.map((s: any) => [s.customer_id, s]))
   const referralCountMap = new Map<string, number>()
@@ -109,6 +115,7 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
           }
         : null,
       created_at: c.created_at,
+      last_active: lastActiveMap.get(c.id) ?? null,
     }
   })
 

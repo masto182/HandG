@@ -17,10 +17,52 @@ import type { ExecArgs } from "@medusajs/framework/types"
 import { Modules, ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import * as fs from "fs"
 import * as path from "path"
+import { execFileSync } from "child_process"
 
 const IMAGE_DIR = path.join(process.cwd(), "data", "product-images")
+const REJECTED_DIR = path.join(process.cwd(), "data", "product-images-rejected")
 const URL_MAP_FILE = path.join(process.cwd(), "data", "product-image-urls.json")
 const SUPPORTED_EXTS = new Set([".jpg", ".jpeg", ".png", ".webp"])
+
+const MIN_SIZE = 800
+
+function validateImageDimensions(filePath: string): {
+  ok: boolean
+  width?: number
+  height?: number
+  reason?: string
+} {
+  try {
+    const out = execFileSync(
+      "python3",
+      [
+        "-c",
+        `
+import sys, json
+from PIL import Image, ImageOps
+img = ImageOps.exif_transpose(Image.open(sys.argv[1]))
+print(json.dumps({"width": img.size[0], "height": img.size[1]}))
+`,
+        filePath,
+      ],
+      { timeout: 10_000, encoding: "utf-8" }
+    )
+    const dims = JSON.parse(out.trim())
+    if (dims.width !== dims.height) {
+      return { ok: false, ...dims, reason: `Not square: ${dims.width}x${dims.height}` }
+    }
+    if (dims.width < MIN_SIZE) {
+      return {
+        ok: false,
+        ...dims,
+        reason: `Too small: ${dims.width}x${dims.height} (min ${MIN_SIZE})`,
+      }
+    }
+    return { ok: true, ...dims }
+  } catch {
+    return { ok: false, reason: "Cannot read image dimensions" }
+  }
+}
 
 type QueueEntry = { source: "local"; filePath: string } | { source: "url"; url: string }
 
@@ -142,6 +184,20 @@ export default async function bulkUploadImages({ container }: ExecArgs) {
 
       if (item.source === "local") {
         const filePath = item.filePath
+
+        // Pre-upload validation: reject non-square or undersized images
+        const validation = validateImageDimensions(filePath)
+        if (!validation.ok) {
+          const reason = validation.reason ?? "unknown"
+          logger.warn(`[BulkUpload] REJECTED ${handle}: ${reason}`)
+          if (!fs.existsSync(REJECTED_DIR)) fs.mkdirSync(REJECTED_DIR, { recursive: true })
+          const dest = path.join(REJECTED_DIR, path.basename(filePath))
+          if (!dryRun) fs.copyFileSync(filePath, dest)
+          errors.push({ handle, error: `Validation failed: ${reason}` })
+          report.push({ handle, status: "error", note: `Validation: ${reason}` })
+          continue
+        }
+
         const filename = `products/${handle}${path.extname(filePath)}`
         const mime = mimeType(filePath)
 

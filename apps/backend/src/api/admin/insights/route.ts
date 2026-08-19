@@ -191,6 +191,18 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
     : null
   const referrals = await buildReferralInsights(req.scope, referralService, capturedOrders)
 
+  const recentlyActiveRaw = await analyticsService.listRecentlyActiveCustomers(since, 10)
+  const recentlyActiveCustomers = await loadCustomersById(
+    req.scope,
+    recentlyActiveRaw.map((row: any) => row.customer_id)
+  )
+  const recently_active = recentlyActiveRaw.map((row: any) => ({
+    customer_id: row.customer_id,
+    customer: recentlyActiveCustomers.get(row.customer_id) ?? null,
+    last_seen_at: row.last_seen_at,
+    last_path: row.last_path ?? null,
+  }))
+
   res.json({
     members: {
       total: totalMembers,
@@ -213,6 +225,7 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
     demand,
     funnel,
     referrals,
+    recently_active,
     product_drilldown: productDrilldown,
     filter_drilldown: filterDrilldown,
   })

@@ -10,7 +10,7 @@ export type AnalyticsEvent = {
 }
 
 export type CheckoutStageKey =
-  "cart" | "fulfilment" | "address" | "shipping" | "payment" | "review" | "completed"
+  "cart" | "fulfilment" | "address" | "shipping" | "payment" | "review" | "placed" | "completed"
 
 export type CheckoutStage = {
   key: CheckoutStageKey
@@ -26,7 +26,7 @@ export type CheckoutSessionSummary = {
   last_at: string | null
   fulfilment_method: "pickup" | "delivery" | null
   max_stage: CheckoutStageKey
-  outcome: "completed" | "dropped"
+  outcome: "completed" | "placed" | "dropped"
   order_ids: string[]
   counts: {
     cart_views: number
@@ -56,6 +56,11 @@ export type MemberActivity = {
     values: string[]
     last_at: string | null
   }>
+  pages: Array<{
+    path: string
+    referrer: string | null
+    at: string | null
+  }>
 }
 
 export type DemandMetrics = {
@@ -79,7 +84,8 @@ export const CHECKOUT_STAGE_RANK: Record<CheckoutStageKey, number> = {
   shipping: 3,
   payment: 4,
   review: 5,
-  completed: 6,
+  placed: 6,
+  completed: 7,
 }
 
 export const INSIGHTS_EVENT_TYPES = [...ANALYTICS_EVENT_TYPES]
@@ -93,7 +99,9 @@ export const MEMBER_ACTIVITY_EVENT_TYPES = [
   "checkout.address_submitted",
   "checkout.fulfilment_selected",
   "checkout.shipping_method_selected",
+  "order.confirmation_viewed",
   "order.completed",
+  "page.viewed",
 ] as const
 
 function toIso(value: string | Date | null | undefined): string | null {
@@ -164,6 +172,19 @@ function dedupeOrderIds(events: AnalyticsEvent[]): string[] {
   return [...ids]
 }
 
+// order.confirmation_viewed fires client-side the instant checkout succeeds —
+// unlike order.completed (server, gated on payment.captured), this is not
+// delayed for manual payment methods like PayID/cash-on-pickup.
+function dedupePlacedOrderIds(events: AnalyticsEvent[]): string[] {
+  const ids = new Set<string>()
+  for (const event of events) {
+    if (event.event_type !== "order.confirmation_viewed") continue
+    const orderId = event.payload?.order_id
+    if (typeof orderId === "string" && orderId) ids.add(orderId)
+  }
+  return [...ids]
+}
+
 function sessionStageSummary(events: AnalyticsEvent[]): CheckoutSessionSummary | null {
   const sorted = [...events].sort((a, b) => eventTime(a) - eventTime(b))
   const customerId = sorted.find((event) => event.customer_id)?.customer_id
@@ -220,11 +241,15 @@ function sessionStageSummary(events: AnalyticsEvent[]): CheckoutSessionSummary |
       event.event_type === "order.completed"
   )
   const orderIds = dedupeOrderIds(sorted)
+  const placedOrderIds = dedupePlacedOrderIds(sorted)
   const completed = orderIds.length > 0
+  const placed = completed || placedOrderIds.length > 0
 
   let maxStage: CheckoutStageKey = "cart"
   if (completed) {
     maxStage = "completed"
+  } else if (placed) {
+    maxStage = "placed"
   } else if (review) {
     maxStage = "review"
   } else if (payment) {
@@ -244,8 +269,8 @@ function sessionStageSummary(events: AnalyticsEvent[]): CheckoutSessionSummary |
     last_at: toIso(sorted[sorted.length - 1]?.created_at),
     fulfilment_method: method,
     max_stage: maxStage,
-    outcome: completed ? "completed" : "dropped",
-    order_ids: orderIds,
+    outcome: completed ? "completed" : placed ? "placed" : "dropped",
+    order_ids: orderIds.length > 0 ? orderIds : placedOrderIds,
     counts: {
       cart_views: sorted.filter((event) => event.event_type === "cart.viewed").length,
       address_submissions: sorted.filter(
@@ -319,41 +344,46 @@ export function buildCheckoutFunnel(
   const sessions = buildCheckoutSessionSummaries(events, since)
   const cartCount = sessions.filter((session) => session.counts.cart_views > 0).length
   const fulfilmentCount = sessions.filter((session) =>
-    ["fulfilment", "address", "shipping", "payment", "review", "completed"].includes(
+    ["fulfilment", "address", "shipping", "payment", "review", "placed", "completed"].includes(
       session.max_stage
     )
   ).length
   const deliveryAfterFulfilment = sessions.filter(
     (session) =>
       session.fulfilment_method === "delivery" &&
-      ["fulfilment", "address", "shipping", "payment", "review", "completed"].includes(
+      ["fulfilment", "address", "shipping", "payment", "review", "placed", "completed"].includes(
         session.max_stage
       )
   )
   const addressCount = sessions.filter(
     (session) =>
       session.fulfilment_method === "delivery" &&
-      ["address", "shipping", "payment", "review", "completed"].includes(session.max_stage)
+      ["address", "shipping", "payment", "review", "placed", "completed"].includes(
+        session.max_stage
+      )
   ).length
   const shippingCount = sessions.filter(
     (session) =>
       session.fulfilment_method === "delivery" &&
-      ["shipping", "payment", "review", "completed"].includes(session.max_stage)
+      ["shipping", "payment", "review", "placed", "completed"].includes(session.max_stage)
   ).length
   const paymentCount = sessions.filter((session) =>
-    ["payment", "review", "completed"].includes(session.max_stage)
+    ["payment", "review", "placed", "completed"].includes(session.max_stage)
   ).length
   const reviewCount = sessions.filter((session) =>
-    ["review", "completed"].includes(session.max_stage)
+    ["review", "placed", "completed"].includes(session.max_stage)
+  ).length
+  const placedCount = sessions.filter((session) =>
+    ["placed", "completed"].includes(session.max_stage)
   ).length
   const completedCount = sessions.filter((session) => session.outcome === "completed").length
 
   const pickupOrShippingReady = sessions.filter(
     (session) =>
       (session.fulfilment_method === "delivery" &&
-        ["shipping", "payment", "review", "completed"].includes(session.max_stage)) ||
+        ["shipping", "payment", "review", "placed", "completed"].includes(session.max_stage)) ||
       (session.fulfilment_method === "pickup" &&
-        ["fulfilment", "payment", "review", "completed"].includes(session.max_stage))
+        ["fulfilment", "payment", "review", "placed", "completed"].includes(session.max_stage))
   ).length
 
   return {
@@ -397,10 +427,16 @@ export function buildCheckoutFunnel(
         conversion_rate: roundRate(reviewCount, paymentCount),
       },
       {
+        key: "placed",
+        label: "Order placed",
+        count: placedCount,
+        conversion_rate: roundRate(placedCount, reviewCount),
+      },
+      {
         key: "completed",
         label: "Payment confirmed",
         count: completedCount,
-        conversion_rate: roundRate(completedCount, reviewCount),
+        conversion_rate: roundRate(completedCount, placedCount),
       },
     ],
   }
@@ -588,6 +624,16 @@ export function buildMemberActivity(events: AnalyticsEvent[], customerId: string
       }))
       .sort((a, b) => b.uses - a.uses)
       .slice(0, 10),
+    pages: memberEvents
+      .filter(
+        (event) => event.event_type === "page.viewed" && typeof event.payload?.path === "string"
+      )
+      .slice(0, 50)
+      .map((event) => ({
+        path: event.payload!.path as string,
+        referrer: typeof event.payload?.referrer === "string" ? event.payload.referrer : null,
+        at: toIso(event.created_at),
+      })),
   }
 }
 
@@ -596,24 +642,37 @@ export function buildProductDrilldown(
   productId: string,
   since?: Date
 ): Array<{
-  customer_id: string
+  customer_id: string | null
+  session_id: string | null
   views: number
   cart_adds: number
   last_at: string | null
 }> {
   const members = new Map<
     string,
-    { customer_id: string; views: number; cart_adds: number; last_at: string | null }
+    {
+      customer_id: string | null
+      session_id: string | null
+      views: number
+      cart_adds: number
+      last_at: string | null
+    }
   >()
 
   for (const event of filterEvents(events, since)) {
-    if (!event.customer_id) continue
     const payload = event.payload ?? {}
     if (payload.product_id !== productId) continue
     if (event.event_type !== "product.viewed" && event.event_type !== "cart.item_added") continue
 
-    const current = members.get(event.customer_id) ?? {
-      customer_id: event.customer_id,
+    // Group by customer when known; otherwise by session, so anonymous
+    // browsing (the majority of traffic) still shows up instead of being
+    // silently dropped.
+    const groupKey = event.customer_id
+      ? `cust:${event.customer_id}`
+      : `sess:${event.session_id ?? "unknown"}`
+    const current = members.get(groupKey) ?? {
+      customer_id: event.customer_id ?? null,
+      session_id: event.customer_id ? null : (event.session_id ?? null),
       views: 0,
       cart_adds: 0,
       last_at: toIso(event.created_at),
@@ -623,7 +682,7 @@ export function buildProductDrilldown(
     const createdAt = toIso(event.created_at)
     current.last_at =
       current.last_at && createdAt && current.last_at > createdAt ? current.last_at : createdAt
-    members.set(event.customer_id, current)
+    members.set(groupKey, current)
   }
 
   return Array.from(members.values()).sort(
@@ -638,7 +697,8 @@ export function buildFilterDrilldown(
 ): {
   values: Array<{ value: string; count: number }>
   members: Array<{
-    customer_id: string
+    customer_id: string | null
+    session_id: string | null
     uses: number
     values: string[]
     last_at: string | null
@@ -647,16 +707,26 @@ export function buildFilterDrilldown(
   const values = new Map<string, number>()
   const members = new Map<
     string,
-    { customer_id: string; uses: number; values: Set<string>; last_at: string | null }
+    {
+      customer_id: string | null
+      session_id: string | null
+      uses: number
+      values: Set<string>
+      last_at: string | null
+    }
   >()
 
   for (const event of filterEvents(events, since)) {
-    if (event.event_type !== "filter.applied" || !event.customer_id) continue
+    if (event.event_type !== "filter.applied") continue
     const raw = event.payload?.filters?.[filterKey]
     if (typeof raw !== "string" || !raw.trim()) continue
     const createdAt = toIso(event.created_at)
-    const current = members.get(event.customer_id) ?? {
-      customer_id: event.customer_id,
+    const groupKey = event.customer_id
+      ? `cust:${event.customer_id}`
+      : `sess:${event.session_id ?? "unknown"}`
+    const current = members.get(groupKey) ?? {
+      customer_id: event.customer_id ?? null,
+      session_id: event.customer_id ? null : (event.session_id ?? null),
       uses: 0,
       values: new Set<string>(),
       last_at: createdAt,
@@ -670,7 +740,7 @@ export function buildFilterDrilldown(
     }
     current.last_at =
       current.last_at && createdAt && current.last_at > createdAt ? current.last_at : createdAt
-    members.set(event.customer_id, current)
+    members.set(groupKey, current)
   }
 
   return {
@@ -680,6 +750,7 @@ export function buildFilterDrilldown(
     members: Array.from(members.values())
       .map((member) => ({
         customer_id: member.customer_id,
+        session_id: member.session_id,
         uses: member.uses,
         values: [...member.values].sort(),
         last_at: member.last_at,

@@ -8,6 +8,7 @@ import MobileBottomNav from "@modules/layout/components/mobile-bottom-nav"
 import Footer from "@modules/layout/templates/footer"
 import Nav from "@modules/layout/templates/nav"
 import FreeShippingPriceNudge from "@modules/shipping/components/free-shipping-price-nudge"
+import SessionActivityTracker from "@modules/common/components/session-activity-tracker"
 
 export default async function MainLayout({
   children,
@@ -39,6 +40,7 @@ export default async function MainLayout({
         Skip to main content
       </a>
       <Nav membershipStatus={membershipStatus} customer={customer} />
+      <SessionActivityTracker />
       {membershipStatus === "pending" && <PendingBanner />}
       {isApproved && customer && cart && (
         <CartMismatchBanner customer={customer} cart={cart} />

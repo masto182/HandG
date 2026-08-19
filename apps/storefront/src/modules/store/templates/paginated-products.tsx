@@ -6,6 +6,7 @@ import { Pagination } from "@modules/store/components/pagination"
 import { SortOptions } from "@modules/store/components/refinement-list/sort-products"
 import { FilterParams } from "./index"
 import { sdk } from "@lib/config"
+import TrackPageView from "@modules/common/components/track-page-view"
 import {
   HOURS_BEFORE_PUBLIC_BY_TIER,
   type Tier,
@@ -367,6 +368,19 @@ export default async function PaginatedProducts({
 
   return (
     <>
+      {products.length > 0 && (
+        <TrackPageView
+          event="product.list_viewed"
+          payload={{
+            list_id: collectionId
+              ? `collection:${collectionId}`
+              : categoryId
+                ? `category:${categoryId}`
+                : "store",
+            product_ids: products.slice(0, 60).map((p) => p.id),
+          }}
+        />
+      )}
       <p className="text-xs text-hg-text-muted uppercase tracking-widest mb-4">
         {count}{" "}
         {canSeePricing

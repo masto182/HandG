@@ -29,6 +29,7 @@ type Member = {
   referral_count: number
   referred_by: ReferredBy | null
   created_at: string
+  last_active: string | null
 }
 
 type Counts = {
@@ -60,7 +61,7 @@ type MemberActivityData = {
     last_at: string | null
     fulfilment_method: "pickup" | "delivery" | null
     max_stage: string
-    outcome: "completed" | "dropped"
+    outcome: "completed" | "placed" | "dropped"
     order_ids: string[]
   }>
   products: Array<{
@@ -74,6 +75,12 @@ type MemberActivityData = {
     uses: number
     values: string[]
   }>
+  pages: Array<{
+    path: string
+    referrer: string | null
+    at: string | null
+  }>
+  last_active: string | null
 }
 
 const TABS: { key: string; label: string; countKey: keyof Counts }[] = [
@@ -111,6 +118,17 @@ const daysAgo = (s?: string): number | null => {
   const d = new Date(s)
   if (isNaN(d.getTime())) return null
   return Math.floor((Date.now() - d.getTime()) / 86_400_000)
+}
+
+const fmtRelative = (s?: string | null): string => {
+  if (!s) return "Never"
+  const d = new Date(s)
+  if (isNaN(d.getTime())) return "Never"
+  const seconds = Math.floor((Date.now() - d.getTime()) / 1000)
+  if (seconds < 300) return "Online now"
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`
+  return `${Math.floor(seconds / 86400)}d ago`
 }
 
 const ageFromDob = (dob?: string): number | null => {
@@ -460,6 +478,7 @@ const MembersPage = () => {
                   )}
                   <Table.HeaderCell>Referred by</Table.HeaderCell>
                   {!isPending && <Table.HeaderCell>Joined</Table.HeaderCell>}
+                  {!isPending && <Table.HeaderCell>Last active</Table.HeaderCell>}
                 </Table.Row>
               </Table.Header>
               <Table.Body>
@@ -516,6 +535,11 @@ const MembersPage = () => {
                       {!isPending && (
                         <Table.Cell className="text-ui-fg-subtle">
                           {fmtDate(m.created_at)}
+                        </Table.Cell>
+                      )}
+                      {!isPending && (
+                        <Table.Cell className="text-ui-fg-subtle">
+                          {fmtRelative(m.last_active)}
                         </Table.Cell>
                       )}
                     </Table.Row>
@@ -676,6 +700,14 @@ const MemberDrawer = ({
                   )}
                 </Row>
                 <Row label="Signed up">{fmtDate(member.created_at)}</Row>
+                <Row label="Last active">
+                  <Badge
+                    size="2xsmall"
+                    color={fmtRelative(member.last_active) === "Online now" ? "green" : "grey"}
+                  >
+                    {fmtRelative(member.last_active)}
+                  </Badge>
+                </Row>
               </Section>
 
               <Section title="Referral">
@@ -737,7 +769,13 @@ const MemberDrawer = ({
                             </Text>
                             <Badge
                               size="2xsmall"
-                              color={session.outcome === "completed" ? "green" : "grey"}
+                              color={
+                                session.outcome === "completed"
+                                  ? "green"
+                                  : session.outcome === "placed"
+                                    ? "orange"
+                                    : "grey"
+                              }
                             >
                               {session.outcome}
                             </Badge>
@@ -764,6 +802,28 @@ const MemberDrawer = ({
                               </Text>
                               <Text size="small" className="text-ui-fg-muted">
                                 {product.views} views · {product.cart_adds} carts
+                              </Text>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {(activity?.pages.length ?? 0) > 0 && (
+                      <div className="pt-3">
+                        <Text size="small" weight="plus" className="mb-2 block">
+                          Pages viewed
+                        </Text>
+                        <div className="space-y-1 max-h-48 overflow-y-auto">
+                          {activity!.pages.slice(0, 20).map((page, idx) => (
+                            <div
+                              key={`${page.path}-${page.at}-${idx}`}
+                              className="flex items-center justify-between gap-2"
+                            >
+                              <Text size="small" className="truncate">
+                                {page.path}
+                              </Text>
+                              <Text size="small" className="text-ui-fg-muted whitespace-nowrap">
+                                {fmtRelative(page.at)}
                               </Text>
                             </div>
                           ))}

@@ -31,6 +31,7 @@ const filtersSchema = z
 
 const baseEventSchema = z.object({
   session_id: sessionIdSchema,
+  event_id: z.string().uuid().optional(),
 })
 
 export const StoreEventRequestSchema = z
@@ -43,6 +44,7 @@ export const StoreEventRequestSchema = z
           handle: optionalBoundedString(160),
           brewery_slug: optionalBoundedString(160),
           untappd_rating: z.union([boundedNumber, boundedNullableString(16)]).optional(),
+          available: z.boolean().optional(),
         })
         .strict(),
     }),
@@ -78,6 +80,7 @@ export const StoreEventRequestSchema = z
         .object({
           variant_id: variantIdSchema,
           product_id: productIdSchema.optional(),
+          available: z.boolean().optional(),
         })
         .strict(),
     }),
@@ -142,6 +145,53 @@ export const StoreEventRequestSchema = z
             .trim()
             .regex(/^[a-zA-Z]{3}$/)
             .optional(),
+        })
+        .strict(),
+    }),
+    baseEventSchema.extend({
+      event_type: z.literal("page.viewed"),
+      payload: z
+        .object({
+          path: boundedString(512),
+          referrer: optionalBoundedString(512),
+        })
+        .strict(),
+    }),
+    baseEventSchema.extend({
+      event_type: z.literal("product.list_viewed"),
+      payload: z
+        .object({
+          list_id: boundedString(160),
+          product_ids: z.array(productIdSchema).min(1).max(60),
+        })
+        .strict(),
+    }),
+    baseEventSchema.extend({
+      event_type: z.literal("product.selected"),
+      payload: z
+        .object({
+          product_id: productIdSchema,
+          list_id: boundedString(160),
+          position: z.number().int().min(0).max(1000),
+        })
+        .strict(),
+    }),
+    baseEventSchema.extend({
+      event_type: z.literal("search.submitted"),
+      payload: z
+        .object({
+          query_normalized: boundedString(160),
+          result_count: z.number().int().min(0).max(100_000),
+        })
+        .strict(),
+    }),
+    baseEventSchema.extend({
+      event_type: z.literal("search.result_clicked"),
+      payload: z
+        .object({
+          query_normalized: boundedString(160),
+          product_id: productIdSchema,
+          position: z.number().int().min(0).max(1000),
         })
         .strict(),
     }),
