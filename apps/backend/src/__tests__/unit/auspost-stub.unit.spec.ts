@@ -91,7 +91,8 @@ describe("StubAusPostPacClient", () => {
       heightCm: 7,
       weightKg: 1.5,
       serviceCode: "AUS_PARCEL_REGULAR",
-      optionCode: ["AUS_SERVICE_OPTION_EXTRA_COVER"],
+      optionCode: ["AUS_SERVICE_OPTION_STANDARD"],
+      suboptionCode: "AUS_SERVICE_OPTION_EXTRA_COVER",
       extraCover: 200,
     })
     const lines = Array.isArray(result.costs?.cost)

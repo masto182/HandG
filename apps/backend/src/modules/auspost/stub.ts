@@ -48,7 +48,7 @@ export class StubAusPostPacClient implements AusPostPacLikeClient {
         : [req.optionCode]
     const sodFee = optionCodes.includes("AUS_SERVICE_OPTION_SIGNATURE_ON_DELIVERY") ? 3.95 : 0
     const coverFee =
-      optionCodes.includes("AUS_SERVICE_OPTION_EXTRA_COVER") && (req.extraCover ?? 0) > 0
+      req.suboptionCode === "AUS_SERVICE_OPTION_EXTRA_COVER" && (req.extraCover ?? 0) > 0
         ? Math.max(1.5, Math.ceil((req.extraCover ?? 0) / 100) * 1.5)
         : 0
 

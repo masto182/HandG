@@ -65,17 +65,22 @@ describe("auspost mapping", () => {
       expect(out.sodAdded).toBe(false)
       expect(out.perBoxCover).toEqual([0])
     })
-    it("adds Extra Cover when subtotal >= threshold but below SOD trigger", () => {
+    it("adds Extra Cover as a suboption of STANDARD when subtotal >= threshold but below SOD trigger", () => {
+      // PAC rejects AUS_SERVICE_OPTION_EXTRA_COVER as a top-level option_code
+      // ("Please enter a valid Option code.") - it must be a suboption nested
+      // under AUS_SERVICE_OPTION_STANDARD or ..._SIGNATURE_ON_DELIVERY.
       const out = computeOptions(250, [ONE_LARGE_BOX], STD_OPTS)
-      expect(out.optionCodes).toContain("AUS_SERVICE_OPTION_EXTRA_COVER")
-      expect(out.optionCodes).not.toContain("AUS_SERVICE_OPTION_SIGNATURE_ON_DELIVERY")
+      expect(out.optionCodes).toEqual(["AUS_SERVICE_OPTION_STANDARD"])
+      expect(out.suboptionCode).toBe("AUS_SERVICE_OPTION_EXTRA_COVER")
+      expect(out.optionCodes).not.toContain("AUS_SERVICE_OPTION_EXTRA_COVER")
       expect(out.sodAdded).toBe(false)
       expect(out.perBoxCover[0]).toBeGreaterThan(0)
     })
-    it("adds SOD AND Extra Cover when subtotal exceeds SOD trigger", () => {
+    it("adds SOD as the primary option and Extra Cover as its suboption when subtotal exceeds SOD trigger", () => {
       const out = computeOptions(400, [ONE_LARGE_BOX], STD_OPTS)
-      expect(out.optionCodes).toContain("AUS_SERVICE_OPTION_SIGNATURE_ON_DELIVERY")
-      expect(out.optionCodes).toContain("AUS_SERVICE_OPTION_EXTRA_COVER")
+      expect(out.optionCodes).toEqual(["AUS_SERVICE_OPTION_SIGNATURE_ON_DELIVERY"])
+      expect(out.suboptionCode).toBe("AUS_SERVICE_OPTION_EXTRA_COVER")
+      expect(out.optionCodes).not.toContain("AUS_SERVICE_OPTION_EXTRA_COVER")
       expect(out.sodAdded).toBe(true)
     })
     it("does NOT add SOD at exactly the trigger value (boundary: trigger is exclusive)", () => {
@@ -86,8 +91,9 @@ describe("auspost mapping", () => {
       const out = computeOptions(50, [ONE_LARGE_BOX], STD_OPTS, true)
       expect(out.sodAdded).toBe(true)
       expect(out.optionCodes).toContain("AUS_SERVICE_OPTION_SIGNATURE_ON_DELIVERY")
-      // Cover engaged because SOD lifts cap
-      expect(out.optionCodes).toContain("AUS_SERVICE_OPTION_EXTRA_COVER")
+      // Cover engaged because SOD lifts cap - as a suboption, not bare
+      expect(out.suboptionCode).toBe("AUS_SERVICE_OPTION_EXTRA_COVER")
+      expect(out.optionCodes).not.toContain("AUS_SERVICE_OPTION_EXTRA_COVER")
       expect(out.perBoxCover[0]).toBeGreaterThan(0)
     })
     it("forceSod=true with subtotal=0 still works (covers minimal value)", () => {
@@ -111,14 +117,16 @@ describe("auspost mapping", () => {
         toPostcode: "2000",
         serviceCode: "AUS_PARCEL_REGULAR",
         perBoxCover: [200, 50],
-        optionCodes: ["AUS_SERVICE_OPTION_EXTRA_COVER"],
+        optionCodes: ["AUS_SERVICE_OPTION_STANDARD"],
+        suboptionCode: "AUS_SERVICE_OPTION_EXTRA_COVER",
       })
       expect(reqs).toHaveLength(2)
       expect(reqs[0].weightKg).toBeCloseTo(8.2)
       expect(reqs[0].extraCover).toBe(200)
       expect(reqs[1].weightKg).toBeCloseTo(2.2)
       expect(reqs[1].extraCover).toBe(50)
-      expect(reqs[0].optionCode).toEqual(["AUS_SERVICE_OPTION_EXTRA_COVER"])
+      expect(reqs[0].optionCode).toEqual(["AUS_SERVICE_OPTION_STANDARD"])
+      expect(reqs[0].suboptionCode).toBe("AUS_SERVICE_OPTION_EXTRA_COVER")
     })
     it("omits extraCover when 0", () => {
       const reqs = boxesToPacRequests({

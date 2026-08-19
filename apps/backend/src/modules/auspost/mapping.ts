@@ -25,7 +25,7 @@ export const PAC_COVER_CAP_SOD_AUD = 5000
 
 export type RateOptions = {
   coverThresholdAud: number // auto-add Extra Cover at/above
-  sodTriggerAud: number     // auto-add SOD when subtotal exceeds (lifts cap)
+  sodTriggerAud: number // auto-add SOD when subtotal exceeds (lifts cap)
   discountPctStandard: number
   discountPctExpress: number
 }
@@ -39,9 +39,9 @@ export type PerBoxQuote = {
 
 export type ShipmentQuote = {
   serviceCode: PacServiceCode
-  customer_total_cents: number   // what we charge the customer (after discount)
-  rrp_total_cents: number        // raw PAC RRP without discount
-  base_total_cents: number       // sum of base costs (before surcharges)
+  customer_total_cents: number // what we charge the customer (after discount)
+  rrp_total_cents: number // raw PAC RRP without discount
+  base_total_cents: number // sum of base costs (before surcharges)
   surcharges_total_cents: number // SOD + Extra Cover combined
   per_box: PerBoxQuote[]
   sod_added: boolean
@@ -61,9 +61,10 @@ export function computeOptions(
   cartSubtotalAud: number,
   packedBoxes: PackedBox[],
   opts: RateOptions,
-  forceSod = false,
+  forceSod = false
 ): {
   optionCodes: PacOptionCode[]
+  suboptionCode?: PacOptionCode
   perBoxCover: number[]
   sodAdded: boolean
   coverPerBox: number
@@ -73,18 +74,33 @@ export function computeOptions(
   // gets the lifted cap; otherwise cover follows the threshold.
   const wantsCover = wantsSod || cartSubtotalAud >= opts.coverThresholdAud
 
+  // PAC only accepts Extra Cover as a suboption nested under a primary
+  // option (Standard Service or Signature on Delivery) - never bare. See
+  // /service.json: AUS_SERVICE_OPTION_EXTRA_COVER always appears inside
+  // another option's `suboptions`, never at the top level.
   const optionCodes: PacOptionCode[] = []
-  if (wantsSod) optionCodes.push("AUS_SERVICE_OPTION_SIGNATURE_ON_DELIVERY")
-  if (wantsCover) optionCodes.push("AUS_SERVICE_OPTION_EXTRA_COVER")
+  if (wantsSod) {
+    optionCodes.push("AUS_SERVICE_OPTION_SIGNATURE_ON_DELIVERY")
+  } else if (wantsCover) {
+    optionCodes.push("AUS_SERVICE_OPTION_STANDARD")
+  }
+  const suboptionCode: PacOptionCode | undefined = wantsCover
+    ? "AUS_SERVICE_OPTION_EXTRA_COVER"
+    : undefined
 
   if (!wantsCover) {
-    return { optionCodes, perBoxCover: packedBoxes.map(() => 0), sodAdded: wantsSod, coverPerBox: 0 }
+    return {
+      optionCodes,
+      perBoxCover: packedBoxes.map(() => 0),
+      sodAdded: wantsSod,
+      coverPerBox: 0,
+    }
   }
 
   const cap = wantsSod ? PAC_COVER_CAP_SOD_AUD : PAC_COVER_CAP_BASE_AUD
   const totalCover = Math.min(Math.ceil(cartSubtotalAud), cap * packedBoxes.length)
   const perBoxCover = allocateCover(packedBoxes, totalCover, cap)
-  return { optionCodes, perBoxCover, sodAdded: wantsSod, coverPerBox: 0 }
+  return { optionCodes, suboptionCode, perBoxCover, sodAdded: wantsSod, coverPerBox: 0 }
 }
 
 /**
@@ -94,7 +110,7 @@ export function computeOptions(
 export function allocateCover(
   packedBoxes: PackedBox[],
   totalCover: number,
-  perBoxCap: number,
+  perBoxCap: number
 ): number[] {
   if (!packedBoxes.length || totalCover <= 0) return packedBoxes.map(() => 0)
   const totalWeight = packedBoxes.reduce((s, b) => s + b.weightG, 0)
@@ -150,7 +166,12 @@ export function parseSurcharges(result: PacPostageResult): {
     const cents = decimalToCents(line.cost)
     const item = (line.item ?? "").toLowerCase()
     // Match the service line to base; otherwise surcharge
-    if (item === baseName || item === "parcel post" || item === "express post" || item === result.service.toLowerCase()) {
+    if (
+      item === baseName ||
+      item === "parcel post" ||
+      item === "express post" ||
+      item === result.service.toLowerCase()
+    ) {
       base += cents
     } else {
       surcharges += cents
@@ -185,6 +206,7 @@ export function boxesToPacRequests(args: {
   serviceCode: PacServiceCode
   perBoxCover: number[]
   optionCodes: PacOptionCode[]
+  suboptionCode?: PacOptionCode
 }): PacCalculateRequest[] {
   return args.packedBoxes.map((box, i) => {
     const cover = args.perBoxCover[i] ?? 0
@@ -198,6 +220,7 @@ export function boxesToPacRequests(args: {
       weightKg: box.weightG / 1000,
       serviceCode: args.serviceCode,
       optionCode: codes.length ? codes : undefined,
+      suboptionCode: args.suboptionCode,
       extraCover: cover > 0 ? cover : undefined,
     }
   })
@@ -218,11 +241,11 @@ export async function quoteService(args: {
   opts: RateOptions
   forceSod?: boolean
 }): Promise<ShipmentQuote> {
-  const { optionCodes, perBoxCover, sodAdded } = computeOptions(
+  const { optionCodes, suboptionCode, perBoxCover, sodAdded } = computeOptions(
     args.cartSubtotalAud,
     args.packedBoxes,
     args.opts,
-    args.forceSod ?? false,
+    args.forceSod ?? false
   )
   const reqs = boxesToPacRequests({
     packedBoxes: args.packedBoxes,
@@ -231,6 +254,7 @@ export async function quoteService(args: {
     serviceCode: args.serviceCode,
     perBoxCover,
     optionCodes,
+    suboptionCode,
   })
 
   const perBox: PerBoxQuote[] = []
