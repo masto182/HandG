@@ -47,6 +47,10 @@ export default async function orderEmailHandler({
 
   try {
     await refreshEmailConfig(container)
+    // `total` is a computed getter that reads from the order's `summary`
+    // relation. Requesting `items.*` in the SAME query.graph call as `total`
+    // breaks that getter's hydration and it silently resolves to 0 — so fetch
+    // totals/relations and items in two separate calls and merge.
     const { data: orders } = await query.graph({
       entity: "order",
       fields: [
@@ -59,10 +63,6 @@ export default async function orderEmailHandler({
         "billing_address.first_name",
         "total",
         "currency_code",
-        "items.title",
-        "items.product_title",
-        "items.quantity",
-        "items.unit_price",
         "shipping_methods.name",
         "payment_collections.payments.provider_id",
       ],
@@ -73,6 +73,13 @@ export default async function orderEmailHandler({
       logger.info(`[Notification] Order ${event.data.id} has no email; skipping.`)
       return
     }
+
+    const { data: withItems } = await query.graph({
+      entity: "order",
+      fields: ["id", "items.title", "items.product_title", "items.quantity", "items.unit_price"],
+      filters: { id: order.id },
+    })
+    order.items = (withItems[0] as any)?.items || []
 
     const customerId = order.customer_id || undefined
     const orderDisplayId = String(order.display_id ?? order.id)
