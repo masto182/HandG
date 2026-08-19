@@ -145,6 +145,14 @@ const CANONICAL_STYLES = [
     description: "Amber-to-copper ale with caramel malt sweetness and moderate hop balance",
     sort_order: 7,
   },
+  {
+    name: "Barleywine",
+    slug: "barleywine",
+    family: "Dark",
+    description:
+      "Strong, malt-forward ale often barrel-aged, with dried fruit, caramel, and vinous warmth",
+    sort_order: 8,
+  },
 
   {
     name: "Sour",

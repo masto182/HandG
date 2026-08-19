@@ -2,6 +2,15 @@ import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { getMeiliClient, PRODUCTS_INDEX } from "../lib/meilisearch"
 
+// Mirrors reindex-search.ts's getFilterGroup — keep in sync.
+function getFilterGroup(slug: string | undefined, family: string | undefined): string {
+  if (slug === "triple-ipa") return "Triple IPA"
+  if (slug === "double-ipa") return "Double IPA"
+  if (family === "IPA") return "IPA"
+  if (family === "Dark" || family === "Sour" || family === "Lager") return family
+  return ""
+}
+
 type Logger = {
   info: (msg: string) => void
   warn: (msg: string) => void
@@ -85,7 +94,7 @@ export default async function productSearchIndexer({
     const style = (linked?.[0] as any)?.beer_style
     if (style) {
       styleName = style.name || styleName
-      styleFamily = style.family || ""
+      styleFamily = getFilterGroup(style.slug, style.family)
     }
     const linkedHops = (linked?.[0] as any)?.hops || []
     hopNames = linkedHops.map((h: any) => h.name).filter(Boolean)
@@ -101,6 +110,39 @@ export default async function productSearchIndexer({
   }
 
   const isCollab = linkedBreweries.length > 1
+
+  // productModule.listProducts (above) never populates the inventory_quantity
+  // virtual field — same Medusa bug documented in
+  // api/store/inventory/by-variant-ids/route.ts and api/admin/wishlist/route.ts.
+  let inventoryQty = 0
+  try {
+    const query = container.resolve(ContainerRegistrationKeys.QUERY)
+    const { data: variants } = await query.graph({
+      entity: "product_variant",
+      fields: [
+        "id",
+        "inventory_items.inventory.location_levels.available_quantity",
+        "inventory_items.inventory.location_levels.stocked_quantity",
+        "inventory_items.inventory.location_levels.reserved_quantity",
+      ],
+      filters: { product_id: productId },
+    })
+    for (const v of variants as any[]) {
+      for (const ii of v.inventory_items || []) {
+        for (const ll of ii.inventory?.location_levels || []) {
+          const avail = ll?.available_quantity
+          inventoryQty +=
+            avail != null
+              ? Number(avail)
+              : Number(ll?.stocked_quantity ?? 0) - Number(ll?.reserved_quantity ?? 0)
+        }
+      }
+    }
+  } catch (err) {
+    logger.warn(
+      `[Search] inventory lookup failed for ${productId}: ${err instanceof Error ? err.message : String(err)}`
+    )
+  }
 
   try {
     await index.addDocuments(
@@ -128,7 +170,7 @@ export default async function productSearchIndexer({
           hops: hopNames.length > 0 ? hopNames : Array.isArray(meta.hops) ? meta.hops : [],
           hop_countries: hopCountries,
           tags: (product as any).tags?.map((t: any) => t.value).filter(Boolean) ?? [],
-          inventory_qty: (product as any).variants?.[0]?.inventory_quantity || 0,
+          inventory_qty: inventoryQty,
         },
       ],
       { primaryKey: "id" }

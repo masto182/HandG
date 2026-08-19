@@ -129,6 +129,10 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     filters.push("is_collab = true")
   }
 
+  if (available === "1" || available === "true") {
+    filters.push("inventory_qty > 0")
+  }
+
   if (tags) {
     const tagList = (tags as string)
       .split(",")

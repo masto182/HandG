@@ -31,7 +31,19 @@ const ABV_RANGES = [
   { label: "11%+", value: "11+" },
 ]
 
-const STYLE_FAMILY_ORDER = ["IPA", "Pale Ale", "Dark", "Sour", "Lager"]
+// Storefront filter groups — deliberately coarser than the 31-style taxonomy,
+// but splits the IPA family (which otherwise dominates the catalog) into its
+// two highest-ABV tiers. Must match getFilterGroup() in the backend
+// (reindex-search.ts / product-search-indexer.ts) — these are exactly the
+// values written to the style_family facet, not derived from /store/beer-styles.
+const STYLE_FAMILY_ORDER = [
+  "Triple IPA",
+  "Double IPA",
+  "IPA",
+  "Dark",
+  "Sour",
+  "Lager",
+]
 
 const INITIAL_SHOW = 6
 
@@ -55,7 +67,6 @@ export default function FilterPanel({
   const [fallbackBreweries, setFallbackBreweries] = useState<
     Record<string, number>
   >({})
-  const [styleFamilies, setStyleFamilies] = useState<string[]>([])
   const abortRef = useRef<AbortController | null>(null)
   const initialFetchDone = useRef(false)
   const scrollLockRef = useRef(0)
@@ -105,21 +116,6 @@ export default function FilterPanel({
       document.body.style.overflow = ""
     }
   }, [mobileOpen])
-
-  useEffect(() => {
-    sdk.client
-      .fetch<{ families: string[] }>("/store/beer-styles", { method: "GET" })
-      .then((d) => {
-        if (Array.isArray(d.families) && d.families.length > 0) {
-          const ordered = [
-            ...STYLE_FAMILY_ORDER.filter((f) => d.families.includes(f)),
-            ...d.families.filter((f) => !STYLE_FAMILY_ORDER.includes(f)),
-          ]
-          setStyleFamilies(ordered)
-        }
-      })
-      .catch(() => {})
-  }, [])
 
   useEffect(() => {
     sdk.client
@@ -384,7 +380,9 @@ export default function FilterPanel({
             </svg>
           </summary>
           <div className="space-y-3 mt-4">
-            {styleFamilies.map((fam) => {
+            {STYLE_FAMILY_ORDER.filter(
+              (fam) => (baseStyleFacets[fam] ?? 0) > 0,
+            ).map((fam) => {
               const isActive = selectedStyles.includes(fam)
               const count = liveStyleFacets[fam] ?? baseStyleFacets[fam] ?? 0
               return (

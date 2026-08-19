@@ -139,9 +139,31 @@ function normalizeStyle(s: string): string {
   return s.trim().toLowerCase().replace(/\s+/g, " ")
 }
 
-function resolveStyle(raw: string, byName: Map<string, any>, bySlug: Map<string, any>): any | null {
+// Troon, Lolev, and Rar don't disclose a real style — they use generic
+// hop-forward marketing labels instead. The same label spans multiple real
+// style tiers depending on ABV, so these resolve by threshold, not a fixed
+// synonym: Triple IPA >=10%, Double IPA 8-9.9%, IPA <8%.
+const GENERIC_HOP_LABELS = new Set([
+  "hoppy ale",
+  "ultra hopped ale",
+  "hop saturated ale",
+  "imperial mild ale",
+])
+
+function resolveGenericHopStyle(abv: number, bySlug: Map<string, any>): any | null {
+  const slug = abv >= 10 ? "triple-ipa" : abv >= 8 ? "double-ipa" : "ipa"
+  return bySlug.get(slug) ?? null
+}
+
+function resolveStyle(
+  raw: string,
+  abv: number,
+  byName: Map<string, any>,
+  bySlug: Map<string, any>
+): any | null {
   if (!raw) return null
   const norm = normalizeStyle(raw)
+  if (GENERIC_HOP_LABELS.has(norm)) return resolveGenericHopStyle(abv, bySlug)
   if (byName.has(norm)) return byName.get(norm)
   const slug = slugify(raw)
   if (bySlug.has(slug)) return bySlug.get(slug)
@@ -249,8 +271,8 @@ export default async function importProducts({ container }: ExecArgs) {
   const styleByName = new Map<string, any>(allStyles.map((s: any) => [normalizeStyle(s.name), s]))
   const styleBySlug = new Map<string, any>(allStyles.map((s: any) => [s.slug, s]))
 
-  async function applyBeerStyleLink(productId: string, rawStyle: string) {
-    const style = resolveStyle(rawStyle, styleByName, styleBySlug)
+  async function applyBeerStyleLink(productId: string, rawStyle: string, abv: number) {
+    const style = resolveStyle(rawStyle, abv, styleByName, styleBySlug)
     if (!style) {
       if (rawStyle) logger.warn(`Unresolved beer style "${rawStyle}" for product ${productId}`)
       return
@@ -507,7 +529,7 @@ export default async function importProducts({ container }: ExecArgs) {
         }
 
         // Beer style link — see F3 in wi65 analysis
-        if (style) await applyBeerStyleLink(existing.id, style)
+        if (style) await applyBeerStyleLink(existing.id, style, abv)
 
         // Hop links from metadata.hop_names
         if (hops) await linkHops(hopMap, hops, existing.id)
@@ -690,7 +712,8 @@ export default async function importProducts({ container }: ExecArgs) {
 
           // Beer style link — see F3 in wi65 analysis
           const newStyle = workflowInput[j]._style
-          if (newStyle) await applyBeerStyleLink(products[j].id, newStyle)
+          if (newStyle)
+            await applyBeerStyleLink(products[j].id, newStyle, workflowInput[j].metadata.abv)
 
           const collabRaw = workflowInput[j]._colab
           if (collabRaw) {

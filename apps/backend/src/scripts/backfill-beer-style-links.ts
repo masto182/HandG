@@ -40,6 +40,22 @@ const slugify = (s: string): string =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "")
 
+// Troon, Lolev, and Rar don't disclose a real style — they use generic
+// hop-forward marketing labels instead. The same label spans multiple real
+// style tiers depending on ABV, so these resolve by threshold, not a fixed
+// synonym: Triple IPA >=10%, Double IPA 8-9.9%, IPA <8%.
+const GENERIC_HOP_LABELS = new Set([
+  "hoppy ale",
+  "ultra hopped ale",
+  "hop saturated ale",
+  "imperial mild ale",
+])
+
+function resolveGenericHopStyle(abv: number, bySlug: Map<string, any>): any | null {
+  const slug = abv >= 10 ? "triple-ipa" : abv >= 8 ? "double-ipa" : "ipa"
+  return bySlug.get(slug) ?? null
+}
+
 export default async function backfillBeerStyleLinks({ container }: ExecArgs) {
   const logger = container.resolve("logger") as any
   const productModule = container.resolve(Modules.PRODUCT)
@@ -58,8 +74,9 @@ export default async function backfillBeerStyleLinks({ container }: ExecArgs) {
     bySlug.set(s.slug, s)
   }
 
-  const resolveStyle = (raw: string): any | null => {
+  const resolveStyle = (raw: string, abv: number): any | null => {
     const norm = normalize(raw)
+    if (GENERIC_HOP_LABELS.has(norm)) return resolveGenericHopStyle(abv, bySlug)
     if (byName.has(norm)) return byName.get(norm)
     const slug = slugify(raw)
     if (bySlug.has(slug)) return bySlug.get(slug)
@@ -112,7 +129,7 @@ export default async function backfillBeerStyleLinks({ container }: ExecArgs) {
       continue
     }
 
-    const style = resolveStyle(rawStyle)
+    const style = resolveStyle(rawStyle, Number(meta.abv) || 0)
     if (!style) {
       unmatched.push(`${product.id} — ${product.title} — metadata.style="${rawStyle}"`)
       continue
