@@ -114,20 +114,6 @@ export default function NotificationDropdown() {
     }
   }
 
-  const typeIcons: Record<string, string> = {
-    wishlist_match: "favorite",
-    restock: "inventory",
-    vip_tier: "military_tech",
-    tier_upgrade: "military_tech",
-    order_status: "local_shipping",
-    referral: "group",
-    referral_signup: "group",
-    new_drop: "new_releases",
-    welcome: "waving_hand",
-    onboarding_halfway: "emoji_events",
-    broadcast: "campaign",
-  }
-
   return (
     <div ref={ref} className="relative">
       <button
@@ -185,13 +171,12 @@ export default function NotificationDropdown() {
                   <div className="flex gap-3">
                     <span className="relative flex-shrink-0 mt-0.5">
                       <Icon
-                        name={typeIcons[n.type] || "notifications"}
+                        name={n.read ? "drafts" : "mail"}
                         size={18}
-                        className="text-primary"
+                        className={
+                          n.read ? "text-on-surface-variant" : "text-primary"
+                        }
                       />
-                      {!n.read && (
-                        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-primary rounded-full" />
-                      )}
                     </span>
                     <div className="flex-1 min-w-0">
                       <p

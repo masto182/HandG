@@ -20,20 +20,6 @@ type NotificationsClientProps = {
 
 const PAGE_SIZE = 20
 
-const typeIcons: Record<string, string> = {
-  wishlist_match: "favorite",
-  restock: "inventory",
-  vip_tier: "military_tech",
-  tier_upgrade: "military_tech",
-  order_status: "local_shipping",
-  referral: "group",
-  referral_signup: "group",
-  new_drop: "new_releases",
-  welcome: "waving_hand",
-  onboarding_halfway: "emoji_events",
-  broadcast: "campaign",
-}
-
 function formatNotificationTimestamp(value: string) {
   const date = new Date(value)
 
@@ -347,11 +333,14 @@ export default function NotificationsClient({
                     tabIndex={item.read ? -1 : 0}
                     className="flex items-start gap-3 px-5 py-4 transition-colors hover:bg-surface-container"
                   >
-                    <span className="pt-0.5 text-primary">
-                      <Icon
-                        name={typeIcons[item.type] || "notifications"}
-                        size={18}
-                      />
+                    <span
+                      className={
+                        item.read
+                          ? "pt-0.5 text-hg-text-secondary"
+                          : "pt-0.5 text-primary"
+                      }
+                    >
+                      <Icon name={item.read ? "drafts" : "mail"} size={18} />
                     </span>
                     <div className="min-w-0 flex-1">
                       <p
