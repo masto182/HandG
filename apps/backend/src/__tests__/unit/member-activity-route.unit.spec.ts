@@ -3,6 +3,7 @@ import { GET } from "../../api/admin/members/[id]/activity/route"
 describe("GET /admin/members/:id/activity", () => {
   it("requests bounded member activity events and preserves the member id", async () => {
     const listMemberActivityEvents = jest.fn().mockResolvedValue([])
+    const getLastActiveByCustomerIds = jest.fn().mockResolvedValue(new Map())
     const json = jest.fn()
 
     const now = Date.now()
@@ -10,7 +11,7 @@ describe("GET /admin/members/:id/activity", () => {
       {
         params: { id: "cust_123" },
         scope: {
-          resolve: () => ({ listMemberActivityEvents }),
+          resolve: () => ({ listMemberActivityEvents, getLastActiveByCustomerIds }),
         },
       } as any,
       { json } as any
@@ -33,6 +34,7 @@ describe("GET /admin/members/:id/activity", () => {
     expect(since).toBeInstanceOf(Date)
     expect(now - since.getTime()).toBeGreaterThanOrEqual(89 * 24 * 60 * 60 * 1000)
     expect(now - since.getTime()).toBeLessThanOrEqual(91 * 24 * 60 * 60 * 1000)
+    expect(getLastActiveByCustomerIds).toHaveBeenCalledWith(["cust_123"])
     expect(json).toHaveBeenCalledWith(
       expect.objectContaining({
         activity: expect.objectContaining({
@@ -40,6 +42,7 @@ describe("GET /admin/members/:id/activity", () => {
             sessions: 0,
             completed_orders: 0,
           }),
+          last_active: null,
         }),
       })
     )
