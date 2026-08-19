@@ -10,6 +10,10 @@ import {
 import type { NotificationCategory } from "./email"
 
 export type BroadcastSegmentFilter = {
+  /** "customers" targets `customer_ids` directly, bypassing all filters below.
+   * Undefined/"filters" preserves existing AND-intersection behavior. */
+  mode?: "filters" | "customers"
+  customer_ids?: string[]
   vip_tier_min?: string
   category_optin?: NotificationCategory
   brewery_id?: string
@@ -123,6 +127,11 @@ export async function resolveSegment(
   container: any,
   filter: BroadcastSegmentFilter
 ): Promise<string[]> {
+  if (filter.mode === "customers") {
+    // Never falls through to "everyone" — an empty pick list resolves to [].
+    return [...new Set(filter.customer_ids ?? [])]
+  }
+
   const resolvers: Array<() => Promise<Set<string>>> = []
 
   if (filter.brewery_id) resolvers.push(() => resolveBreweryFollowed(container, filter.brewery_id!))
