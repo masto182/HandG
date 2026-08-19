@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react"
 import { toast } from "sonner"
 import { sdk } from "@lib/config"
 import Icon from "@modules/common/components/icon"
+import LocalizedClientLink from "@modules/common/components/localized-client-link"
 
 type NotificationItem = {
   id: string
@@ -30,10 +31,11 @@ export default function NotificationDropdown() {
     try {
       const data = await sdk.client.fetch<{
         notifications: NotificationItem[]
-      }>("/store/customers/me/notifications", { method: "GET" })
+        unread_count: number
+      }>("/store/customers/me/notifications?limit=50", { method: "GET" })
       const items = data.notifications || []
       setNotifications(items)
-      setUnreadCount(items.filter((n) => !n.read).length)
+      setUnreadCount(data.unread_count || 0)
 
       const fresh = filterNewAlertNotifications(items, shownRef.current)
       for (const n of fresh) {
@@ -173,6 +175,14 @@ export default function NotificationDropdown() {
                 </div>
               ))
             )}
+          </div>
+          <div className="border-t border-outline-variant px-4 py-3">
+            <LocalizedClientLink
+              href="/account/notifications"
+              className="text-body-sm font-medium text-primary hover:underline"
+            >
+              See all
+            </LocalizedClientLink>
           </div>
         </div>
       )}

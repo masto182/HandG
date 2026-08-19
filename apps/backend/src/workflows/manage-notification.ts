@@ -16,6 +16,11 @@ type MarkAllReadInput = {
   customer_id: string
 }
 
+type DeleteNotificationInput = {
+  id: string
+  customer_id: string
+}
+
 const markNotificationReadStep = createStep(
   "mark-notification-read",
   async (input: MarkReadInput, { container }) => {
@@ -68,6 +73,30 @@ const markAllNotificationsReadStep = createStep(
   }
 )
 
+const deleteNotificationStep = createStep(
+  "delete-notification",
+  async (input: DeleteNotificationInput, { container }) => {
+    const notificationService = container.resolve(INBOX_MODULE) as any
+    const [existing] = await notificationService.listNotifications({
+      id: input.id,
+      customer_id: input.customer_id,
+    })
+
+    if (!existing) {
+      throw new MedusaError(MedusaError.Types.NOT_FOUND, `Notification ${input.id} not found`)
+    }
+
+    await notificationService.deleteNotifications(input.id)
+    return new StepResponse({ deleted: true }, { ...existing })
+  },
+  async (compensation: any, { container }) => {
+    if (!compensation) return
+    const notificationService = container.resolve(INBOX_MODULE) as any
+    const { id, created_at, updated_at, deleted_at, ...data } = compensation
+    await notificationService.createNotifications({ ...data })
+  }
+)
+
 export const markNotificationReadWorkflow = createWorkflow(
   "mark-notification-read",
   function (input: MarkReadInput) {
@@ -80,6 +109,14 @@ export const markAllNotificationsReadWorkflow = createWorkflow(
   "mark-all-notifications-read",
   function (input: MarkAllReadInput) {
     const result = (markAllNotificationsReadStep as any)(input)
+    return new WorkflowResponse(result)
+  }
+)
+
+export const deleteNotificationWorkflow = createWorkflow(
+  "delete-notification",
+  function (input: DeleteNotificationInput) {
+    const result = (deleteNotificationStep as any)(input)
     return new WorkflowResponse(result)
   }
 )

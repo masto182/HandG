@@ -19,6 +19,11 @@ const navLinks = [
   { href: "/account/addresses", label: "Addresses", icon: "location_on" },
   { href: "/account/wishlist", label: "Wishlist", icon: "favorite" },
   { href: "/account/alerts", label: "Alerts", icon: "notifications_active" },
+  {
+    href: "/account/notifications",
+    label: "Notifications",
+    icon: "notifications",
+  },
   { href: "/account/vip", label: "VIP", icon: "military_tech" },
   { href: "/account/referrals", label: "Referrals", icon: "group" },
   { href: "/account/email-settings", label: "Settings", icon: "mail" },

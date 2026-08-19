@@ -1,7 +1,7 @@
 import { MedusaContainer } from "@medusajs/framework/types"
 import { Modules } from "@medusajs/framework/utils"
 import { sendTemplate, refreshEmailConfig, getStoreUrl } from "../lib/email"
-import { createInboxNotification } from "../lib/create-inbox-notification"
+import { INBOX_MODULE } from "../modules/inbox"
 import { BROADCAST_MODULE } from "../modules/broadcast"
 import * as BroadcastAnnouncementTpl from "../emails/broadcast-announcement"
 
@@ -71,19 +71,27 @@ export default async function broadcastDispatch(container: MedusaContainer) {
 
           let inappSent = recipient.inapp_sent
           if (broadcast.channel_inapp && !inappSent) {
-            await createInboxNotification(
-              container,
-              recipient.customer_id,
-              "broadcast",
-              broadcast.title,
-              broadcast.body,
-              {
-                broadcast_id: broadcast.id,
-                link_url: broadcast.link_url,
-                link_text: broadcast.link_text,
-              }
-            )
-            inappSent = true
+            try {
+              const notificationService = container.resolve(INBOX_MODULE) as any
+              await notificationService.createNotifications({
+                customer_id: recipient.customer_id,
+                type: "broadcast",
+                title: broadcast.title,
+                body: broadcast.body,
+                metadata: {
+                  broadcast_id: broadcast.id,
+                  link_url: broadcast.link_url,
+                  link_text: broadcast.link_text,
+                },
+              })
+              inappSent = true
+            } catch (inappErr) {
+              // Don't mark inappSent — leave it false so the job retries next
+              // run instead of silently recording a delivery that never happened.
+              logger.error(
+                `[Broadcast] Inbox write failed for ${recipient.customer_id} (broadcast ${broadcast.id}): ${inappErr}`
+              )
+            }
           }
 
           let emailSent = recipient.email_sent
