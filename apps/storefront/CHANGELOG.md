@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.3.0](https://github.com/masto182/HandG/compare/v1.2.0...v1.3.0) (2026-08-19)
+
+
+### Features
+
+* **account:** add full Notifications inbox page + harden broadcast dispatch ([554ec15](https://github.com/masto182/HandG/commit/554ec15993e176b93e2b3d94da97a68847badca3))
+* **account:** use open/closed envelope icon for notification read state ([c8ca34e](https://github.com/masto182/HandG/commit/c8ca34ee6bd466e24a2c765c454408d5f1ca26b0))
+* **admin:** add broadcast announcements (email + in-app inbox) ([d154c44](https://github.com/masto182/HandG/commit/d154c44f94eec99db43df5541fb165d8cdad7874))
+* **promotions:** add Tree House brewery buy-4-get-1-free promotion ([#7](https://github.com/masto182/HandG/issues/7)) ([bcf85f8](https://github.com/masto182/HandG/commit/bcf85f8e2db5d9b7b5ddab8f53801e27b5c23961))
+
+
+### Bug Fixes
+
+* **storefront:** route bell dropdown through working server-action auth ([77268ad](https://github.com/masto182/HandG/commit/77268ad9e6f415e26dc3d17c20a6a06901403e5b))
+
 ## [1.2.0](https://github.com/masto182/HandG/compare/v1.1.0...v1.2.0) (2026-08-17)
 
 

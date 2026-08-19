@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.1.3](https://github.com/masto182/HandG/compare/v0.1.2...v0.1.3) (2026-08-19)
+
+
+### Features
+
+* **account:** add full Notifications inbox page + harden broadcast dispatch ([554ec15](https://github.com/masto182/HandG/commit/554ec15993e176b93e2b3d94da97a68847badca3))
+* **account:** use open/closed envelope icon for notification read state ([c8ca34e](https://github.com/masto182/HandG/commit/c8ca34ee6bd466e24a2c765c454408d5f1ca26b0))
+* **admin:** add broadcast announcements (email + in-app inbox) ([d154c44](https://github.com/masto182/HandG/commit/d154c44f94eec99db43df5541fb165d8cdad7874))
+* **admin:** add Email Templates preview page ([57697a5](https://github.com/masto182/HandG/commit/57697a588db517e50258f360c621fd80fb30a781))
+* **admin:** broadcast channels, site-banner integration, individual targeting, draft editing ([b9b583f](https://github.com/masto182/HandG/commit/b9b583fc7908780acdcd4de572b0a613a67d7f12))
+* **promotions:** add Tree House brewery buy-4-get-1-free promotion ([#7](https://github.com/masto182/HandG/issues/7)) ([bcf85f8](https://github.com/masto182/HandG/commit/bcf85f8e2db5d9b7b5ddab8f53801e27b5c23961))
+
+
+### Bug Fixes
+
+* **admin:** allow clearing broadcast segment dropdowns ([f90fd50](https://github.com/masto182/HandG/commit/f90fd50854255504a06ecaeb040c19943a9e905d))
+* **admin:** restore customer picker on draft reopen, show real recipient count before send ([f6fba7e](https://github.com/masto182/HandG/commit/f6fba7e60c33e17750d6c59c253c457f4d8f45f6))
+* **auth:** use updateCustomers (plural) in password reset flow ([37e8817](https://github.com/masto182/HandG/commit/37e8817cdc72bb4d902ea2124ffc963a43e554d1))
+* **email:** order total resolved to 0 when items were requested together ([286674c](https://github.com/masto182/HandG/commit/286674c9c2745facdc7241d4f4f38e48aaa208ed))
+* **email:** order-placed template divided prices by 100 incorrectly ([383b488](https://github.com/masto182/HandG/commit/383b488894b227268b279dff00942556aec318ae))
+* **storefront:** route bell dropdown through working server-action auth ([77268ad](https://github.com/masto182/HandG/commit/77268ad9e6f415e26dc3d17c20a6a06901403e5b))
+
 ## [0.1.2](https://github.com/masto182/HandG/compare/v0.1.1...v0.1.2) (2026-08-17)
 
 
