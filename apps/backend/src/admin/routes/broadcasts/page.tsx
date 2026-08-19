@@ -297,11 +297,22 @@ function ComposerForm({
   }
 
   const handleSend = async () => {
+    let count = previewCount
+    try {
+      const res = await sdk.client.fetch<{ count: number }>("/admin/broadcasts/preview", {
+        method: "POST",
+        body: { segment_filter: formToSegmentFilter(form) },
+      })
+      count = res.count
+      setPreviewCount(count)
+    } catch {
+      toast.error("Failed to check recipient count — try again")
+      return
+    }
+
     const confirmed = await prompt({
       title: "Send broadcast",
-      description: `This will notify ${
-        previewCount ?? "an unknown number of"
-      } customers. This cannot be undone. Continue?`,
+      description: `This will notify ${count} customer${count === 1 ? "" : "s"}. This cannot be undone. Continue?`,
       confirmText: "Send",
       cancelText: "Cancel",
     })
@@ -573,6 +584,7 @@ const BroadcastsPage = () => {
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Broadcast | null>(null)
+  const [editingForm, setEditingForm] = useState<FormState | null>(null)
   const [saving, setSaving] = useState(false)
 
   const load = async () => {
@@ -599,12 +611,32 @@ const BroadcastsPage = () => {
 
   const openCreate = () => {
     setEditing(null)
+    setEditingForm(null)
     setModalOpen(true)
   }
 
-  const openEdit = (b: Broadcast) => {
+  const openEdit = async (b: Broadcast) => {
     if (b.status !== "draft") return
+    let form = formFromBroadcast(b)
+
+    // Picked-customer chips aren't stored on the broadcast (only ids are) —
+    // resolve them here so a reopened draft shows the same selection the
+    // admin saved, rather than looking like it was lost.
+    const ids = b.segment_filter?.customer_ids
+    if (form.targeting_mode === "customers" && ids && ids.length > 0) {
+      try {
+        const res = await sdk.admin.customer.list({
+          id: ids,
+          fields: "id,email,first_name,last_name",
+        } as any)
+        form = { ...form, selectedCustomers: (res.customers as any) ?? [] }
+      } catch {
+        toast.error("Could not reload the previously selected customers")
+      }
+    }
+
     setEditing(b)
+    setEditingForm(form)
     setModalOpen(true)
   }
 
@@ -758,7 +790,10 @@ const BroadcastsPage = () => {
         open={modalOpen}
         onOpenChange={(open) => {
           setModalOpen(open)
-          if (!open) setEditing(null)
+          if (!open) {
+            setEditing(null)
+            setEditingForm(null)
+          }
         }}
       >
         <FocusModal.Content>
@@ -768,7 +803,7 @@ const BroadcastsPage = () => {
           <FocusModal.Body className="overflow-auto">
             <ComposerForm
               key={editing?.id ?? "new"}
-              initial={editing ? formFromBroadcast(editing) : EMPTY_FORM}
+              initial={editingForm ?? EMPTY_FORM}
               breweries={breweries}
               hops={hops}
               onSend={(f) => submit(f, true)}
@@ -776,6 +811,7 @@ const BroadcastsPage = () => {
               onCancel={() => {
                 setModalOpen(false)
                 setEditing(null)
+                setEditingForm(null)
               }}
               saving={saving}
             />
