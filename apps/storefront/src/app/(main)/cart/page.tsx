@@ -1,4 +1,8 @@
-import { retrieveCart, applyApprovedOffersToCart } from "@lib/data/cart"
+import {
+  retrieveCart,
+  applyApprovedOffersToCart,
+  applyAutomaticPromotionsToCart,
+} from "@lib/data/cart"
 import { retrieveCustomer } from "@lib/data/customer"
 import { getVariantInventory } from "@lib/data/inventory"
 import CartTemplate from "@modules/cart/templates"
@@ -22,6 +26,13 @@ export default async function Cart() {
   const discounted = await applyApprovedOffersToCart(cart)
   if (discounted) {
     cart = discounted
+  }
+
+  // Same gap, generic case: brewery BOGO deals and other non-customer-scoped
+  // automatic promotions.
+  const autoDiscounted = await applyAutomaticPromotionsToCart(cart)
+  if (autoDiscounted) {
+    cart = autoDiscounted
   }
 
   const customer = await retrieveCustomer()

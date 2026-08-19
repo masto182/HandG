@@ -459,6 +459,52 @@ export async function applyApprovedOffersToCart(
   }
 }
 
+/**
+ * Apply any generic "automatic" promotions (e.g. brewery BOGO deals) to a
+ * cart. Bridges the same Medusa gap as applyApprovedOffersToCart above,
+ * but for codes that aren't tied to a specific customer — sourced from
+ * GET /store/active-promotions (backend excludes rule-scoped promotions
+ * like per-customer buy-at-price offers, so this never double-applies
+ * what applyApprovedOffersToCart already handles).
+ *
+ * Same contract as applyApprovedOffersToCart: best-effort, returns null on
+ * error or when there's nothing new to apply, safe to call during render.
+ */
+export async function applyAutomaticPromotionsToCart(
+  cart: HttpTypes.StoreCart | null,
+): Promise<HttpTypes.StoreCart | null> {
+  try {
+    if (!cart?.id || !cart.items?.length) return null
+
+    const headers = { ...(await getAuthHeaders()) }
+    const { codes } = await sdk.client.fetch<{ codes: string[] }>(
+      `/store/active-promotions`,
+      { method: "GET", headers, next: { revalidate: 60 } },
+    )
+    if (!codes?.length) return null
+
+    const existingCodes = ((cart.promotions ?? []) as any[])
+      .map((p) => p?.code)
+      .filter(Boolean) as string[]
+    const existingSet = new Set(existingCodes)
+
+    const newCodes = codes.filter((c) => !existingSet.has(c))
+    if (!newCodes.length) return null
+
+    const merged = Array.from(new Set([...existingCodes, ...newCodes]))
+
+    const { cart: updated } = await sdk.store.cart.update(
+      cart.id,
+      { promo_codes: merged },
+      { fields: CART_QUERY_FIELDS },
+      headers,
+    )
+    return updated as HttpTypes.StoreCart
+  } catch {
+    return null
+  }
+}
+
 export type SetAddressesAddress = {
   first_name: string
   last_name: string
