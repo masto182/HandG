@@ -2,19 +2,14 @@
 
 import { useEffect, useState, useRef } from "react"
 import { toast } from "sonner"
-import { sdk } from "@lib/config"
 import Icon from "@modules/common/components/icon"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
-
-type NotificationItem = {
-  id: string
-  type: string
-  title: string
-  body: string
-  read: boolean
-  created_at: string
-  metadata?: { link_url?: string; link_text?: string } | null
-}
+import {
+  getMyNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+  type NotificationItem,
+} from "@lib/data/notifications"
 
 import { filterNewAlertNotifications } from "@lib/util/notification-toast"
 
@@ -24,15 +19,13 @@ export default function NotificationDropdown() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const [open, setOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
+  const [markingAll, setMarkingAll] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const shownRef = useRef<Set<string>>(new Set())
 
   const fetchNotifications = async () => {
     try {
-      const data = await sdk.client.fetch<{
-        notifications: NotificationItem[]
-        unread_count: number
-      }>("/store/customers/me/notifications?limit=50", { method: "GET" })
+      const data = await getMyNotifications({ limit: 50 })
       const items = data.notifications || []
       setNotifications(items)
       setUnreadCount(data.unread_count || 0)
@@ -75,16 +68,49 @@ export default function NotificationDropdown() {
     return () => document.removeEventListener("mousedown", handleClick)
   }, [])
 
-  const handleOpen = async () => {
-    setOpen(!open)
-    if (!open && unreadCount > 0) {
-      try {
-        await sdk.client.fetch("/store/customers/me/notifications/read-all", {
-          method: "POST",
-        })
-        setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
-        setUnreadCount(0)
-      } catch {}
+  const handleOpen = () => {
+    const next = !open
+    setOpen(next)
+    if (next) {
+      // Refetch on every open so what's shown is never more than a click away
+      // from current, rather than waiting on the 60s poll.
+      fetchNotifications()
+    }
+  }
+
+  const handleItemClick = async (n: NotificationItem) => {
+    if (n.read) return
+    setNotifications((prev) =>
+      prev.map((item) => (item.id === n.id ? { ...item, read: true } : item)),
+    )
+    setUnreadCount((prev) => Math.max(prev - 1, 0))
+    try {
+      await markNotificationRead(n.id)
+    } catch {
+      // Revert on failure so the UI doesn't lie about persisted state.
+      setNotifications((prev) =>
+        prev.map((item) =>
+          item.id === n.id ? { ...item, read: false } : item,
+        ),
+      )
+      setUnreadCount((prev) => prev + 1)
+    }
+  }
+
+  const handleMarkAllRead = async () => {
+    if (unreadCount === 0 || markingAll) return
+    setMarkingAll(true)
+    const previous = notifications
+    const previousCount = unreadCount
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
+    setUnreadCount(0)
+    try {
+      await markAllNotificationsRead()
+    } catch {
+      setNotifications(previous)
+      setUnreadCount(previousCount)
+    } finally {
+      setMarkingAll(false)
     }
   }
 
@@ -118,14 +144,19 @@ export default function NotificationDropdown() {
 
       {open && (
         <div className="absolute right-0 top-10 w-[340px] bg-surface-container-high rounded-xl border border-outline-variant shadow-2xl z-50 overflow-hidden">
-          <div className="px-4 py-3 border-b border-outline-variant flex items-center justify-between">
+          <div className="px-4 py-3 border-b border-outline-variant flex items-center justify-between gap-2">
             <h3 className="text-body-md font-semibold text-on-surface">
               Notifications
             </h3>
-            {notifications.length > 0 && (
-              <span className="text-label-caps text-on-surface-variant">
-                {notifications.length}
-              </span>
+            {unreadCount > 0 && (
+              <button
+                type="button"
+                onClick={handleMarkAllRead}
+                disabled={markingAll}
+                className="text-label-caps text-primary hover:underline disabled:opacity-50"
+              >
+                {markingAll ? "Marking..." : "Mark all read"}
+              </button>
             )}
           </div>
           <div className="max-h-[360px] overflow-y-auto">
@@ -144,16 +175,33 @@ export default function NotificationDropdown() {
               notifications.slice(0, 10).map((n) => (
                 <div
                   key={n.id}
-                  className="px-4 py-3 border-b border-outline-variant/50 last:border-b-0 hover:bg-surface-container transition-colors"
+                  onClick={() => handleItemClick(n)}
+                  role={n.read ? undefined : "button"}
+                  className={[
+                    "px-4 py-3 border-b border-outline-variant/50 last:border-b-0 hover:bg-surface-container transition-colors cursor-pointer",
+                    n.read ? "" : "bg-primary/5",
+                  ].join(" ")}
                 >
                   <div className="flex gap-3">
-                    <Icon
-                      name={typeIcons[n.type] || "notifications"}
-                      size={18}
-                      className="text-primary flex-shrink-0 mt-0.5"
-                    />
+                    <span className="relative flex-shrink-0 mt-0.5">
+                      <Icon
+                        name={typeIcons[n.type] || "notifications"}
+                        size={18}
+                        className="text-primary"
+                      />
+                      {!n.read && (
+                        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-primary rounded-full" />
+                      )}
+                    </span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-body-sm font-medium text-on-surface truncate">
+                      <p
+                        className={[
+                          "text-body-sm truncate",
+                          n.read
+                            ? "font-medium text-on-surface-variant"
+                            : "font-semibold text-on-surface",
+                        ].join(" ")}
+                      >
                         {n.title}
                       </p>
                       <p className="text-body-sm text-on-surface-variant line-clamp-2">
@@ -162,6 +210,7 @@ export default function NotificationDropdown() {
                       {n.type === "broadcast" && n.metadata?.link_url ? (
                         <a
                           href={n.metadata.link_url}
+                          onClick={(e) => e.stopPropagation()}
                           className="text-body-sm text-primary font-medium hover:underline"
                         >
                           {n.metadata.link_text || "Learn more"}
