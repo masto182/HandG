@@ -10,7 +10,12 @@ export type NotificationItem = {
   body: string
   read: boolean
   created_at: string
-  metadata?: { link_url?: string; link_text?: string } | null
+  metadata?: {
+    handle?: string
+    cta?: string
+    link_url?: string
+    link_text?: string
+  } | null
 }
 
 export type NotificationsPage = {

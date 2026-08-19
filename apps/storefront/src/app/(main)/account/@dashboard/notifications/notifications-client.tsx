@@ -11,6 +11,8 @@ import {
   type NotificationsPage,
 } from "@lib/data/notifications"
 import Icon from "@modules/common/components/icon"
+import LocalizedClientLink from "@modules/common/components/localized-client-link"
+import { getNotificationLink } from "@lib/util/notification-link"
 
 type Filter = "all" | "unread"
 
@@ -360,15 +362,27 @@ export default function NotificationsClient({
                         <p className="text-xs text-hg-text-muted">
                           {formatNotificationTimestamp(item.created_at)}
                         </p>
-                        {item.metadata?.link_url ? (
-                          <a
-                            href={item.metadata.link_url}
-                            onClick={(event) => event.stopPropagation()}
-                            className="text-xs font-medium text-hl-primary hover:underline"
-                          >
-                            {item.metadata.link_text || "Learn more"}
-                          </a>
-                        ) : null}
+                        {(() => {
+                          const link = getNotificationLink(item)
+                          if (!link) return null
+                          const isExternal = /^https?:\/\//.test(link.href)
+                          return isExternal ? (
+                            <a
+                              href={link.href}
+                              onClick={(event) => event.stopPropagation()}
+                              className="text-xs font-medium text-hl-primary hover:underline"
+                            >
+                              {link.label}
+                            </a>
+                          ) : (
+                            <LocalizedClientLink
+                              href={link.href}
+                              className="text-xs font-medium text-hl-primary hover:underline"
+                            >
+                              {link.label}
+                            </LocalizedClientLink>
+                          )
+                        })()}
                       </div>
                     </div>
                     <button

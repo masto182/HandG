@@ -33,7 +33,7 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
             "referral_signup",
             "Your referral joined",
             "Someone you referred just became a member — +50 pts added to your account.",
-            { referred_customer_id: id }
+            { referred_customer_id: id, cta: "/account/referrals" }
           )
         }
       })

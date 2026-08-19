@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react"
 import { toast } from "sonner"
 import Icon from "@modules/common/components/icon"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
+import { getNotificationLink } from "@lib/util/notification-link"
 import {
   getMyNotifications,
   markNotificationRead,
@@ -192,15 +193,27 @@ export default function NotificationDropdown() {
                       <p className="text-body-sm text-on-surface-variant line-clamp-2">
                         {n.body}
                       </p>
-                      {n.type === "broadcast" && n.metadata?.link_url ? (
-                        <a
-                          href={n.metadata.link_url}
-                          onClick={(e) => e.stopPropagation()}
-                          className="text-body-sm text-primary font-medium hover:underline"
-                        >
-                          {n.metadata.link_text || "Learn more"}
-                        </a>
-                      ) : null}
+                      {(() => {
+                        const link = getNotificationLink(n)
+                        if (!link) return null
+                        const isExternal = /^https?:\/\//.test(link.href)
+                        return isExternal ? (
+                          <a
+                            href={link.href}
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-body-sm text-primary font-medium hover:underline"
+                          >
+                            {link.label}
+                          </a>
+                        ) : (
+                          <LocalizedClientLink
+                            href={link.href}
+                            className="text-body-sm text-primary font-medium hover:underline"
+                          >
+                            {link.label}
+                          </LocalizedClientLink>
+                        )
+                      })()}
                       <p className="text-[11px] text-on-surface-variant/60 mt-1">
                         {new Date(n.created_at).toLocaleDateString()}
                       </p>
