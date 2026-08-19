@@ -32,7 +32,13 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
   const { id } = req.params
   const body = req.body as Record<string, unknown>
 
-  const allowedFields = ["slug", "hours", "phone", "notes", "is_active", "sort_order"]
+  // "slug" is intentionally excluded here: it's the stable key embedded in
+  // the shipping option's type.code (pickup-{slug}) at creation time and is
+  // never updated by seed.ts once bootstrapped. Renaming it after creation
+  // desyncs the storefront's slug-based address lookup for that location —
+  // this happened in production (see fix-pickup-locations.ts). Set slug only
+  // at creation.
+  const allowedFields = ["hours", "phone", "notes", "is_active", "sort_order"]
   const filtered: Record<string, unknown> = {}
   for (const key of allowedFields) {
     if (key in body) filtered[key] = body[key]

@@ -490,7 +490,17 @@ const PickupLocationsPage = () => {
                     <Label size="small" weight="plus">
                       Slug
                     </Label>
-                    <Input value={form.slug} onChange={(e) => set({ slug: e.target.value })} />
+                    <Input
+                      value={form.slug}
+                      onChange={(e) => set({ slug: e.target.value })}
+                      disabled={mode === "edit"}
+                    />
+                    {mode === "edit" && (
+                      <Text size="xsmall" className="text-ui-fg-muted">
+                        Internal identifier, tied to this location&apos;s shipping option — cannot
+                        be changed after creation.
+                      </Text>
+                    )}
                   </div>
                   <div className="space-y-1">
                     <Label size="small" weight="plus">

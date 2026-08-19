@@ -54,13 +54,13 @@ const CUSTOMER_GROUPS = ["pending", "approved", "vip1", "vip2", "vip3", "vip4", 
 const PICKUP_LOCATIONS = [
   {
     slug: "downtown",
-    stock_location_name: "Downtown Pickup",
+    stock_location_name: "CBD Meetup",
     address: {
-      address_1: "100 Main Street",
-      city: "Springfield",
+      address_1: "Cnr Little Collins & Queen Street",
+      city: "Melbourne",
       country_code: COUNTRY,
-      province: "",
-      postal_code: "00000",
+      province: "VIC",
+      postal_code: "3000",
     },
     hours: [
       { day: "mon", open: "10:00", close: "18:00" },
@@ -77,13 +77,13 @@ const PICKUP_LOCATIONS = [
   },
   {
     slug: "suburb",
-    stock_location_name: "Suburb Pickup",
+    stock_location_name: "Hillside Pickup",
     address: {
       address_1: "53 Landscape Drive",
-      city: "Suburbia",
+      city: "Hillside",
       country_code: COUNTRY,
-      province: "",
-      postal_code: "00001",
+      province: "VIC",
+      postal_code: "3037",
     },
     hours: [
       { day: "thu", open: "16:00", close: "20:00" },
@@ -163,12 +163,28 @@ export default async function seed({ container }: ExecArgs) {
     postal_code: "00000",
   })
 
+  // A pickup_location row already existing for a slug means this location is
+  // bootstrapped and admin-owned (name/address/hours may have been edited via
+  // the admin UI). In that case reuse its stock_location as-is — never
+  // re-resolve by name, which is what silently created duplicate placeholder
+  // locations whenever an admin renamed one (see fix-pickup-locations.ts /
+  // cleanup-pickup-debris.ts for the one-off repair of that class of bug).
   const pickupStockLocations: Record<string, any> = {}
+  const pickupAlreadyBootstrapped: Record<string, boolean> = {}
   for (const pl of PICKUP_LOCATIONS) {
-    pickupStockLocations[pl.slug] = await findOrCreateStockLocation(
-      pl.stock_location_name,
-      pl.address
-    )
+    const [existingPickupRow] = await (pickupSvc as any).listPickupLocations({ slug: pl.slug })
+    if (existingPickupRow) {
+      pickupStockLocations[pl.slug] = await stockLocationModule.retrieveStockLocation(
+        existingPickupRow.stock_location_id
+      )
+      pickupAlreadyBootstrapped[pl.slug] = true
+    } else {
+      pickupStockLocations[pl.slug] = await findOrCreateStockLocation(
+        pl.stock_location_name,
+        pl.address
+      )
+      pickupAlreadyBootstrapped[pl.slug] = false
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -360,8 +376,14 @@ export default async function seed({ container }: ExecArgs) {
       })
     }
 
-    // 5b. Pickup sets, one per pickup location
+    // 5b. Pickup sets, one per pickup location. Skipped once bootstrapped —
+    // these objects are found-or-created by name, and PICKUP_LOCATIONS'
+    // stock_location_name is just a default; changing it must never affect
+    // an already-provisioned deploy or it would create duplicate
+    // fulfillment_set/service_zone/shipping_option infrastructure here too.
     for (const pl of PICKUP_LOCATIONS) {
+      if (pickupAlreadyBootstrapped[pl.slug]) continue
+
       const setName = `Pickup - ${pl.stock_location_name}`
       const zoneName = `${pl.stock_location_name} Pickup`
       const pickupSet = await findOrCreateFulfillmentSet(setName, "pickup")
@@ -442,37 +464,28 @@ export default async function seed({ container }: ExecArgs) {
 
   // ---------------------------------------------------------------------------
   // 7. Pickup-location module rows (storefront pickup hours/notes/sort_order)
+  //
+  // Only ever CREATED here, on first bootstrap. Once a pickup_location row
+  // exists for a slug it is admin-owned — seed must never overwrite its
+  // hours/phone/notes/is_active/sort_order again, otherwise every deploy
+  // would silently clobber operational edits made via /admin/pickup-locations.
   // ---------------------------------------------------------------------------
   for (const pl of PICKUP_LOCATIONS) {
-    const stockLoc = pickupStockLocations[pl.slug]
-    const existing = await (pickupSvc as any).listPickupLocations({
-      stock_location_id: stockLoc.id,
-    })
-    if (existing?.length) {
-      await (pickupSvc as any).updatePickupLocations({
-        selector: { id: existing[0].id },
-        data: {
-          stock_location_id: stockLoc.id,
-          hours: pl.hours,
-          phone: pl.phone,
-          notes: pl.notes,
-          is_active: pl.is_active,
-          sort_order: pl.sort_order,
-        },
-      })
-      logger.info(`  Updated pickup location row "${pl.slug}"`)
-    } else {
-      await (pickupSvc as any).createPickupLocations({
-        stock_location_id: stockLoc.id,
-        slug: pl.slug,
-        hours: pl.hours,
-        phone: pl.phone,
-        notes: pl.notes,
-        is_active: pl.is_active,
-        sort_order: pl.sort_order,
-      })
-      logger.info(`  Created pickup location row "${pl.slug}"`)
+    if (pickupAlreadyBootstrapped[pl.slug]) {
+      logger.info(`  Pickup location "${pl.slug}" already bootstrapped — admin-owned, skipping`)
+      continue
     }
+    const stockLoc = pickupStockLocations[pl.slug]
+    await (pickupSvc as any).createPickupLocations({
+      stock_location_id: stockLoc.id,
+      slug: pl.slug,
+      hours: pl.hours,
+      phone: pl.phone,
+      notes: pl.notes,
+      is_active: pl.is_active,
+      sort_order: pl.sort_order,
+    })
+    logger.info(`  Created pickup location row "${pl.slug}"`)
   }
 
   // ---------------------------------------------------------------------------

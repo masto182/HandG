@@ -280,10 +280,12 @@ const StepFulfilment: React.FC<Props> = ({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {pickupOptions.map((option) => {
                       const isActive = selectedPickupId === option.id
+                      const pickupLocation = pickupLocationForOption(option)
                       const address = formatAddress(
-                        pickupLocationForOption(option)?.stock_location
-                          ?.address,
+                        pickupLocation?.stock_location?.address,
                       )
+                      const displayName =
+                        pickupLocation?.stock_location?.name ?? option.name
                       return (
                         <button
                           key={option.id}
@@ -298,7 +300,7 @@ const StepFulfilment: React.FC<Props> = ({
                           <div className="flex items-start justify-between">
                             <div>
                               <p className="font-semibold text-sm text-hg-text">
-                                {option.name}
+                                {displayName}
                               </p>
                               {address && (
                                 <p className="text-xs text-hg-text-secondary mt-1">
