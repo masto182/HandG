@@ -6,7 +6,11 @@ import { safeText } from "../../../lib/util/sanitize-text"
 const sanitizeFilterValue = (val: string): string => val.replace(/"/g, '\\"')
 
 const MAX_QUERY_LEN = 200
-const MAX_LIMIT = 100
+// The storefront no longer depends on this for its "beers found" count or
+// filter facets (both trust totalHits/facetDistribution directly now — see
+// paginated-products.tsx and filter-panel/index.tsx). This cap only bounds
+// individual per-page requests and the on_sale JS-filter batch fetch.
+const MAX_LIMIT = 300
 const MAX_OFFSET = 10000
 
 // Only these attributes are configured sortable on the index (see

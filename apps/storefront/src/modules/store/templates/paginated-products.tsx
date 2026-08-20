@@ -1,4 +1,4 @@
-import { listProductsWithSort } from "@lib/data/products"
+import { listProducts, listProductsWithSort } from "@lib/data/products"
 import { getRegion } from "@lib/data/regions"
 import ProductPreview from "@modules/products/components/product-preview"
 import ProductListItem from "@modules/products/components/product-list-item"
@@ -35,10 +35,10 @@ const MEILI_SORT_MAP: Record<string, string> = {
   stock_desc: "inventory_qty:desc",
 }
 
-async function fetchFilteredProductIds(
+function buildSearchParams(
   filterParams: FilterParams,
   sortBy?: SortOptions,
-): Promise<string[]> {
+): URLSearchParams {
   const params = new URLSearchParams()
   if (filterParams.q) params.set("q", filterParams.q)
   if (filterParams.brewery) params.set("brewery", filterParams.brewery)
@@ -54,7 +54,56 @@ async function fetchFilteredProductIds(
   params.set("available", filterParams.available ?? "true")
   const meiliSort = sortBy ? MEILI_SORT_MAP[sortBy] : undefined
   if (meiliSort) params.set("sort", meiliSort)
-  params.set("limit", "200")
+  return params
+}
+
+// Fetches exactly one page of matching product ids directly from MeiliSearch
+// (via /store/search), trusting its totalHits for the true count — no more
+// over-fetch-then-JS-filter-then-slice. This relies on inventory_qty staying
+// live in the index (see inventory-search-sync.ts), not on a client-side
+// re-check against Medusa.
+async function fetchSearchPage(
+  filterParams: FilterParams,
+  sortBy: SortOptions | undefined,
+  limit: number,
+  offset: number,
+): Promise<{ ids: string[]; totalHits: number; usedFallback: boolean }> {
+  const params = buildSearchParams(filterParams, sortBy)
+  params.set("limit", String(limit))
+  params.set("offset", String(offset))
+
+  try {
+    const data = await sdk.client.fetch<{ hits: any[]; totalHits: number }>(
+      `/store/search?${params.toString()}`,
+      { method: "GET", next: { revalidate: 0 } },
+    )
+    const hits = data.hits || []
+    return {
+      ids: hits.map((h: any) => h.id),
+      totalHits: data.totalHits ?? hits.length,
+      usedFallback: false,
+    }
+  } catch {
+    // MeiliSearch itself unreachable — fall back to a full metadata scan,
+    // then paginate that in memory (no real offset/limit support here).
+    const allIds = await fallbackFilterByMetadata(filterParams)
+    return {
+      ids: allIds.slice(offset, offset + limit),
+      totalHits: allIds.length,
+      usedFallback: true,
+    }
+  }
+}
+
+// Full candidate id list (bounded by the backend's MAX_LIMIT) — still needed
+// for the on_sale path, which requires a JS pass over Medusa pricing data
+// that MeiliSearch doesn't index.
+async function fetchAllFilteredIds(
+  filterParams: FilterParams,
+  sortBy?: SortOptions,
+): Promise<string[]> {
+  const params = buildSearchParams(filterParams, sortBy)
+  params.set("limit", "300")
 
   try {
     const data = await sdk.client.fetch<{ hits: any[] }>(
@@ -68,6 +117,25 @@ async function fetchFilteredProductIds(
   } catch {}
 
   return fallbackFilterByMetadata(filterParams)
+}
+
+// Hydrates an exact set of product ids from Medusa (for price/variant data)
+// and reorders the result to match `ids` — Medusa's id-filtered list endpoint
+// does not guarantee it preserves the requested id order.
+async function hydrateProductsInOrder(
+  ids: string[],
+  countryCode: string,
+): Promise<any[]> {
+  if (ids.length === 0) return []
+  const {
+    response: { products },
+  } = await listProducts({
+    pageParam: 1,
+    queryParams: { id: ids, limit: ids.length } as any,
+    countryCode,
+  })
+  const byId = new Map(products.map((p: any) => [p.id, p]))
+  return ids.map((id) => byId.get(id)).filter(Boolean)
 }
 
 async function fallbackFilterByMetadata(
@@ -254,55 +322,25 @@ export default async function PaginatedProducts({
   let count: number
 
   if (hasActiveFilters(filterParams)) {
-    // When filters are active, use MeiliSearch (or metadata fallback) to get all
-    // matching product IDs. Then fetch only the current page slice from Medusa.
-    // This replaces the previous limit:200 over-fetch + JS filter approach.
+    // Ask MeiliSearch for exactly the current page directly (real server-side
+    // pagination) and trust its totalHits for the count — no more
+    // over-fetch-then-JS-filter-then-slice, and no more live Medusa stock
+    // re-check. This relies on inventory_qty staying live in the index (see
+    // inventory-search-sync.ts) rather than working around its staleness.
     //
-    // on_sale requires pricing data that only Medusa returns — it is handled as
-    // a post-fetch pass so we over-fetch one extra page when on_sale is active.
+    // on_sale is the one exception: it needs Medusa pricing data that
+    // MeiliSearch doesn't index, so it still does a JS pass over a bounded
+    // candidate batch.
     const onSaleOnly = filterParams!.on_sale === "true"
-    const nonSaleParams = onSaleOnly
-      ? { ...filterParams, on_sale: undefined }
-      : filterParams
-
-    const allIds = await fetchFilteredProductIds(nonSaleParams!, sortBy)
-
-    if (allIds.length === 0) {
-      return (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <svg
-            width="48"
-            height="48"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1"
-            className="text-hg-text-secondary/30 mb-4"
-          >
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-          <h3 className="text-lg font-semibold text-hg-text mb-2">
-            No products found
-          </h3>
-          <p className="text-sm text-hg-text-secondary max-w-xs">
-            Try adjusting your filters or search terms to find what you&apos;re
-            looking for.
-          </p>
-        </div>
-      )
-    }
 
     if (onSaleOnly) {
-      // Fetch up to 200 products matching the other filters, then JS-filter for on_sale.
-      const batchIds = allIds.slice(0, 200)
-      const { response: batch } = await listProductsWithSort({
-        page: 1,
-        queryParams: { ...queryParams, limit: 200, id: batchIds } as any,
+      const nonSaleParams = { ...filterParams, on_sale: undefined }
+      const batchIds = await fetchAllFilteredIds(
+        nonSaleParams as FilterParams,
         sortBy,
-        countryCode,
-      })
-      const filtered = batch.products.filter((p: any) =>
+      )
+      const hydrated = await hydrateProductsInOrder(batchIds, countryCode)
+      const filtered = hydrated.filter((p: any) =>
         p.variants?.some((v: any) => {
           const cp = v.calculated_price
           return cp && cp.calculated_price?.price_list_type === "sale"
@@ -311,47 +349,15 @@ export default async function PaginatedProducts({
       count = filtered.length
       const start = (page - 1) * 12
       products = filtered.slice(start, start + 12)
-    } else if (filterParams?.available !== "false") {
-      // Hide sold-out by default: fetch ALL matching IDs from Medusa (hydrated
-      // inventory is accurate; MeiliSearch inventory_qty data can be stale),
-      // JS-filter, paginate. Do not slice allIds — slicing risks missing
-      // in-stock products when earlier results happen to be sold out.
-      const { response: batch } = await listProductsWithSort({
-        page: 1,
-        queryParams: {
-          ...queryParams,
-          limit: allIds.length,
-          id: allIds,
-        } as any,
-        sortBy,
-        countryCode,
-      })
-      const filtered = batch.products.filter((p: any) => {
-        const stock =
-          p.variants?.reduce(
-            (sum: number, v: any) => sum + (v.inventory_quantity ?? 0),
-            0,
-          ) ?? 1
-        return stock > 0
-      })
-      count = filtered.length
-      const start = (page - 1) * 12
-      products = filtered.slice(start, start + 12)
     } else {
-      // available=false: include sold-out products — standard pagination.
-      count = allIds.length
-      const pageIds = allIds.slice((page - 1) * 12, page * 12)
-      if (pageIds.length === 0) {
-        products = []
-      } else {
-        const { response: pageResult } = await listProductsWithSort({
-          page: 1,
-          queryParams: { ...queryParams, limit: 12, id: pageIds } as any,
-          sortBy,
-          countryCode,
-        })
-        products = pageResult.products
-      }
+      const { ids, totalHits } = await fetchSearchPage(
+        filterParams!,
+        sortBy,
+        12,
+        (page - 1) * 12,
+      )
+      count = totalHits
+      products = await hydrateProductsInOrder(ids, countryCode)
     }
   } else {
     const result = await listProductsWithSort({
