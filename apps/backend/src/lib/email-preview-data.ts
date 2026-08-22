@@ -423,6 +423,113 @@ export async function getNewDropSample(container: any) {
   }
 }
 
+// --- new-drop-digest (personalized) ---
+
+export async function getNewDropDigestPersonalizedSample(container: any) {
+  const storeUrl = getStoreUrl()
+  const productModule = container.resolve(Modules.PRODUCT)
+  const customer = await mostRecentCustomer(container)
+  const synthetic: string[] = ["brewerySection", "hopSection"]
+
+  const products = await productModule.listProducts(
+    { status: "published" },
+    {
+      select: ["id", "title", "handle", "thumbnail", "metadata"],
+      order: { created_at: "DESC" },
+      take: 3,
+    }
+  )
+
+  if (!customer) synthetic.push("name")
+
+  const toProduct = (p: any, hopTag: string | null = null) => ({
+    beerName: p.title || "New release",
+    breweryName: p.metadata?.brewery_name || p.metadata?.brewery || "",
+    image: p.thumbnail || null,
+    handle: p.handle || "",
+    dispatchId: null,
+    hopTag,
+  })
+
+  const brewery = products[0]
+  const hopOnly = products[1]
+
+  return {
+    props: {
+      name: customer?.first_name || "Alex",
+      brewerySection: brewery
+        ? {
+            label: brewery.metadata?.brewery_name || "Tree House",
+            products: [toProduct(brewery, "Citra")],
+          }
+        : {
+            label: "Tree House",
+            products: [{ ...toProductFallback("Julius", "Tree House"), hopTag: "Citra" }],
+          },
+      hopSection: hopOnly
+        ? { label: "Peacherine", products: [toProduct(hopOnly)] }
+        : {
+            label: "Peacherine",
+            products: [toProductFallback("Sundial Pacific Ale", "Brujos Brewing")],
+          },
+      generalSection: null,
+      storeUrl,
+    },
+    synthetic,
+  }
+}
+
+function toProductFallback(beerName: string, breweryName: string) {
+  return {
+    beerName,
+    breweryName,
+    image: null,
+    handle: beerName.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+    dispatchId: null,
+  }
+}
+
+// --- new-drop-digest (generic) ---
+
+export async function getNewDropDigestGenericSample(container: any) {
+  const storeUrl = getStoreUrl()
+  const productModule = container.resolve(Modules.PRODUCT)
+  const customer = await mostRecentCustomer(container)
+  const synthetic: string[] = ["generalSection"]
+
+  const products = await productModule.listProducts(
+    { status: "published" },
+    {
+      select: ["id", "title", "handle", "thumbnail", "metadata"],
+      order: { created_at: "DESC" },
+      take: 3,
+    }
+  )
+
+  if (!customer) synthetic.push("name")
+
+  const generalProducts = products.length
+    ? products.map((p: any) => ({
+        beerName: p.title || "New release",
+        breweryName: p.metadata?.brewery_name || p.metadata?.brewery || "",
+        image: p.thumbnail || null,
+        handle: p.handle || "",
+        dispatchId: null,
+      }))
+    : [toProductFallback("Julius", "Tree House Brewing")]
+
+  return {
+    props: {
+      name: customer?.first_name || "Alex",
+      brewerySection: null,
+      hopSection: null,
+      generalSection: { products: generalProducts },
+      storeUrl,
+    },
+    synthetic,
+  }
+}
+
 // --- wishlist-low-stock ---
 
 export async function getWishlistLowStockSample(container: any) {

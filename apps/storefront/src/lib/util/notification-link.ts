@@ -25,6 +25,15 @@ export function getNotificationLink(item: {
     }
   }
 
+  // New-drop batch digests carry a link_url (brewery-filtered or all-new
+  // /store page) instead of a single product handle - checked before the
+  // legacy single-product handle branch below so batch notifications use
+  // the new link while historical pre-cutover new_drop rows (handle only,
+  // no link_url) keep working unchanged.
+  if (item.type === "new_drop" && metadata?.link_url) {
+    return { href: metadata.link_url, label: "View New Drops" }
+  }
+
   if (
     (item.type === "new_drop" || item.type === "wishlist_match") &&
     metadata?.handle

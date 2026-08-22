@@ -13,6 +13,7 @@ import * as WishlistLowStockTpl from "../emails/wishlist-low-stock"
 import * as WishlistPriceAlertTpl from "../emails/wishlist-price-alert"
 import * as WishlistOfferApprovedTpl from "../emails/wishlist-offer-approved"
 import * as NewDropTpl from "../emails/new-drop"
+import * as NewDropDigestTpl from "../emails/new-drop-digest"
 import * as ReferralRewardedTpl from "../emails/referral-rewarded"
 import * as CustomerEmailChangeTpl from "../emails/customer-email-change"
 import * as PasswordResetTpl from "../emails/password-reset"
@@ -32,6 +33,8 @@ import {
   getWishlistPriceAlertSample,
   getWishlistOfferApprovedSample,
   getNewDropSample,
+  getNewDropDigestPersonalizedSample,
+  getNewDropDigestGenericSample,
   getReferralRewardedSample,
   getCustomerEmailChangeSample,
   getPasswordResetSample,
@@ -90,6 +93,16 @@ export const EMAIL_PREVIEW_REGISTRY: Record<string, EmailPreviewEntry> = {
     label: "New drop",
     module: NewDropTpl,
     getSampleProps: getNewDropSample,
+  },
+  "new-drop-digest-personalized": {
+    label: "New drop digest (personalized - brewery/hop led)",
+    module: NewDropDigestTpl,
+    getSampleProps: getNewDropDigestPersonalizedSample,
+  },
+  "new-drop-digest-generic": {
+    label: "New drop digest (generic - all new releases)",
+    module: NewDropDigestTpl,
+    getSampleProps: getNewDropDigestGenericSample,
   },
   "wishlist-low-stock": {
     label: "Wishlist low stock",

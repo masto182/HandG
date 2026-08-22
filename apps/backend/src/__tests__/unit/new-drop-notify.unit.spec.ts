@@ -1,5 +1,5 @@
 import { isQuietHours, exceedsThrottle, getHourInTz } from "../../lib/alert-throttle"
-import { mergeRecipients } from "../../subscribers/new-drop-notify"
+import { mergeRecipients } from "../../lib/resolve-new-drop-recipients"
 
 describe("alert-throttle quiet hours", () => {
   it("returns false when disabled", () => {
@@ -47,33 +47,67 @@ describe("exceedsThrottle", () => {
 })
 
 describe("mergeRecipients", () => {
-  const ch = (customer_id: string, channel_email = true, channel_inapp = true) => ({
+  const ch = (customer_id: string, channel_email = true, channel_inapp = true, name?: string) => ({
     customer_id,
     channel_email,
     channel_inapp,
+    name,
   })
 
-  it("dedupes a customer matched by both brewery and hop into one recipient, kind=hop", () => {
+  it("dedupes a customer matched by both brewery and hop into one recipient, kind=brewery (placement priority flipped for the narrative follow-up)", () => {
     const out = mergeRecipients({
-      breweryFollows: [ch("c1", true, false)],
-      hopAlerts: [ch("c1", false, true)],
+      breweryFollows: [ch("c1", true, false, "Tree House")],
+      hopAlerts: [ch("c1", false, true, "Citra")],
       allNew: [],
       alreadyDispatched: new Set(),
     })
     expect(out).toHaveLength(1)
-    expect(out[0].kind).toBe("hop")
+    expect(out[0].kind).toBe("brewery")
     expect(out[0].want_email).toBe(true)
     expect(out[0].want_inapp).toBe(true)
   })
 
+  it("preserves the hop match name even when brewery wins placement", () => {
+    const out = mergeRecipients({
+      breweryFollows: [ch("c1", true, true, "Tree House")],
+      hopAlerts: [ch("c1", true, true, "Citra")],
+      allNew: [],
+      alreadyDispatched: new Set(),
+    })
+    expect(out[0].kind).toBe("brewery")
+    expect(out[0].breweryNames).toEqual(["Tree House"])
+    expect(out[0].hopNames).toEqual(["Citra"])
+  })
+
+  it("collects multiple matched brewery/hop names without duplicates", () => {
+    const out = mergeRecipients({
+      breweryFollows: [ch("c1", true, true, "Tree House"), ch("c1", true, true, "Tree House")],
+      hopAlerts: [ch("c1", true, true, "Citra"), ch("c1", true, true, "Peacherine")],
+      allNew: [],
+      alreadyDispatched: new Set(),
+    })
+    expect(out[0].breweryNames).toEqual(["Tree House"])
+    expect(out[0].hopNames).toEqual(["Citra", "Peacherine"])
+  })
+
   it("respects per-row channel flags for a single-source match", () => {
     const out = mergeRecipients({
-      breweryFollows: [ch("c2", false, true)],
+      breweryFollows: [ch("c2", false, true, "Fidens")],
       hopAlerts: [],
       allNew: [],
       alreadyDispatched: new Set(),
     })
     expect(out[0]).toMatchObject({ kind: "brewery", want_email: false, want_inapp: true })
+  })
+
+  it("hop-only match (no brewery) keeps kind=hop", () => {
+    const out = mergeRecipients({
+      breweryFollows: [],
+      hopAlerts: [ch("c5", true, true, "Citra")],
+      allNew: [],
+      alreadyDispatched: new Set(),
+    })
+    expect(out[0]).toMatchObject({ kind: "hop", hopNames: ["Citra"], breweryNames: [] })
   })
 
   it("all_new forces both channels on", () => {

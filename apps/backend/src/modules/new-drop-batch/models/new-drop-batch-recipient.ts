@@ -1,0 +1,12 @@
+import { model } from "@medusajs/framework/utils"
+
+const NewDropBatchRecipient = model.define("new_drop_batch_recipient", {
+  id: model.id().primaryKey(),
+  batch_id: model.text(),
+  customer_id: model.text(),
+  link_url: model.text(),
+  inapp_sent: model.boolean().default(false),
+  dispatched_at: model.dateTime().nullable(),
+})
+
+export default NewDropBatchRecipient
