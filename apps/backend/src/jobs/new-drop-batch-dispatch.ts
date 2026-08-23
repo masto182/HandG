@@ -1,7 +1,7 @@
 import { MedusaContainer } from "@medusajs/framework/types"
 import { Modules } from "@medusajs/framework/utils"
 import { sendTemplate, refreshEmailConfig, getStoreUrl } from "../lib/email"
-import { isQuietHours, exceedsThrottle } from "../lib/alert-throttle"
+import { exceedsThrottle } from "../lib/alert-throttle"
 import { withJobLock } from "../lib/job-lock"
 import { NEW_DROP_BATCH_MODULE } from "../modules/new-drop-batch"
 import { ALERT_DISPATCH_MODULE } from "../modules/alert-dispatch"
@@ -63,20 +63,8 @@ async function runDispatch(container: MedusaContainer) {
   await refreshEmailConfig(container)
   const storeUrl = getStoreUrl()
 
-  const settings = await siteConfig.getMany([
-    "alerts_max_per_day",
-    "alerts_quiet_enabled",
-    "alerts_quiet_from",
-    "alerts_quiet_to",
-    "alerts_quiet_tz",
-  ])
+  const settings = await siteConfig.getMany(["alerts_max_per_day"])
   const now = new Date()
-  const quiet = isQuietHours(now, {
-    enabled: settings.alerts_quiet_enabled !== false,
-    fromHour: Number(settings.alerts_quiet_from ?? 22),
-    toHour: Number(settings.alerts_quiet_to ?? 8),
-    tz: String(settings.alerts_quiet_tz ?? "Australia/Sydney"),
-  })
   const maxPerDay = Number(settings.alerts_max_per_day ?? 3)
   const windowStart = new Date(now.getTime() - 24 * 60 * 60 * 1000)
 
@@ -208,11 +196,6 @@ async function runDispatch(container: MedusaContainer) {
               }
               const dueNow = !delivery.next_attempt_at || new Date(delivery.next_attempt_at) <= now
               if (!dueNow) {
-                allEmailDone = false
-                continue
-              }
-
-              if (quiet) {
                 allEmailDone = false
                 continue
               }
