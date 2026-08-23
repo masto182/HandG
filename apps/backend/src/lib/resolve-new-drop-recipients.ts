@@ -177,7 +177,16 @@ export async function resolveRecipientsForProduct(
   const existingDispatches = await dispatchService.listAlertDispatches({
     product_id: productId,
   })
-  const alreadyDispatched = new Set<string>(existingDispatches.map((d: any) => d.customer_id))
+  // Only treat a customer as "already notified" for this product if a
+  // dispatch actually resulted in a sent email - the old (pre-batch)
+  // subscriber created dispatch rows optimistically, before confirming
+  // send success, so a customer can have a dispatch row here despite never
+  // actually receiving anything. Excluding on row-existence alone would
+  // permanently block real customers from ever being notified about a
+  // product whose original send silently failed.
+  const alreadyDispatched = new Set<string>(
+    existingDispatches.filter((d: any) => d.email_sent).map((d: any) => d.customer_id)
+  )
 
   const merged = mergeRecipients({ breweryFollows, hopAlerts, allNew, alreadyDispatched })
   const recipients: RecipientMatch[] = merged.map((r) => ({
