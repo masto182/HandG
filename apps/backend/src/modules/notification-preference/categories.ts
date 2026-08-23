@@ -81,7 +81,7 @@ export const NOTIFICATION_CATEGORIES: ReadonlyArray<CategoryDefinition> = [
     description: "Get alerted by email the moment any new beer drops.",
     transactional: false,
     order: 8,
-    default_enabled: false,
+    default_enabled: true,
   },
   {
     category: "hop_alerts",

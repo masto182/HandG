@@ -1,4 +1,4 @@
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { ALERT_DISPATCH_MODULE } from "../modules/alert-dispatch"
 import { BREWERY_FOLLOW_MODULE } from "../modules/brewery-follow"
 import { HOP_ALERT_MODULE } from "../modules/hop-alert"
@@ -156,10 +156,18 @@ export async function resolveRecipientsForProduct(
     channel_email: boolean
     channel_inapp: boolean
   }> = hopIds.length ? await hopAlertService.listHopAlerts({ hop_id: hopIds }) : []
-  const allNew = await prefService.listNotificationPreferences({
+  // "new_drops" is opt-OUT: every customer matches unless they explicitly
+  // disabled the category (see categories.ts default_enabled: true).
+  const customerModule = container.resolve(Modules.CUSTOMER) as any
+  const optedOutRows = await prefService.listNotificationPreferences({
     category: "new_drops",
-    enabled: true,
+    enabled: false,
   })
+  const optedOutIds = new Set<string>(optedOutRows.map((r: any) => r.customer_id))
+  const allCustomers = await customerModule.listCustomers({}, { select: ["id"] })
+  const allNew = allCustomers
+    .filter((c: any) => !optedOutIds.has(c.id))
+    .map((c: any) => ({ customer_id: c.id }))
 
   const breweryFollows: ChannelRow[] = breweryFollowRows.map((r) => ({
     customer_id: r.customer_id,
