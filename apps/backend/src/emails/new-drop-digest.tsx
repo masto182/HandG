@@ -1,10 +1,10 @@
 import * as React from "react"
-import { Text } from "@react-email/components"
+import { Hr, Text } from "@react-email/components"
 import Layout from "./_components/Layout"
 import Heading from "./_components/Heading"
 import Button from "./_components/Button"
 import {
-  NewDropProductRow,
+  NewDropProductGrid,
   body,
   sectionHeading,
   moreText,
@@ -41,6 +41,11 @@ type OrderedSection = {
  * link instead of more rows - keeps HTML size well under Gmail's ~102KB
  * clipping threshold. Trims the lowest-priority section first. */
 const MAX_DISPLAYED = 30
+
+const sectionDivider = {
+  borderColor: "#D9E0DA",
+  margin: "16px 0",
+}
 
 function orderedSections(p: NewDropDigestProps): OrderedSection[] {
   const sections: OrderedSection[] = []
@@ -142,15 +147,9 @@ export default function NewDropDigestEmail({
         const subHeading = sectionSubHeading(section, isLead)
         return (
           <React.Fragment key={section.kind}>
+            {sectionIdx > 0 ? <Hr style={sectionDivider} /> : null}
             {subHeading ? <Text style={sectionHeading}>{subHeading}</Text> : null}
-            {section.products.map((p, idx) => (
-              <NewDropProductRow
-                key={`${section.kind}-${idx}`}
-                product={p}
-                storeUrl={storeUrl}
-                showDivider={sectionIdx > 0 || idx > 0}
-              />
-            ))}
+            <NewDropProductGrid products={section.products} storeUrl={storeUrl} />
           </React.Fragment>
         )
       })}

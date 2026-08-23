@@ -151,6 +151,7 @@ function ReviewSendModal({
   const [renderCache, setRenderCache] = useState<Record<string, RenderedPreview>>({})
   const [renderLoading, setRenderLoading] = useState(false)
   const [renderError, setRenderError] = useState<string | null>(null)
+  const [excludedCustomerIds, setExcludedCustomerIds] = useState<Set<string>>(new Set())
 
   const loadPreview = async () => {
     setLoading(true)
@@ -162,6 +163,14 @@ function ReviewSendModal({
         body: { product_ids: selectedIds },
       })
       setPreview(result)
+
+      const realRecipients = result.recipients.filter((r) => r.wantsEmail)
+      selectPreviewRecipient(realRecipients[0]?.customer_id ?? GENERIC_PREVIEW_KEY)
+
+      const labelParts = (["brewery_releases", "hop_alerts", "new_drops"] as const)
+        .filter((cat) => result.recipientsByLeadCategory[cat] > 0)
+        .map((cat) => `${CATEGORY_LABELS[cat]} (${result.recipientsByLeadCategory[cat]})`)
+      setLabel(labelParts.join(", "))
     } catch {
       setPreviewError("Could not load a preview - try again.")
     } finally {
@@ -174,12 +183,22 @@ function ReviewSendModal({
       setLabel("")
       setSelectedPreviewKey(null)
       setRenderCache({})
+      setExcludedCustomerIds(new Set())
       loadPreview()
     } else {
       setPreview(null)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
+
+  const toggleExcluded = (customerId: string) => {
+    setExcludedCustomerIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(customerId)) next.delete(customerId)
+      else next.add(customerId)
+      return next
+    })
+  }
 
   const selectPreviewRecipient = async (key: string) => {
     setSelectedPreviewKey(key)
@@ -205,15 +224,33 @@ function ReviewSendModal({
     }
   }
 
+  const activeRecipients = useMemo(
+    () =>
+      preview ? preview.recipients.filter((r) => !excludedCustomerIds.has(r.customer_id)) : [],
+    [preview, excludedCustomerIds]
+  )
+  const activeEmailRecipients = activeRecipients.filter((r) => r.wantsEmail)
+  const activeInboxCount = activeRecipients.filter((r) => r.wantsInbox).length
+  const activeUniqueCustomerCount = activeRecipients.length
+  const activeRecipientsByLeadCategory = useMemo(() => {
+    const tally = { hop_alerts: 0, brewery_releases: 0, new_drops: 0 }
+    for (const r of activeEmailRecipients) {
+      if (r.leadCategory) tally[r.leadCategory]++
+    }
+    return tally
+  }, [activeEmailRecipients])
+  const totalEmails = activeEmailRecipients.length
+  const zeroActiveRecipients = activeUniqueCustomerCount === 0
+
   const handleSend = async () => {
-    if (!preview || preview.zeroRecipients) return
-    const categoriesWithRecipients = Object.values(preview.recipientsByLeadCategory).filter(
+    if (!preview || zeroActiveRecipients) return
+    const categoriesWithRecipients = Object.values(activeRecipientsByLeadCategory).filter(
       (n) => n > 0
     ).length
     const confirmed = await prompt({
       title: "Send new drop batch",
-      description: `This will send to ${preview.uniqueCustomerCount} customer(s) - ${preview.inboxCount} inbox notification(s) and ${
-        preview.recipients.filter((r) => r.wantsEmail).length
+      description: `This will send to ${activeUniqueCustomerCount} customer(s) - ${activeInboxCount} inbox notification(s) and ${
+        totalEmails
       } personalized email(s) across ${categoriesWithRecipients} lead categor${
         categoriesWithRecipients === 1 ? "y" : "ies"
       }, for ${preview.productCount} product(s). This cannot be undone. Continue?`,
@@ -226,7 +263,11 @@ function ReviewSendModal({
     try {
       await sdk.client.fetch("/admin/new-drop-batches", {
         method: "POST",
-        body: { product_ids: selectedIds, label: label.trim() || null },
+        body: {
+          product_ids: selectedIds,
+          label: label.trim() || null,
+          excluded_customer_ids: [...excludedCustomerIds],
+        },
       })
       toast.success("Batch sent - it will finish dispatching over the next few minutes.")
       onOpenChange(false)
@@ -247,8 +288,6 @@ function ReviewSendModal({
     }
   }
 
-  const totalEmails = preview ? preview.recipients.filter((r) => r.wantsEmail).length : 0
-
   return (
     <FocusModal open={open} onOpenChange={onOpenChange}>
       <FocusModal.Content>
@@ -257,7 +296,7 @@ function ReviewSendModal({
             size="small"
             onClick={handleSend}
             isLoading={sending}
-            disabled={!preview || preview.zeroRecipients || loading}
+            disabled={!preview || zeroActiveRecipients || loading}
           >
             Send batch
           </Button>
@@ -300,13 +339,13 @@ function ReviewSendModal({
                   <Text size="small" className="text-ui-fg-subtle">
                     Unique customers
                   </Text>
-                  <Text weight="plus">{preview.uniqueCustomerCount}</Text>
+                  <Text weight="plus">{activeUniqueCustomerCount}</Text>
                 </Container>
                 <Container className="p-3">
                   <Text size="small" className="text-ui-fg-subtle">
                     Inbox notifications
                   </Text>
-                  <Text weight="plus">{preview.inboxCount}</Text>
+                  <Text weight="plus">{activeInboxCount}</Text>
                 </Container>
                 <Container className="p-3">
                   <Text size="small" className="text-ui-fg-subtle">
@@ -321,9 +360,9 @@ function ReviewSendModal({
                   Recipients by lead reason
                 </Text>
                 {(["brewery_releases", "hop_alerts", "new_drops"] as const).map((cat) =>
-                  preview.recipientsByLeadCategory[cat] > 0 ? (
+                  activeRecipientsByLeadCategory[cat] > 0 ? (
                     <Text key={cat} size="small" className="text-ui-fg-subtle">
-                      {CATEGORY_LABELS[cat]}: {preview.recipientsByLeadCategory[cat]}
+                      {CATEGORY_LABELS[cat]}: {activeRecipientsByLeadCategory[cat]}
                     </Text>
                   ) : null
                 )}
@@ -352,41 +391,56 @@ function ReviewSendModal({
                   </button>
                   {preview.recipients
                     .filter((r) => r.wantsEmail)
-                    .map((r) => (
-                      <button
-                        key={r.customer_id}
-                        type="button"
-                        onClick={() => selectPreviewRecipient(r.customer_id)}
-                        className={`flex items-center justify-between gap-x-2 rounded-md px-2 py-1.5 text-left ${
-                          selectedPreviewKey === r.customer_id
-                            ? "bg-ui-bg-base-pressed"
-                            : "hover:bg-ui-bg-subtle-hover"
-                        }`}
-                      >
-                        <div className="flex flex-col">
-                          <Text size="small" weight="plus">
-                            {r.customerLabel}
-                          </Text>
-                          {r.matchedBreweryNames.length || r.matchedHopNames.length ? (
-                            <Text size="xsmall" className="text-ui-fg-subtle">
-                              {[
-                                r.matchedBreweryNames.length
-                                  ? `Breweries: ${r.matchedBreweryNames.join(", ")}`
-                                  : null,
-                                r.matchedHopNames.length
-                                  ? `Hops: ${r.matchedHopNames.join(", ")}`
-                                  : null,
-                              ]
-                                .filter(Boolean)
-                                .join(" · ")}
-                            </Text>
-                          ) : null}
+                    .map((r) => {
+                      const excluded = excludedCustomerIds.has(r.customer_id)
+                      return (
+                        <div
+                          key={r.customer_id}
+                          className={`flex items-center gap-x-2 rounded-md px-1 ${excluded ? "opacity-50" : ""}`}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => selectPreviewRecipient(r.customer_id)}
+                            className={`flex flex-1 items-center justify-between gap-x-2 rounded-md px-2 py-1.5 text-left ${
+                              selectedPreviewKey === r.customer_id
+                                ? "bg-ui-bg-base-pressed"
+                                : "hover:bg-ui-bg-subtle-hover"
+                            }`}
+                          >
+                            <div className="flex flex-col">
+                              <Text size="small" weight="plus">
+                                {r.customerLabel}
+                              </Text>
+                              {r.matchedBreweryNames.length || r.matchedHopNames.length ? (
+                                <Text size="xsmall" className="text-ui-fg-subtle">
+                                  {[
+                                    r.matchedBreweryNames.length
+                                      ? `Breweries: ${r.matchedBreweryNames.join(", ")}`
+                                      : null,
+                                    r.matchedHopNames.length
+                                      ? `Hops: ${r.matchedHopNames.join(", ")}`
+                                      : null,
+                                  ]
+                                    .filter(Boolean)
+                                    .join(" · ")}
+                                </Text>
+                              ) : null}
+                            </div>
+                            <Badge size="2xsmall" color="green">
+                              {r.leadCategory ? CATEGORY_LABELS[r.leadCategory] : "-"}
+                            </Badge>
+                          </button>
+                          <Button
+                            type="button"
+                            size="small"
+                            variant={excluded ? "secondary" : "transparent"}
+                            onClick={() => toggleExcluded(r.customer_id)}
+                          >
+                            {excluded ? "Undo" : "Exclude"}
+                          </Button>
                         </div>
-                        <Badge size="2xsmall" color="green">
-                          {r.leadCategory ? CATEGORY_LABELS[r.leadCategory] : "-"}
-                        </Badge>
-                      </button>
-                    ))}
+                      )
+                    })}
                   {preview.recipients.filter((r) => r.wantsEmail).length === 0 ? (
                     <Text size="small" className="text-ui-fg-subtle px-2 py-1.5">
                       No matched customers currently want email for this batch.
@@ -462,6 +516,11 @@ function ReviewSendModal({
                   No customers currently match these products (no opt-ins found). Sending is
                   disabled - double check brewery follows / opt-in categories, or send anyway will
                   have no effect.
+                </Text>
+              ) : zeroActiveRecipients ? (
+                <Text size="small" className="text-ui-fg-error">
+                  All matched customers are excluded - sending is disabled. Undo an exclusion to
+                  continue.
                 </Text>
               ) : null}
 

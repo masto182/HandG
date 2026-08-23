@@ -10,6 +10,7 @@ import {
 const SendSchema = z.object({
   product_ids: z.array(z.string().min(1)).min(1),
   label: z.string().trim().max(200).nullable().optional(),
+  excluded_customer_ids: z.array(z.string().min(1)).optional(),
 })
 
 export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
@@ -35,6 +36,7 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
       product_ids: productIds,
       label: parsed.data.label ?? null,
       created_by: actor,
+      excluded_customer_ids: parsed.data.excluded_customer_ids ?? [],
     })
     res.status(201).json({ batch })
   } catch (err) {

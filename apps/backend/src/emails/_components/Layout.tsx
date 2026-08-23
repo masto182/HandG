@@ -11,6 +11,24 @@ import {
   Text,
 } from "@react-email/components"
 
+/**
+ * Mobile collapse rule for the new-drop-digest 2-column beer grid
+ * (`.hg-drop-col` cells in NewDropProductGrid) - Outlook/webmail can't do
+ * CSS Grid/Flexbox, so multi-column email layouts use plain tables that
+ * need an explicit media query to stack on small screens. Scoped to this
+ * one class so other templates sharing this Layout are unaffected.
+ */
+const dropGridMobileStyle = `
+  @media only screen and (max-width: 600px) {
+    .hg-drop-col {
+      display: block !important;
+      width: 100% !important;
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+    }
+  }
+`
+
 export type LayoutProps = {
   preview: string
   storeUrl: string
@@ -86,7 +104,9 @@ const footerAddress = {
 export function Layout({ preview, storeUrl, isMarketing = false, children }: LayoutProps) {
   return (
     <Html>
-      <Head />
+      <Head>
+        <style>{dropGridMobileStyle}</style>
+      </Head>
       <Preview>{preview}</Preview>
       <Body style={main}>
         <Container style={container}>

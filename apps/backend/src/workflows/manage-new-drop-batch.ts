@@ -220,11 +220,17 @@ export async function previewNewDropBatch(container: any, productIds: string[]) 
  */
 export async function sendNewDropBatch(
   container: any,
-  input: { product_ids: string[]; label?: string | null; created_by?: string | null }
+  input: {
+    product_ids: string[]
+    label?: string | null
+    created_by?: string | null
+    excluded_customer_ids?: string[]
+  }
 ) {
   const batchService = container.resolve(NEW_DROP_BATCH_MODULE) as any
   const dispatchService = container.resolve(ALERT_DISPATCH_MODULE) as any
   const productIds = [...new Set(input.product_ids)]
+  const excludedCustomerIds = new Set(input.excluded_customer_ids ?? [])
 
   const readinessMap = await assessNewDropReadinessBatch(container, productIds)
   const blockers: Record<string, ReadinessResult> = {}
@@ -273,6 +279,7 @@ export async function sendNewDropBatch(
       const { recipients } = await resolveRecipientsForProduct(container, productId)
       for (const r of recipients) {
         if (!r.want_email && !r.want_inapp) continue
+        if (excludedCustomerIds.has(r.customer_id)) continue
         const list = byCustomer.get(r.customer_id) ?? []
         list.push({
           product_id: productId,

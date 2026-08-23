@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Hr, Img, Link, Section, Text } from "@react-email/components"
+import { Img, Link, Text } from "@react-email/components"
 
 export type NewDropDigestProduct = {
   beerName: string
@@ -25,18 +25,9 @@ export function productLink(
   return p.dispatchId ? `${base}?alert=${p.dispatchId}` : base
 }
 
-export function NewDropProductRow({
-  product,
-  storeUrl,
-  showDivider,
-}: {
-  product: NewDropDigestProduct
-  storeUrl: string
-  showDivider: boolean
-}) {
+function BeerCell({ product, storeUrl }: { product: NewDropDigestProduct; storeUrl: string }) {
   return (
-    <Section style={productSection}>
-      {showDivider ? <Hr style={rowDivider} /> : null}
+    <>
       {isAbsoluteUrl(product.image) ? (
         <Img
           src={product.image}
@@ -53,7 +44,60 @@ export function NewDropProductRow({
       </Text>
       {product.breweryName ? <Text style={productBrewery}>{product.breweryName}</Text> : null}
       {product.hopTag ? <Text style={hopTagStyle}>Featuring {product.hopTag}</Text> : null}
-    </Section>
+    </>
+  )
+}
+
+/**
+ * Denser 2-column table-based grid (email clients - notably Outlook, which
+ * uses Word's rendering engine - don't support CSS Grid/Flexbox, so
+ * multi-column layouts have to be plain HTML tables). Pairs consecutive
+ * products into grid rows; a trailing odd product spans the full row.
+ * Columns collapse to a single stacked column on mobile via the
+ * `.hg-drop-col` media-query rule declared in Layout's <Head>.
+ */
+export function NewDropProductGrid({
+  products,
+  storeUrl,
+}: {
+  products: NewDropDigestProduct[]
+  storeUrl: string
+}) {
+  const rows: NewDropDigestProduct[][] = []
+  for (let i = 0; i < products.length; i += 2) {
+    rows.push(products.slice(i, i + 2))
+  }
+
+  return (
+    <table
+      role="presentation"
+      width="100%"
+      cellPadding={0}
+      cellSpacing={0}
+      border={0}
+      style={gridTable}
+    >
+      <tbody>
+        {rows.map((pair, idx) => (
+          <tr key={idx}>
+            {pair.length === 1 ? (
+              <td className="hg-drop-col" width="100%" colSpan={2} style={gridCellFull}>
+                <BeerCell product={pair[0]} storeUrl={storeUrl} />
+              </td>
+            ) : (
+              <>
+                <td className="hg-drop-col" width="48%" style={gridCellLeft}>
+                  <BeerCell product={pair[0]} storeUrl={storeUrl} />
+                </td>
+                <td className="hg-drop-col" width="48%" style={gridCellRight}>
+                  <BeerCell product={pair[1]} storeUrl={storeUrl} />
+                </td>
+              </>
+            )}
+          </tr>
+        ))}
+      </tbody>
+    </table>
   )
 }
 
@@ -71,9 +115,32 @@ export const body = {
   margin: "0 0 16px",
 }
 
-const productSection = {
+const gridTable = {
   margin: "0 0 8px",
+}
+
+const gridCellBase = {
+  verticalAlign: "top" as const,
   textAlign: "center" as const,
+  paddingTop: "16px",
+  paddingBottom: "16px",
+}
+
+const gridCellLeft = {
+  ...gridCellBase,
+  width: "48%",
+  paddingRight: "2%",
+}
+
+const gridCellRight = {
+  ...gridCellBase,
+  width: "48%",
+  paddingLeft: "2%",
+}
+
+const gridCellFull = {
+  ...gridCellBase,
+  width: "100%",
 }
 
 const productImage = {
@@ -83,11 +150,6 @@ const productImage = {
   height: "auto",
   borderRadius: "6px",
   objectFit: "cover" as const,
-}
-
-const rowDivider = {
-  borderColor: "#D9E0DA",
-  margin: "16px 0",
 }
 
 const productBeer = {

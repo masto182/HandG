@@ -203,4 +203,45 @@ describe("new-drop-digest email - personalized (brewery/hop sections)", () => {
     })
     expect(out.html).toContain("Julius, Green and 1 more just dropped")
   })
+
+  it("2-column grid: pairs consecutive beers into the same table row", async () => {
+    const products = [
+      product({ beerName: "Julius", handle: "a", dispatchId: "d1" }),
+      product({ beerName: "Green", handle: "b", dispatchId: "d2" }),
+    ]
+    const out = await renderEmail(NewDropDigest as any, {
+      name: "Cam",
+      brewerySection: { label: "Tree House", products },
+      hopSection: null,
+      generalSection: null,
+      storeUrl: STORE_URL,
+    })
+    // Both beers sit in the same grid <tr> - no </tr> boundary between them.
+    const juliusIdx = out.html.indexOf("Julius")
+    const greenIdx = out.html.indexOf("Green")
+    const closingTrAfterJulius = out.html.indexOf("</tr>", juliusIdx)
+    expect(greenIdx).toBeGreaterThan(juliusIdx)
+    expect(greenIdx).toBeLessThan(closingTrAfterJulius)
+  })
+
+  it("2-column grid: odd count gets a full-width trailing row", async () => {
+    const products = [
+      product({ beerName: "Julius", handle: "a", dispatchId: "d1" }),
+      product({ beerName: "Green", handle: "b", dispatchId: "d2" }),
+      product({ beerName: "Haze", handle: "c", dispatchId: "d3" }),
+    ]
+    const out = await renderEmail(NewDropDigest as any, {
+      name: "Cam",
+      brewerySection: { label: "Tree House", products },
+      hopSection: null,
+      generalSection: null,
+      storeUrl: STORE_URL,
+    })
+    expect(out.html).toContain('colSpan="2"')
+    // The lone third beer is rendered after the colspan="2" cell that
+    // carries it, and after the paired row (Green) closes.
+    const colspanIdx = out.html.indexOf('colSpan="2"')
+    const hazeIdx = out.html.indexOf("Haze")
+    expect(hazeIdx).toBeGreaterThan(colspanIdx)
+  })
 })
