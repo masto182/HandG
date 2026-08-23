@@ -67,7 +67,14 @@ export default async function backfillNewDropQueue({ container }: ExecArgs) {
   const existingDispatches = await dispatchService.listAlertDispatches({
     product_id: candidateIds,
   })
-  const alreadyNotified = new Set(existingDispatches.map((d: any) => d.product_id))
+  // A product only counts as "already notified" if at least one dispatch
+  // for it actually resulted in a sent email - a dispatch row that was
+  // created but never sent (the old subscriber created these rows
+  // optimistically, before confirming send success) means the customer was
+  // never actually notified, so the product is still eligible to backfill.
+  const alreadyNotified = new Set(
+    existingDispatches.filter((d: any) => d.email_sent).map((d: any) => d.product_id)
+  )
 
   const toInsert = filtered.filter(
     (p: any) => candidateIds.includes(p.id) && !alreadyNotified.has(p.id)
