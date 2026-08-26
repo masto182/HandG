@@ -79,6 +79,7 @@ module.exports = defineConfig({
     { resolve: "./src/modules/shipping-rate-history" },
     { resolve: "./src/modules/campaign" },
     { resolve: "./src/modules/analytics" },
+    { resolve: "./src/modules/email-log" },
     { resolve: "@medusajs/index" },
     {
       resolve: "@medusajs/medusa/file",
@@ -137,6 +138,7 @@ module.exports = defineConfig({
               default_weight_g: 750,
               from_name: "Hops & Glory",
               from_phone: "+61 400 000 000",
+              from_email: process.env.SHIPPING_FROM_EMAIL || "orders@hopsandglory.au",
               from_address_1: "1 Hillside Lane",
               from_city: "Hillside",
               from_state: "VIC",

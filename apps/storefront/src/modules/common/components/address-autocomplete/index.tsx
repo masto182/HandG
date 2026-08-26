@@ -64,14 +64,18 @@ export default function AddressAutocomplete({
 
         const streetNumber = get("street_number")
         const route = get("route")
+        const streetOnly = `${streetNumber} ${route}`.trim()
 
+        // Only ever submit the street line — never Google's formatted_address,
+        // which duplicates city/state/postcode/country already captured in
+        // their own fields (this caused malformed address_1 values like
+        // "71 Boyle St, Prospect SA 5082, Australia").
         if (inputRef.current) {
-          inputRef.current.value =
-            place.formatted_address || `${streetNumber} ${route}`.trim()
+          inputRef.current.value = streetOnly
         }
 
         callbackRef.current?.({
-          address_1: `${streetNumber} ${route}`.trim(),
+          address_1: streetOnly,
           city: get("locality") || get("sublocality_level_1"),
           province: getShort("administrative_area_level_1"),
           postal_code: get("postal_code"),

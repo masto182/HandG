@@ -104,3 +104,43 @@ export function packItems(items: PackableItem[]): PackedBox[] {
 
   return boxes
 }
+
+/**
+ * Generic line-item shape shared by CalculateShippingOptionPriceDTO context
+ * items and FulfillmentItemDTO — both expose quantity plus optional
+ * variant/product weight and variant options (for container-type format).
+ */
+export type PackableLineItem = {
+  quantity?: number | string | null
+  variant?: {
+    weight?: number | null
+    options?: Array<{ value?: string | null; option?: { title?: string | null } | null }> | null
+  } | null
+  product?: { weight?: number | null } | null
+}
+
+function containerTypeFromVariant(item: PackableLineItem): ContainerType {
+  const formatOption = item.variant?.options?.find(
+    (o) => o.option?.title?.toLowerCase() === "format"
+  )
+  return resolveContainerType(formatOption?.value)
+}
+
+/**
+ * Build PackableItem[] from generic line items (fulfillment items or
+ * calculate-price context items) so every ShipEngine path — rate quoting,
+ * auto-requote, and the direct-buyLabel fallback — packs the *actual* order
+ * contents instead of a single hardcoded box.
+ */
+export function packableItemsFromLineItems(
+  items: PackableLineItem[] | undefined | null,
+  defaultWeightG: number
+): PackableItem[] {
+  return (items ?? []).map((it) => {
+    const containerType = containerTypeFromVariant(it)
+    const quantity = typeof it.quantity === "number" ? it.quantity : Number(it.quantity ?? 1)
+    const weightG =
+      it.variant?.weight ?? it.product?.weight ?? CONTAINER_WEIGHTS[containerType] ?? defaultWeightG
+    return { quantity, weightG, containerType }
+  })
+}

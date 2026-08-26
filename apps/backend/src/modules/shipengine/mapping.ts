@@ -48,6 +48,7 @@ function truncateAddressLine(
 export type FromAddressConfig = {
   shipping_from_name: string
   shipping_from_phone: string
+  shipping_from_email?: string
   shipping_from_address_1: string
   shipping_from_city: string
   shipping_from_state: string
@@ -143,6 +144,7 @@ export function cartToShipEngineShipment(args: {
     postal_code?: string | null
     country_code?: string | null
   }
+  email?: string | null
   packages: PackedBox[]
   fromAddress: FromAddressConfig
   carrierIds: string[]
@@ -153,7 +155,12 @@ export function cartToShipEngineShipment(args: {
       [args.shippingAddress.first_name, args.shippingAddress.last_name].filter(Boolean).join(" ") ||
       undefined,
     company_name: args.shippingAddress.company ?? undefined,
-    phone: args.shippingAddress.phone || args.fromAddress.shipping_from_phone,
+    // Never fall back to the sender's phone here — a missing recipient
+    // phone must stay empty, not silently become the store's own number
+    // (couriers would end up calling the warehouse about the customer's
+    // delivery instead of the customer).
+    phone: args.shippingAddress.phone || undefined,
+    email: args.email ?? undefined,
     address_line1: truncateAddressLine(args.shippingAddress.address_1 ?? "", args.shippingAddress),
     address_line2: args.shippingAddress.address_2 ?? null,
     city_locality: args.shippingAddress.city ?? "",
@@ -165,6 +172,7 @@ export function cartToShipEngineShipment(args: {
   const shipFrom: ShipEngineAddress = {
     name: args.fromAddress.shipping_from_name,
     phone: args.fromAddress.shipping_from_phone,
+    email: args.fromAddress.shipping_from_email,
     address_line1: args.fromAddress.shipping_from_address_1,
     city_locality: args.fromAddress.shipping_from_city,
     state_province: args.fromAddress.shipping_from_state.toUpperCase(),

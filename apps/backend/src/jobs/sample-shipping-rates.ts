@@ -21,8 +21,20 @@ type SampleAddress = {
 const DEFAULT_SAMPLES: SampleAddress[] = [
   { label: "Melbourne metro", postcode: "3000", state: "VIC", weight_g: 1500, city: "Melbourne" },
   { label: "Sydney metro", postcode: "2000", state: "NSW", weight_g: 1500, city: "Sydney" },
-  { label: "Regional VIC (Bendigo)", postcode: "3550", state: "VIC", weight_g: 1500, city: "Bendigo" },
-  { label: "Regional NSW (Wagga)", postcode: "2650", state: "NSW", weight_g: 1500, city: "Wagga Wagga" },
+  {
+    label: "Regional VIC (Bendigo)",
+    postcode: "3550",
+    state: "VIC",
+    weight_g: 1500,
+    city: "Bendigo",
+  },
+  {
+    label: "Regional NSW (Wagga)",
+    postcode: "2650",
+    state: "NSW",
+    weight_g: 1500,
+    city: "Wagga Wagga",
+  },
 ]
 
 const BASELINE_CARRIER_CODE = "australia_post"
@@ -36,7 +48,11 @@ const BASELINE_CARRIER_CODE = "australia_post"
  * without writing rows (since the stub returns deterministic test data).
  */
 export default async function sampleShippingRates(container: MedusaContainer) {
-  const logger = container.resolve("logger") as { info: (m: string) => void; warn: (m: string) => void; error: (m: string) => void }
+  const logger = container.resolve("logger") as {
+    info: (m: string) => void
+    warn: (m: string) => void
+    error: (m: string) => void
+  }
 
   if (!process.env.SHIPENGINE_API_KEY) {
     logger.info("[shipengine] sample-shipping-rates: SHIPENGINE_API_KEY empty; skipped (stub mode)")
@@ -48,6 +64,7 @@ export default async function sampleShippingRates(container: MedusaContainer) {
   let fromAddressDefaults = {
     shipping_from_name: "Hops & Glory",
     shipping_from_phone: "+61 0 0000 0000",
+    shipping_from_email: "orders@example.com",
     shipping_from_address_1: "1 Hillside Lane",
     shipping_from_city: "Sydney",
     shipping_from_state: "NSW",
@@ -65,16 +82,20 @@ export default async function sampleShippingRates(container: MedusaContainer) {
     fromAddressDefaults = {
       shipping_from_name: await sc.get<string>("shipping_from_name"),
       shipping_from_phone: await sc.get<string>("shipping_from_phone"),
+      shipping_from_email: await sc.get<string>("shipping_from_email"),
       shipping_from_address_1: await sc.get<string>("shipping_from_address_1"),
       shipping_from_city: await sc.get<string>("shipping_from_city"),
       shipping_from_state: await sc.get<string>("shipping_from_state"),
       shipping_from_postcode: await sc.get<string>("shipping_from_postcode"),
       shipping_from_country: await sc.get<string>("shipping_from_country"),
     }
-    validateMode = (await sc.get<typeof validateMode>("shipping_validate_address_mode")) ?? "validate_and_clean"
+    validateMode =
+      (await sc.get<typeof validateMode>("shipping_validate_address_mode")) ?? "validate_and_clean"
     defaultWeightG = (await sc.get<number>("shipping_default_item_weight_g")) ?? 750
   } catch (err) {
-    logger.warn(`[shipengine] sample-shipping-rates: SiteConfig unavailable; using defaults: ${(err as Error).message}`)
+    logger.warn(
+      `[shipengine] sample-shipping-rates: SiteConfig unavailable; using defaults: ${(err as Error).message}`
+    )
   }
 
   if (!carrierIds.length) {
@@ -83,7 +104,9 @@ export default async function sampleShippingRates(container: MedusaContainer) {
   }
 
   const client = getShipEngineClient()
-  const history = container.resolve(SHIPPING_RATE_HISTORY_MODULE) as ShippingRateHistoryModuleService
+  const history = container.resolve(
+    SHIPPING_RATE_HISTORY_MODULE
+  ) as ShippingRateHistoryModuleService
   const sampledAt = new Date()
 
   for (const sample of samples) {
@@ -97,7 +120,9 @@ export default async function sampleShippingRates(container: MedusaContainer) {
         postal_code: sample.postcode,
         country_code: sample.country_code ?? "AU",
       },
-      packages: [{ weightG: sample.weight_g ?? defaultWeightG, lengthCm: 24, widthCm: 19, heightCm: 12 }],
+      packages: [
+        { weightG: sample.weight_g ?? defaultWeightG, lengthCm: 24, widthCm: 19, heightCm: 12 },
+      ],
       fromAddress: fromAddressDefaults,
       carrierIds,
       validateMode,
@@ -137,7 +162,7 @@ export default async function sampleShippingRates(container: MedusaContainer) {
           baseline && cheapest && cheapest.carrier_code !== BASELINE_CARRIER_CODE
             ? ` (baseline ${baseline.carrier_code} $${(baseline.amount_cents / 100).toFixed(2)}; saving $${((baseline.amount_cents - cheapest.amount_cents) / 100).toFixed(2)})`
             : ""
-        }`,
+        }`
       )
     } catch (err) {
       logger.warn(`[shipengine] sample '${sample.label}' failed: ${(err as Error).message}`)
@@ -178,9 +203,10 @@ async function quoteAusPost(args: {
     enabled = (await sc.get<boolean>("auspost_enabled")) ?? false
     const rawServices = (await sc.get<string[]>("auspost_services_enabled")) ?? services
     services = rawServices.filter(
-      (c): c is PacServiceCode => c === "AUS_PARCEL_REGULAR" || c === "AUS_PARCEL_EXPRESS",
+      (c): c is PacServiceCode => c === "AUS_PARCEL_REGULAR" || c === "AUS_PARCEL_EXPRESS"
     )
-    coverThresholdAud = (await sc.get<number>("auspost_extra_cover_threshold_aud")) ?? coverThresholdAud
+    coverThresholdAud =
+      (await sc.get<number>("auspost_extra_cover_threshold_aud")) ?? coverThresholdAud
     sodTriggerAud = (await sc.get<number>("auspost_sod_trigger_aud")) ?? sodTriggerAud
     discountStandard = (await sc.get<number>("auspost_discount_pct_standard")) ?? 0
     discountExpress = (await sc.get<number>("auspost_discount_pct_express")) ?? 0
@@ -191,9 +217,7 @@ async function quoteAusPost(args: {
 
   const client = getAusPostClient()
   // Single-box sample using the existing weight; PAC requires non-zero dims.
-  const packedBoxes = [
-    { weightG: args.sample.weight_g, lengthCm: 24, widthCm: 19, heightCm: 12 },
-  ]
+  const packedBoxes = [{ weightG: args.sample.weight_g, lengthCm: 24, widthCm: 19, heightCm: 12 }]
   // Estimate cart subtotal as $200 so cover threshold logic is exercised.
   const cartSubtotalAud = 200
 
@@ -229,7 +253,7 @@ async function quoteAusPost(args: {
 
   if (!carrierResults.length) return null
   const cheapest = [...carrierResults].sort(
-    (a, b) => (a.amount_cents as number) - (b.amount_cents as number),
+    (a, b) => (a.amount_cents as number) - (b.amount_cents as number)
   )[0]
 
   return {

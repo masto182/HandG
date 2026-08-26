@@ -12,6 +12,7 @@ import type {
 } from "@medusajs/framework/types"
 
 import { getShipEngineClient } from "./factory"
+import { packableItemsFromLineItems, packItems } from "../shipping-common/packing"
 import {
   CurrencyMismatchError,
   cartToShipEngineShipment,
@@ -36,6 +37,7 @@ type ProviderOptions = {
   default_weight_g?: number
   from_name?: string
   from_phone?: string
+  from_email?: string
   from_address_1?: string
   from_city?: string
   from_state?: string
@@ -125,6 +127,7 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
     return {
       shipping_from_name: this.options_.from_name ?? "Hops & Glory",
       shipping_from_phone: this.options_.from_phone ?? "+61 0 0000 0000",
+      shipping_from_email: this.options_.from_email ?? "orders@example.com",
       shipping_from_address_1: this.options_.from_address_1 ?? "1 Hillside Lane",
       shipping_from_city: this.options_.from_city ?? "Hillside",
       shipping_from_state: this.options_.from_state ?? "VIC",
@@ -153,20 +156,30 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
     shippingAddress: NonNullable<CalculateShippingOptionPriceDTO["context"]["shipping_address"]>
     items: CalculateShippingOptionPriceDTO["context"]["items"] | undefined
     currency: string
+    email?: string | null
   }): Promise<ShipEngineRate[]> {
     const fromAddress = await this.resolveFromAddress()
     const carrierIds = this.options_.carrier_ids ?? []
     const defaultWeight = this.options_.default_weight_g ?? 750
-    const validateMode = "validate_and_clean" as const
+    const validateMode = await this.siteConfigGet<
+      "no_validation" | "validate_only" | "validate_and_clean"
+    >("shipping_validate_address_mode", "no_validation")
 
     if (!carrierIds.length) {
       this.logger_.warn("[shipengine] No carrier_ids configured; cannot fetch rates")
       return []
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const packableItems = packableItemsFromLineItems(args.items as any, defaultWeight)
+    const packages = packItems(packableItems)
+
     const body = cartToShipEngineShipment({
       shippingAddress: args.shippingAddress,
-      packages: [{ weightG: defaultWeight, lengthCm: 24, widthCm: 19, heightCm: 12 }],
+      email: args.email,
+      packages: packages.length
+        ? packages
+        : [{ weightG: defaultWeight, lengthCm: 22, widthCm: 16, heightCm: 7 }],
       fromAddress,
       carrierIds,
       validateMode,
@@ -374,6 +387,7 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
           shippingAddress,
           items: items as unknown as CalculateShippingOptionPriceDTO["context"]["items"],
           currency: "aud",
+          email: (order as any)?.email,
         })
         const cheapest = this.pickCheapestRate(fresh)
         if (cheapest) {
@@ -395,9 +409,16 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
     // ---------- Buy label ----------
     let label
     let bought_via: "rate_id" | "direct" = "rate_id"
+    const orderReference = (order as any)?.display_id
+      ? `Order #${(order as any).display_id}`
+      : undefined
     if (chosen.rate_id) {
       try {
-        label = await this.client_.buyLabelFromRate(chosen.rate_id)
+        label = await this.client_.buyLabelFromRate(chosen.rate_id, {
+          label_format: "pdf",
+          label_layout: "4x6",
+          custom_field1: orderReference,
+        })
       } catch (err) {
         if (err instanceof ShipEngineApiError && (err.status === 404 || err.status === 400)) {
           this.logger_.info(
@@ -419,18 +440,17 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
       const fromAddress = await this.resolveFromAddress()
       const validateMode = await this.siteConfigGet<
         "no_validation" | "validate_only" | "validate_and_clean"
-      >("shipping_validate_address_mode", "validate_and_clean")
+      >("shipping_validate_address_mode", "no_validation")
       const defaultWeightG = await this.siteConfigGet<number>("shipping_default_item_weight_g", 750)
-      const totalWeight = (items ?? []).reduce((sum: number, it: any) => {
-        const qty = typeof it.quantity === "number" ? it.quantity : 1
-        const w = it.variant?.weight ?? it.product?.weight ?? defaultWeightG
-        return sum + w * qty
-      }, 0)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const packableItems = packableItemsFromLineItems(items as any, defaultWeightG)
+      const packages = packItems(packableItems)
       const ship = cartToShipEngineShipment({
         shippingAddress: shippingAddress ?? { country_code: "AU" },
-        packages: [
-          { weightG: totalWeight || defaultWeightG, lengthCm: 39, widthCm: 28, heightCm: 14 },
-        ],
+        email: (order as any)?.email,
+        packages: packages.length
+          ? packages
+          : [{ weightG: defaultWeightG, lengthCm: 22, widthCm: 16, heightCm: 7 }],
         fromAddress,
         carrierIds: [chosen.carrier_id],
         validateMode,
@@ -443,6 +463,7 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
           ship_to: ship.shipment.ship_to,
           ship_from: ship.shipment.ship_from,
           packages: ship.shipment.packages,
+          advanced_options: orderReference ? { custom_field1: orderReference } : undefined,
         },
         label_format: "pdf",
         label_layout: "4x6",

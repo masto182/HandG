@@ -163,6 +163,7 @@ const ProfileBillingAddress: React.FC<MyInformationProps> = ({
           <Input
             label="Province"
             name="province"
+            required
             defaultValue={billingAddress?.province || undefined}
             data-testid="billing-province-input"
           />

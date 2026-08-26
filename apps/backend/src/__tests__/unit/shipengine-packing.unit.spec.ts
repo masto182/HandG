@@ -1,4 +1,10 @@
-import { packItems, resolveContainerType, CONTAINER_WEIGHTS, type PackableItem } from "../../modules/shipengine/packing"
+import {
+  packItems,
+  resolveContainerType,
+  CONTAINER_WEIGHTS,
+  type PackableItem,
+  packableItemsFromLineItems,
+} from "../../modules/shipengine/packing"
 
 describe("shipengine packing", () => {
   describe("resolveContainerType", () => {
@@ -87,9 +93,7 @@ describe("shipengine packing", () => {
     })
 
     it("forces Large box when crowler present", () => {
-      const items: PackableItem[] = [
-        { quantity: 2, weightG: 1200, containerType: "crowler" },
-      ]
+      const items: PackableItem[] = [{ quantity: 2, weightG: 1200, containerType: "crowler" }]
       const boxes = packItems(items)
       expect(boxes).toHaveLength(1)
       expect(boxes[0].lengthCm).toBe(39)
@@ -126,6 +130,40 @@ describe("shipengine packing", () => {
       expect(CONTAINER_WEIGHTS.can).toBe(500)
       expect(CONTAINER_WEIGHTS.bottle).toBe(600)
       expect(CONTAINER_WEIGHTS.crowler).toBe(1200)
+    })
+  })
+
+  describe("packableItemsFromLineItems", () => {
+    it("uses variant weight and quantity when present", () => {
+      const items = packableItemsFromLineItems([{ quantity: 3, variant: { weight: 550 } }], 750)
+      expect(items).toEqual([{ quantity: 3, weightG: 550, containerType: "can" }])
+    })
+
+    it("resolves container type from the variant's Format option", () => {
+      const items = packableItemsFromLineItems(
+        [
+          {
+            quantity: 1,
+            variant: { weight: 600, options: [{ value: "Bottle", option: { title: "Format" } }] },
+          },
+        ],
+        750
+      )
+      expect(items[0].containerType).toBe("bottle")
+    })
+
+    it("falls back to product weight, then container default, then site default", () => {
+      const items = packableItemsFromLineItems(
+        [{ quantity: 1, product: { weight: 900 } }, { quantity: 1 }],
+        750
+      )
+      expect(items[0].weightG).toBe(900)
+      expect(items[1].weightG).toBe(CONTAINER_WEIGHTS.can)
+    })
+
+    it("returns an empty array for no items", () => {
+      expect(packableItemsFromLineItems(undefined, 750)).toEqual([])
+      expect(packableItemsFromLineItems(null, 750)).toEqual([])
     })
   })
 })

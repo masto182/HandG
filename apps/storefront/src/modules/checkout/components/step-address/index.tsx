@@ -45,13 +45,15 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
     "shipping_address.last_name":
       cart?.shipping_address?.last_name || customer?.last_name || "",
     "shipping_address.address_1": cart?.shipping_address?.address_1 || "",
+    "shipping_address.address_2": cart?.shipping_address?.address_2 || "",
     "shipping_address.company": cart?.shipping_address?.company || "",
     "shipping_address.postal_code": cart?.shipping_address?.postal_code || "",
     "shipping_address.city": cart?.shipping_address?.city || "",
     "shipping_address.country_code":
       cart?.shipping_address?.country_code || "au",
     "shipping_address.province": cart?.shipping_address?.province || "",
-    "shipping_address.phone": cart?.shipping_address?.phone || "",
+    "shipping_address.phone":
+      cart?.shipping_address?.phone || customer?.phone || "",
     email: cart?.email || customer?.email || "",
   })
 
@@ -66,12 +68,13 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
           "shipping_address.last_name":
             addr.last_name || customer?.last_name || "",
           "shipping_address.address_1": addr.address_1 || "",
+          "shipping_address.address_2": addr.address_2 || "",
           "shipping_address.company": addr.company || "",
           "shipping_address.postal_code": addr.postal_code || "",
           "shipping_address.city": addr.city || "",
           "shipping_address.country_code": addr.country_code || "au",
           "shipping_address.province": addr.province || "",
-          "shipping_address.phone": addr.phone || "",
+          "shipping_address.phone": addr.phone || customer?.phone || "",
         }))
       }
       setShowForm(false)
@@ -269,6 +272,11 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
             />
             <input
               type="hidden"
+              name="shipping_address.address_2"
+              value={formData["shipping_address.address_2"]}
+            />
+            <input
+              type="hidden"
               name="shipping_address.company"
               value={formData["shipping_address.company"]}
             />
@@ -287,6 +295,24 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
               name="shipping_address.country_code"
               value={formData["shipping_address.country_code"]}
             />
+            <div className="space-y-2">
+              <label className="font-semibold text-[12px] text-hg-text-secondary uppercase tracking-widest">
+                Phone
+              </label>
+              <input
+                name="shipping_address.phone"
+                type="tel"
+                autoComplete="tel"
+                value={formData["shipping_address.phone"]}
+                onChange={handleChange}
+                required
+                placeholder="04XX XXX XXX"
+                className="w-full bg-hg-surface border-0 ring-1 ring-hg-border focus:ring-2 focus:ring-hg-gold rounded-xl px-4 py-4 text-hg-text placeholder:text-hg-text-muted transition-all outline-none"
+              />
+              <p className="text-xs text-hg-text-secondary">
+                The courier will use this number to contact you about delivery.
+              </p>
+            </div>
             <input
               type="hidden"
               name="shipping_address.province"
@@ -358,10 +384,22 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
                 Apartment, Suite, Unit (Optional)
               </label>
               <input
+                name="shipping_address.address_2"
+                value={formData["shipping_address.address_2"]}
+                onChange={handleChange}
+                placeholder="Unit 4"
+                className="w-full bg-hg-surface border-0 ring-1 ring-hg-border focus:ring-2 focus:ring-hg-gold rounded-xl px-4 py-4 text-hg-text placeholder:text-hg-text-muted transition-all outline-none"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="font-semibold text-[12px] text-hg-text-secondary uppercase tracking-widest">
+                Company (Optional)
+              </label>
+              <input
                 name="shipping_address.company"
                 value={formData["shipping_address.company"]}
                 onChange={handleChange}
-                placeholder="Suite 4B"
+                placeholder="Business name"
                 className="w-full bg-hg-surface border-0 ring-1 ring-hg-border focus:ring-2 focus:ring-hg-gold rounded-xl px-4 py-4 text-hg-text placeholder:text-hg-text-muted transition-all outline-none"
               />
             </div>
@@ -389,6 +427,7 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
                   autoComplete="address-level1"
                   value={formData["shipping_address.province"]}
                   onChange={handleChange}
+                  required
                   placeholder="NSW"
                   className="w-full bg-hg-surface border-0 ring-1 ring-hg-border focus:ring-2 focus:ring-hg-gold rounded-xl px-4 py-4 text-hg-text placeholder:text-hg-text-muted transition-all outline-none"
                 />

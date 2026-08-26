@@ -430,6 +430,16 @@ export const SITE_CONFIG_REGISTRY: Record<string, SiteConfigDefinition> = {
     description: "Sender street address printed on labels.",
     validate: requireString,
   },
+  shipping_from_email: {
+    key: "shipping_from_email",
+    type: "string",
+    isPublic: false,
+    default: "orders@example.com",
+    group: "shipping",
+    label: "Ship-from email",
+    description: "Sender contact email printed on labels — carriers use this to reach you.",
+    validate: requireEmail,
+  },
   shipping_from_city: {
     key: "shipping_from_city",
     type: "string",

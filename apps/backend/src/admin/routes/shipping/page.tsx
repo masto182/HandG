@@ -41,6 +41,7 @@ type HeldOrder = {
 const FROM_ADDRESS_KEYS = [
   "shipping_from_name",
   "shipping_from_phone",
+  "shipping_from_email",
   "shipping_from_address_1",
   "shipping_from_city",
   "shipping_from_state",
@@ -133,6 +134,34 @@ const ShippingPage = () => {
     }
   }
 
+  // Saves every dirty ship-from field as one batch, then reloads config once
+  // at the end. Per-field onBlur saves used to call loadConfig() after each
+  // field, which resets `draft` for every key from the server response —
+  // if you were still editing a second field when an earlier field's save
+  // resolved, your in-progress edit could get silently overwritten before
+  // it was ever submitted.
+  const [savingAddress, setSavingAddress] = useState(false)
+  const saveShipFromAddress = async () => {
+    setSavingAddress(true)
+    setError(null)
+    try {
+      const dirtyKeys = FROM_ADDRESS_KEYS.filter(
+        (k) => config[k] && draft[k] !== String(config[k].effective ?? "")
+      )
+      for (const k of dirtyKeys) {
+        await sdk.client.fetch(`/admin/site-config/${encodeURIComponent(k)}`, {
+          method: "POST",
+          body: { value: draft[k] },
+        })
+      }
+      await loadConfig()
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setSavingAddress(false)
+    }
+  }
+
   const toggleCarrier = async (id: string) => {
     const next = activeCarrierIds.includes(id)
       ? activeCarrierIds.filter((x) => x !== id)
@@ -207,29 +236,43 @@ const ShippingPage = () => {
 
       {/* ---------- Ship-from address ---------- */}
       <Container className="border p-4 space-y-4">
-        <Heading level="h2">Ship-from address</Heading>
+        <div className="flex items-center justify-between">
+          <Heading level="h2">Ship-from address</Heading>
+          <Button
+            size="small"
+            onClick={() => void saveShipFromAddress()}
+            disabled={
+              savingAddress ||
+              !FROM_ADDRESS_KEYS.some(
+                (k) => config[k] && draft[k] !== String(config[k].effective ?? "")
+              )
+            }
+          >
+            {savingAddress ? "Saving..." : "Save ship-from address"}
+          </Button>
+        </div>
         <Text className="text-ui-fg-subtle text-xs">
           Used for every label. Match the address registered with your AusPost MyPost Business
-          pickup.
+          pickup. Edits are staged until you click Save — nothing is sent per keystroke.
         </Text>
         <div className="grid grid-cols-2 gap-3">
           {FROM_ADDRESS_KEYS.map((k) => {
             const entry = config[k]
             if (!entry) return null
+            const isDirty = draft[k] !== String(entry.effective ?? "")
             return (
               <div key={k}>
                 <Label>{entry.label}</Label>
                 <Input
                   value={draft[k] ?? ""}
                   onChange={(e) => setDraft({ ...draft, [k]: e.target.value })}
-                  onBlur={() => {
-                    if (draft[k] !== String(entry.effective ?? "")) {
-                      void patch(k, draft[k])
-                    }
-                  }}
-                  disabled={savingKey === k}
+                  disabled={savingAddress}
                 />
-                {entry.source !== "default" ? <Badge>{entry.source}</Badge> : null}
+                {isDirty ? (
+                  <Badge color="orange">Unsaved</Badge>
+                ) : entry.source !== "default" ? (
+                  <Badge>Custom setting</Badge>
+                ) : null}
               </div>
             )
           })}

@@ -149,10 +149,19 @@ const AddAddress = ({
             <Input
               label="Province / State"
               name="province"
+              required
               defaultValue={autoProvince}
               key={`province-${autoProvince}`}
               autoComplete="address-level1"
               data-testid="state-input"
+            />
+            <Input
+              label="Phone"
+              name="phone"
+              type="tel"
+              required
+              autoComplete="tel"
+              data-testid="phone-input"
             />
             <input type="hidden" name="country_code" value="au" />
             <div className="flex items-center h-10 px-4 bg-hg-surface border border-hg-border rounded-md text-hg-text text-sm">

@@ -188,9 +188,19 @@ const EditAddress: React.FC<EditAddressProps> = ({
             <Input
               label="Province / State"
               name="province"
+              required
               autoComplete="address-level1"
               defaultValue={address.province || undefined}
               data-testid="state-input"
+            />
+            <Input
+              label="Phone"
+              name="phone"
+              type="tel"
+              required
+              autoComplete="tel"
+              defaultValue={address.phone || undefined}
+              data-testid="phone-input"
             />
             <input type="hidden" name="country_code" value="au" />
             <div className="flex items-center h-10 px-4 bg-hg-surface border border-hg-border rounded-md text-hg-text text-sm">

@@ -145,6 +145,7 @@ export type ShipEngineBuyLabelInput = {
     ship_to: ShipEngineAddress
     ship_from: ShipEngineAddress
     packages: ShipEnginePackage[]
+    advanced_options?: { custom_field1?: string }
   }
   label_format?: "pdf" | "png" | "zpl"
   label_layout?: "4x6" | "letter"
@@ -180,7 +181,10 @@ export type ShipEngineTrackingInfo = {
 
 export interface ShipEngineLikeClient {
   getRates(input: ShipEngineGetRatesInput): Promise<ShipEngineRateResponse>
-  buyLabelFromRate(rateId: string, opts?: { label_format?: string; label_layout?: string }): Promise<ShipEngineLabel>
+  buyLabelFromRate(
+    rateId: string,
+    opts?: { label_format?: string; label_layout?: string; custom_field1?: string }
+  ): Promise<ShipEngineLabel>
   buyLabel(input: ShipEngineBuyLabelInput): Promise<ShipEngineLabel>
   voidLabel(labelId: string): Promise<{ approved: boolean; message?: string }>
   trackByLabel(labelId: string): Promise<ShipEngineTrackingInfo>
@@ -193,7 +197,11 @@ export class ShipEngineApiError extends Error {
   request_id?: string
   details?: unknown
 
-  constructor(status: number, message: string, opts?: { code?: string; request_id?: string; details?: unknown }) {
+  constructor(
+    status: number,
+    message: string,
+    opts?: { code?: string; request_id?: string; details?: unknown }
+  ) {
     super(message)
     this.name = "ShipEngineApiError"
     this.status = status

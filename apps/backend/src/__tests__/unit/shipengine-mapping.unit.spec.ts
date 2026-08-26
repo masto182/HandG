@@ -31,14 +31,15 @@ describe("rateToShippingOption", () => {
         other_amount: { currency: "aud", amount: 1.5 },
         confirmation_amount: { currency: "aud", amount: 0.5 },
       },
-      "aud",
+      "aud"
     )
     expect(opt.amount).toBe(1200)
   })
 
   it("throws CurrencyMismatchError when rate currency != cart currency", () => {
-    expect(() => rateToShippingOption({ ...baseRate, shipping_amount: { currency: "usd", amount: 12 } }, "aud"))
-      .toThrow(CurrencyMismatchError)
+    expect(() =>
+      rateToShippingOption({ ...baseRate, shipping_amount: { currency: "usd", amount: 12 } }, "aud")
+    ).toThrow(CurrencyMismatchError)
   })
 
   it("composes a stable id from rate_id and a friendly name", () => {
@@ -68,7 +69,13 @@ describe("cartToShipEngineShipment", () => {
 
   it("uppercases state and country codes", () => {
     const body = cartToShipEngineShipment({
-      shippingAddress: { country_code: "au", province: "vic", postal_code: "3000", city: "Melbourne", address_1: "1 Test St" },
+      shippingAddress: {
+        country_code: "au",
+        province: "vic",
+        postal_code: "3000",
+        city: "Melbourne",
+        address_1: "1 Test St",
+      },
       packages: [{ weightG: 1000, lengthCm: 22, widthCm: 16, heightCm: 7 }],
       fromAddress,
       carrierIds: ["se-1"],
@@ -82,7 +89,13 @@ describe("cartToShipEngineShipment", () => {
 
   it("maps PackedBox[] to shipment packages", () => {
     const body = cartToShipEngineShipment({
-      shippingAddress: { country_code: "AU", province: "VIC", postal_code: "3000", address_1: "x", city: "x" },
+      shippingAddress: {
+        country_code: "AU",
+        province: "VIC",
+        postal_code: "3000",
+        address_1: "x",
+        city: "x",
+      },
       packages: [
         { weightG: 1700, lengthCm: 24, widthCm: 19, heightCm: 12 },
         { weightG: 800, lengthCm: 22, widthCm: 16, heightCm: 7 },
@@ -94,8 +107,74 @@ describe("cartToShipEngineShipment", () => {
     expect(body.shipment.packages).toHaveLength(2)
     expect(body.shipment.packages[0].weight.value).toBe(1700)
     expect(body.shipment.packages[0].weight.unit).toBe("gram")
-    expect(body.shipment.packages[0].dimensions).toEqual({ unit: "centimeter", length: 24, width: 19, height: 12 })
+    expect(body.shipment.packages[0].dimensions).toEqual({
+      unit: "centimeter",
+      length: 24,
+      width: 19,
+      height: 12,
+    })
     expect(body.shipment.packages[1].weight.value).toBe(800)
-    expect(body.shipment.packages[1].dimensions).toEqual({ unit: "centimeter", length: 22, width: 16, height: 7 })
+    expect(body.shipment.packages[1].dimensions).toEqual({
+      unit: "centimeter",
+      length: 22,
+      width: 16,
+      height: 7,
+    })
+  })
+
+  it("never falls back to the sender's phone for ship_to.phone when the customer omitted theirs", () => {
+    const body = cartToShipEngineShipment({
+      shippingAddress: {
+        country_code: "AU",
+        province: "VIC",
+        postal_code: "3000",
+        address_1: "x",
+        city: "x",
+        phone: "",
+      },
+      packages: [{ weightG: 1000, lengthCm: 22, widthCm: 16, heightCm: 7 }],
+      fromAddress,
+      carrierIds: ["se-1"],
+      validateMode: "no_validation",
+    })
+    expect(body.shipment.ship_to.phone).toBeUndefined()
+    expect(body.shipment.ship_to.phone).not.toBe(fromAddress.shipping_from_phone)
+  })
+
+  it("uses the customer's phone when provided, never the sender's", () => {
+    const body = cartToShipEngineShipment({
+      shippingAddress: {
+        country_code: "AU",
+        province: "VIC",
+        postal_code: "3000",
+        address_1: "x",
+        city: "x",
+        phone: "0400 111 222",
+      },
+      packages: [{ weightG: 1000, lengthCm: 22, widthCm: 16, heightCm: 7 }],
+      fromAddress,
+      carrierIds: ["se-1"],
+      validateMode: "no_validation",
+    })
+    expect(body.shipment.ship_to.phone).toBe("0400 111 222")
+  })
+
+  it("maps cart email onto ship_to.email and sender email onto ship_from.email", () => {
+    const body = cartToShipEngineShipment({
+      shippingAddress: {
+        country_code: "AU",
+        province: "VIC",
+        postal_code: "3000",
+        address_1: "x",
+        city: "x",
+      },
+      email: "customer@example.com",
+      packages: [{ weightG: 1000, lengthCm: 22, widthCm: 16, heightCm: 7 }],
+      fromAddress: { ...fromAddress, shipping_from_email: "orders@hopsandglory.au" },
+      carrierIds: ["se-1"],
+      validateMode: "no_validation",
+    })
+    expect(body.shipment.ship_to.email).toBe("customer@example.com")
+    expect(body.shipment.ship_from.email).toBe("orders@hopsandglory.au")
   })
 })

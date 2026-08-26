@@ -112,7 +112,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   try {
     const { data: carts } = await query.graph({
       entity: "cart",
-      fields: ["id", "currency_code", "subtotal", "shipping_address.*", "items.*"],
+      fields: ["id", "email", "currency_code", "subtotal", "shipping_address.*", "items.*"],
       filters: { id: cartId },
     })
     cart = carts?.[0] ?? null
@@ -408,6 +408,7 @@ async function fetchShipEngineRates(args: {
   const fromAddress = {
     shipping_from_name: await sc<string>("shipping_from_name", "Hops & Glory"),
     shipping_from_phone: await sc<string>("shipping_from_phone", "+61 400 000 000"),
+    shipping_from_email: await sc<string>("shipping_from_email", "orders@example.com"),
     shipping_from_address_1: await sc<string>("shipping_from_address_1", "1 Hillside Lane"),
     shipping_from_city: await sc<string>("shipping_from_city", "Hillside"),
     shipping_from_state: await sc<string>("shipping_from_state", "VIC"),
@@ -421,6 +422,7 @@ async function fetchShipEngineRates(args: {
 
   const body = cartToShipEngineShipment({
     shippingAddress: cart.shipping_address,
+    email: cart.email,
     packages,
     fromAddress,
     carrierIds,
