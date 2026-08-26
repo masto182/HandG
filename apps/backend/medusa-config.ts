@@ -79,7 +79,6 @@ module.exports = defineConfig({
     { resolve: "./src/modules/shipping-rate-history" },
     { resolve: "./src/modules/campaign" },
     { resolve: "./src/modules/analytics" },
-    { resolve: "./src/modules/email-log" },
     { resolve: "@medusajs/index" },
     {
       resolve: "@medusajs/medusa/file",
