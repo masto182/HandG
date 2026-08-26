@@ -36,6 +36,9 @@ const TARGETS: Array<{ table: string; scopeSql: string }> = [
     scopeSql: `id IN (
       SELECT o.shipping_address_id FROM "order" o
       WHERE o.status = 'pending' AND o.shipping_address_id IS NOT NULL
+      UNION
+      SELECT o.billing_address_id FROM "order" o
+      WHERE o.status = 'pending' AND o.billing_address_id IS NOT NULL
     )`,
   },
   {
