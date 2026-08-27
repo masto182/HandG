@@ -104,7 +104,7 @@ export const NOTIFICATION_CATEGORIES: ReadonlyArray<CategoryDefinition> = [
     description: "Flash sales, VIP-exclusive deals, and other limited-time price drops.",
     transactional: false,
     order: 11,
-    default_enabled: false,
+    default_enabled: true,
   },
 ]
 

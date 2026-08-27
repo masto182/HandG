@@ -24,11 +24,11 @@ describe("notification-preference categories", () => {
     expect(isTransactional("announcements")).toBe(false)
   })
 
-  it("includes the specials category (opt-in, default-disabled)", () => {
+  it("includes the specials category (opt-out, default-enabled)", () => {
     expect(isKnownCategory("specials")).toBe(true)
     expect(isTransactional("specials")).toBe(false)
     const def = NOTIFICATION_CATEGORIES.find((c) => c.category === "specials")
-    expect(def?.default_enabled).toBe(false)
+    expect(def?.default_enabled).toBe(true)
   })
 
   it("classifies applications + orders + account as transactional only", () => {
