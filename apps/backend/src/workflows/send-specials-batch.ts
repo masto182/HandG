@@ -1,25 +1,23 @@
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { SPECIALS_BATCH_MODULE } from "../modules/specials-batch"
-import { CAMPAIGN_MODULE } from "../modules/campaign"
 import { resolveSegment } from "../lib/resolve-broadcast-segment"
-import { computeDiscountedPrice } from "../lib/campaign-pricing"
 
-export class ClaimConflictError extends Error {
-  constructor(public unclaimedCampaignIds: string[]) {
-    super("Some campaigns were already claimed by another batch")
-    this.name = "ClaimConflictError"
-  }
-}
-
-export class NoEligibleCampaignsError extends Error {
+export class NoActiveSpecialsError extends Error {
   constructor() {
-    super("No campaigns to send - check status and product/price data")
-    this.name = "NoEligibleCampaignsError"
+    super("Nothing is currently on special")
+    this.name = "NoActiveSpecialsError"
   }
 }
 
-type CampaignSnapshotItem = {
-  campaign_id: string
+export class SendInProgressError extends Error {
+  constructor() {
+    super("A specials batch is already sending - wait for it to finish before sending another")
+    this.name = "SendInProgressError"
+  }
+}
+
+export type SpecialsSnapshotItem = {
+  price_list_id: string
   product_id: string
   product_title: string
   product_handle: string
@@ -31,102 +29,60 @@ type CampaignSnapshotItem = {
 }
 
 /**
- * Atomically claims the given campaigns (batch_id IS NULL, active/scheduled)
- * for a brand new batch via a single conditional UPDATE ... RETURNING id.
- * Only one caller's UPDATE can match a given row - the CAS pattern that makes
- * double-click send and two concurrent admins picking overlapping campaigns
- * race-safe (mirrors claimQueueRows in manage-new-drop-batch.ts).
+ * Every product currently covered by an active Medusa "sale" price list -
+ * the real, already-in-use mechanism this store discounts products with
+ * (see src/scripts/import-us-beers.ts, src/api/admin/stock-import/route.ts,
+ * and manage-campaign.ts's activateCampaignStep - all three create plain
+ * `type: "sale"` price lists rather than anything specials-batch-specific).
+ * One row per (sale price row, base price row) pair sharing a price_set;
+ * dedupes to the best (lowest) discounted price per product if more than
+ * one sale price list somehow targets the same product. Skips rows with
+ * no AUD base price to compare against, or where the "sale" price isn't
+ * actually lower than the base price.
  */
-async function claimCampaigns(
-  container: any,
-  campaignIds: string[],
-  batchId: string
-): Promise<string[]> {
+export async function listEligibleSpecialsItems(container: any): Promise<SpecialsSnapshotItem[]> {
   const knex = container.resolve(ContainerRegistrationKeys.PG_CONNECTION)
   const result = await knex.raw(
-    `UPDATE special_campaign SET batch_id = ?, batched_at = now(), updated_at = now()
-     WHERE id = ANY(?) AND batch_id IS NULL AND status IN ('active', 'scheduled') AND deleted_at IS NULL
-     RETURNING id`,
-    [batchId, campaignIds]
+    `SELECT sale.price_list_id, sale.amount AS sale_amount, base.amount AS base_amount,
+            p.id AS product_id, p.title AS product_title, p.handle AS product_handle,
+            p.thumbnail AS product_thumbnail
+     FROM price_list pl
+     JOIN price sale ON sale.price_list_id = pl.id AND sale.currency_code = 'aud' AND sale.deleted_at IS NULL
+     JOIN product_variant_price_set pvps ON pvps.price_set_id = sale.price_set_id AND pvps.deleted_at IS NULL
+     JOIN product_variant pv ON pv.id = pvps.variant_id AND pv.deleted_at IS NULL
+     JOIN product p ON p.id = pv.product_id AND p.deleted_at IS NULL
+     LEFT JOIN price base ON base.price_set_id = sale.price_set_id AND base.price_list_id IS NULL
+       AND base.currency_code = 'aud' AND base.deleted_at IS NULL
+     WHERE pl.type = 'sale' AND pl.status = 'active' AND pl.deleted_at IS NULL
+       AND (pl.starts_at IS NULL OR pl.starts_at <= now())
+       AND (pl.ends_at IS NULL OR pl.ends_at >= now())`
   )
   const rows = result?.rows ?? result?.[0] ?? []
-  return rows.map((r: any) => r.id)
-}
 
-/**
- * Computes the AUD price + discount snapshot for every product on the given
- * campaigns, straight from the base variant price and the campaign's own
- * discount_type/discount_value - the same math activateCampaignStep uses to
- * build the price list. Deliberately does NOT read price_list_id: a
- * price-list lookup would go stale the moment campaign-lifecycle.ts expires
- * the campaign and deletes its price list mid-flight. This snapshot survives
- * that unaffected because it never looks at the campaign again after claim.
- */
-async function snapshotCampaignItems(
-  container: any,
-  campaigns: any[]
-): Promise<CampaignSnapshotItem[]> {
-  const query = container.resolve(ContainerRegistrationKeys.QUERY) as any
-  const items: CampaignSnapshotItem[] = []
+  const byProduct = new Map<string, SpecialsSnapshotItem>()
+  for (const row of rows) {
+    const basePrice = row.base_amount === null ? null : Number(row.base_amount)
+    const salePrice = Number(row.sale_amount)
+    if (basePrice === null || basePrice <= 0 || salePrice >= basePrice) continue
 
-  for (const campaign of campaigns) {
-    const productIds: string[] = campaign.target_product_ids || []
-    if (!productIds.length) continue
+    const discountValue = Math.round((1 - salePrice / basePrice) * 100)
+    const existing = byProduct.get(row.product_id)
+    if (existing && existing.discounted_price <= salePrice) continue
 
-    const { data: products } = await query.graph({
-      entity: "product",
-      filters: { id: productIds },
-      fields: ["id", "title", "handle", "thumbnail", "variants.id", "variants.prices.*"],
+    byProduct.set(row.product_id, {
+      price_list_id: row.price_list_id,
+      product_id: row.product_id,
+      product_title: row.product_title,
+      product_handle: row.product_handle,
+      product_thumbnail: row.product_thumbnail || null,
+      original_price: basePrice,
+      discounted_price: salePrice,
+      discount_type: "percentage",
+      discount_value: discountValue,
     })
-
-    for (const product of products) {
-      let basePrice: number | null = null
-      for (const variant of product.variants || []) {
-        const audPrice = (variant.prices || []).find((p: any) => p.currency_code === "aud")
-        if (audPrice) {
-          basePrice = audPrice.amount
-          break
-        }
-      }
-      if (basePrice === null) continue
-
-      const discountedPrice = computeDiscountedPrice(
-        basePrice,
-        campaign.discount_type,
-        campaign.discount_value
-      )
-
-      items.push({
-        campaign_id: campaign.id,
-        product_id: product.id,
-        product_title: product.title,
-        product_handle: product.handle,
-        product_thumbnail: product.thumbnail || null,
-        original_price: Math.round(basePrice),
-        discounted_price: discountedPrice,
-        discount_type: campaign.discount_type,
-        discount_value: campaign.discount_value,
-      })
-    }
   }
 
-  return items
-}
-
-/**
- * All campaigns currently eligible to go into a specials send: active,
- * not already claimed by another batch. No manual selection - "send a
- * specials email" always means "everything on special right now".
- */
-async function listEligibleCampaigns(container: any): Promise<any[]> {
-  const campaignModule = container.resolve(CAMPAIGN_MODULE) as any
-  return campaignModule.listSpecialCampaigns({ status: "active", batch_id: null })
-}
-
-/** Read-only: the products currently on special, with price/discount info, for display before sending. */
-export async function listEligibleSpecialsItems(container: any): Promise<CampaignSnapshotItem[]> {
-  const campaigns = await listEligibleCampaigns(container)
-  return snapshotCampaignItems(container, campaigns)
+  return [...byProduct.values()]
 }
 
 /** Preview-only: how many recipients an "everyone" send would reach right now. */
@@ -140,31 +96,34 @@ export async function previewSpecialsBatch(container: any) {
 }
 
 /**
- * Atomically claims every currently-active, unclaimed campaign into a new
- * batch, snapshots each product's price/discount, resolves every customer
- * (no segment - a specials send always goes to everyone, gated only by the
- * "specials" opt-out preference at send time), and materializes the
- * delivery graph: one specials_batch_recipient + specials_email_delivery
- * per customer. Throws NoEligibleCampaignsError if nothing is on special.
+ * Snapshots every product currently on a "sale" price list, resolves every
+ * customer (no segment - a specials send always goes to everyone, gated
+ * only by the "specials" opt-out preference at send time), and materializes
+ * the delivery graph: one specials_batch_recipient + specials_email_delivery
+ * per customer. Throws NoActiveSpecialsError if nothing is on special, or
+ * SendInProgressError if a previous batch is still sending.
  */
 export async function sendSpecialsBatch(
   container: any,
   input: { label?: string | null; message?: string | null; created_by?: string | null } = {}
 ) {
   const batchService = container.resolve(SPECIALS_BATCH_MODULE) as any
-  const campaignModule = container.resolve(CAMPAIGN_MODULE) as any
 
-  const eligible = await listEligibleCampaigns(container)
-  const campaignIds = eligible.map((c: any) => c.id)
-  if (!campaignIds.length) {
-    throw new NoEligibleCampaignsError()
+  const [sending] = await batchService.listSpecialsBatches({ status: "sending" })
+  if (sending) {
+    throw new SendInProgressError()
+  }
+
+  const snapshotItems = await listEligibleSpecialsItems(container)
+  if (!snapshotItems.length) {
+    throw new NoActiveSpecialsError()
   }
 
   const batch = await batchService.createSpecialsBatches({
     label: input.label ?? null,
     message: input.message ?? null,
     status: "sending",
-    campaign_count: campaignIds.length,
+    product_count: snapshotItems.length,
     created_by: input.created_by ?? null,
   })
 
@@ -173,18 +132,6 @@ export async function sendSpecialsBatch(
   let createdDeliveryIds: string[] = []
 
   try {
-    const claimed = await claimCampaigns(container, campaignIds, batch.id)
-    if (claimed.length !== campaignIds.length) {
-      const unclaimed = campaignIds.filter((id) => !claimed.includes(id))
-      throw new ClaimConflictError(unclaimed)
-    }
-
-    const campaigns = await campaignModule.listSpecialCampaigns({ id: claimed })
-    const snapshotItems = await snapshotCampaignItems(container, campaigns)
-    if (!snapshotItems.length) {
-      throw new NoEligibleCampaignsError()
-    }
-
     const createdItems = await batchService.createSpecialsBatchItems(
       snapshotItems.map((i) => ({ batch_id: batch.id, ...i }))
     )
@@ -231,12 +178,6 @@ export async function sendSpecialsBatch(
     if (createdItemIds.length) {
       await batchService.deleteSpecialsBatchItems(createdItemIds).catch(() => {})
     }
-    await campaignModule
-      .updateSpecialCampaigns({
-        selector: { batch_id: batch.id },
-        data: { batch_id: null, batched_at: null },
-      })
-      .catch(() => {})
     await batchService.deleteSpecialsBatches(batch.id).catch(() => {})
     throw err
   }

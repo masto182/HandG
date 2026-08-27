@@ -3,8 +3,8 @@ import { z } from "zod"
 import { SPECIALS_BATCH_MODULE } from "../../../modules/specials-batch"
 import {
   sendSpecialsBatch,
-  ClaimConflictError,
-  NoEligibleCampaignsError,
+  NoActiveSpecialsError,
+  SendInProgressError,
 } from "../../../workflows/send-specials-batch"
 
 const SendSchema = z.object({
@@ -38,16 +38,11 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
     })
     res.status(201).json({ batch })
   } catch (err) {
-    if (err instanceof ClaimConflictError) {
-      return res.status(409).json({
-        message: "Some campaigns were already claimed by another batch - refresh and try again",
-        unclaimed_campaign_ids: err.unclaimedCampaignIds,
-      })
+    if (err instanceof SendInProgressError) {
+      return res.status(409).json({ message: err.message })
     }
-    if (err instanceof NoEligibleCampaignsError) {
-      return res.status(409).json({
-        message: "Nothing is currently on special",
-      })
+    if (err instanceof NoActiveSpecialsError) {
+      return res.status(409).json({ message: err.message })
     }
     throw err
   }

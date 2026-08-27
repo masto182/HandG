@@ -845,14 +845,14 @@ type SpecialsBatch = {
   id: string
   label: string | null
   status: "sending" | "sent" | "failed"
-  campaign_count: number
+  product_count: number
   recipient_count: number
   sent_count: number
   failed_count: number
   sent_at: string | null
 }
 
-const fmtAud = (cents: number) => `$${(cents / 100).toFixed(2)}`
+const fmtAud = (amount: number) => `$${amount.toFixed(2)}`
 
 function SpecialsTab() {
   const [items, setItems] = useState<SpecialsItem[]>([])
@@ -971,7 +971,7 @@ function SpecialsTab() {
                     <Table.Cell>
                       {item.discount_type === "percentage"
                         ? `${item.discount_value}% off`
-                        : `${fmtAud(item.discount_value * 100)} off`}
+                        : `${fmtAud(item.discount_value)} off`}
                     </Table.Cell>
                   </Table.Row>
                 ))}
@@ -1027,7 +1027,7 @@ function SpecialsTab() {
                     <Table.Cell>
                       <StatusBadge status={b.status} />
                     </Table.Cell>
-                    <Table.Cell>{b.campaign_count}</Table.Cell>
+                    <Table.Cell>{b.product_count}</Table.Cell>
                     <Table.Cell>{b.recipient_count}</Table.Cell>
                     <Table.Cell>
                       {b.sent_count} / {b.failed_count}

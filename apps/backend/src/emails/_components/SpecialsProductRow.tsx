@@ -15,14 +15,14 @@ export function isAbsoluteUrl(url: string | null): url is string {
   return !!url && /^https?:\/\//i.test(url)
 }
 
-function formatAud(cents: number): string {
-  return `$${(cents / 100).toFixed(2)}`
+function formatAud(amount: number): string {
+  return `$${amount.toFixed(2)}`
 }
 
 function discountLabel(item: SpecialsBatchItem): string {
   return item.discountType === "percentage"
     ? `${item.discountValue}% off`
-    : `${formatAud(item.discountValue * 100)} off`
+    : `${formatAud(item.discountValue)} off`
 }
 
 function SpecialsCell({ item, storeUrl }: { item: SpecialsBatchItem; storeUrl: string }) {

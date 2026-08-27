@@ -21,8 +21,8 @@ const SAMPLE_ITEM: SpecialsBatchItem = {
   productTitle: "An 7 / Year 7",
   productHandle: "messorem-an-7-year-7",
   productThumbnail: null,
-  originalPrice: 2500,
-  discountedPrice: 2000,
+  originalPrice: 25,
+  discountedPrice: 20,
   discountType: "percentage",
   discountValue: 20,
 }

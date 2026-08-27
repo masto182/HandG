@@ -9,8 +9,8 @@ function item(overrides: Partial<SpecialsBatchItem> = {}): SpecialsBatchItem {
     productTitle: "Julius",
     productHandle: "tree-house-julius",
     productThumbnail: "https://cdn.example.com/julius.jpg",
-    originalPrice: 2500,
-    discountedPrice: 2000,
+    originalPrice: 25,
+    discountedPrice: 20,
     discountType: "percentage",
     discountValue: 20,
     ...overrides,
@@ -52,7 +52,7 @@ describe("specials-broadcast email", () => {
   it("renders fixed-dollar discount label correctly", async () => {
     const out = await renderEmail(SpecialsBroadcast as any, {
       name: "Cam",
-      items: [item({ discountType: "fixed", discountValue: 5, discountedPrice: 2000 })],
+      items: [item({ discountType: "fixed", discountValue: 5, discountedPrice: 20 })],
       storeUrl: STORE_URL,
     })
     expect(out.html).toContain("$5.00 off")
