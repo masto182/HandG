@@ -15,6 +15,8 @@ const SpecialCampaign = model.define("special_campaign", {
   price_list_id: model.text().nullable(),
   status: model.enum(["draft", "scheduled", "active", "expired"]).default("draft"),
   metadata: model.json().nullable(),
+  batch_id: model.text().nullable(),
+  batched_at: model.dateTime().nullable(),
 })
 
 export default SpecialCampaign

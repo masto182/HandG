@@ -98,6 +98,14 @@ export const NOTIFICATION_CATEGORIES: ReadonlyArray<CategoryDefinition> = [
     transactional: false,
     order: 10,
   },
+  {
+    category: "specials",
+    label: "Specials & Price Drops",
+    description: "Flash sales, VIP-exclusive deals, and other limited-time price drops.",
+    transactional: false,
+    order: 11,
+    default_enabled: true,
+  },
 ]
 
 export const TRANSACTIONAL_CATEGORIES: ReadonlySet<NotificationCategory> = new Set(

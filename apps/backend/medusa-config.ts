@@ -78,6 +78,7 @@ module.exports = defineConfig({
     { resolve: "./src/modules/email-change-request" },
     { resolve: "./src/modules/shipping-rate-history" },
     { resolve: "./src/modules/campaign" },
+    { resolve: "./src/modules/specials-batch" },
     { resolve: "./src/modules/analytics" },
     { resolve: "@medusajs/index" },
     {

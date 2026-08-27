@@ -6,10 +6,10 @@ import {
 } from "../../modules/notification-preference/categories"
 
 describe("notification-preference categories", () => {
-  it("exposes exactly 11 categories in display order", () => {
-    expect(NOTIFICATION_CATEGORIES).toHaveLength(11)
+  it("exposes exactly 12 categories in display order", () => {
+    expect(NOTIFICATION_CATEGORIES).toHaveLength(12)
     const orders = NOTIFICATION_CATEGORIES.map((c) => c.order)
-    expect(orders).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+    expect(orders).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
   })
 
   it("includes the new-drop and hop alert marketing categories", () => {
@@ -22,6 +22,13 @@ describe("notification-preference categories", () => {
   it("includes the announcements category (opt-out, default-enabled)", () => {
     expect(isKnownCategory("announcements")).toBe(true)
     expect(isTransactional("announcements")).toBe(false)
+  })
+
+  it("includes the specials category (opt-out, default-enabled)", () => {
+    expect(isKnownCategory("specials")).toBe(true)
+    expect(isTransactional("specials")).toBe(false)
+    const def = NOTIFICATION_CATEGORIES.find((c) => c.category === "specials")
+    expect(def?.default_enabled).toBe(true)
   })
 
   it("classifies applications + orders + account as transactional only", () => {

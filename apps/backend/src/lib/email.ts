@@ -91,6 +91,7 @@ export type NotificationCategory =
   | "new_drops"
   | "hop_alerts"
   | "announcements"
+  | "specials"
 
 const TRANSACTIONAL_CATEGORIES: ReadonlySet<NotificationCategory> = new Set([
   "applications",
