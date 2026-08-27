@@ -18,25 +18,28 @@ function item(overrides: Partial<SpecialsBatchItem> = {}): SpecialsBatchItem {
 }
 
 describe("specials-broadcast email", () => {
-  it("renders campaign title as subject and heading", async () => {
+  it("uses a generic subject and heading for multiple items", async () => {
     const out = await renderEmail(SpecialsBroadcast as any, {
       name: "Cam",
-      campaignTitle: "48h Flash Sale",
-      campaignDescription: null,
-      endsAtLabel: null,
+      items: [item(), item({ productTitle: "Green", productHandle: "green" })],
+      storeUrl: STORE_URL,
+    })
+    expect(out.subject).toBe("This week's specials")
+    expect(out.html).toMatch(/This week(&#x27;|')s specials/)
+  })
+
+  it("uses a product-specific subject when only one item is on special", async () => {
+    const out = await renderEmail(SpecialsBroadcast as any, {
+      name: "Cam",
       items: [item()],
       storeUrl: STORE_URL,
     })
-    expect(out.subject).toBe("48h Flash Sale")
-    expect(out.html).toContain("48h Flash Sale")
+    expect(out.subject).toBe("On special: Julius")
   })
 
   it("renders struck-through original price and discounted price for each item", async () => {
     const out = await renderEmail(SpecialsBroadcast as any, {
       name: "Cam",
-      campaignTitle: "Flash Sale",
-      campaignDescription: null,
-      endsAtLabel: null,
       items: [item()],
       storeUrl: STORE_URL,
     })
@@ -49,38 +52,10 @@ describe("specials-broadcast email", () => {
   it("renders fixed-dollar discount label correctly", async () => {
     const out = await renderEmail(SpecialsBroadcast as any, {
       name: "Cam",
-      campaignTitle: "Flash Sale",
-      campaignDescription: null,
-      endsAtLabel: null,
       items: [item({ discountType: "fixed", discountValue: 5, discountedPrice: 2000 })],
       storeUrl: STORE_URL,
     })
     expect(out.html).toContain("$5.00 off")
-  })
-
-  it("renders campaign description and ends-at urgency copy when present", async () => {
-    const out = await renderEmail(SpecialsBroadcast as any, {
-      name: "Cam",
-      campaignTitle: "Flash Sale",
-      campaignDescription: "Limited stock, act fast.",
-      endsAtLabel: "Friday, 28 Aug",
-      items: [item()],
-      storeUrl: STORE_URL,
-    })
-    expect(out.html).toContain("Limited stock, act fast.")
-    expect(out.html).toMatch(/Ends\s*(<!--.*?-->)?\s*Friday, 28 Aug/)
-  })
-
-  it("omits description/urgency blocks when not present", async () => {
-    const out = await renderEmail(SpecialsBroadcast as any, {
-      name: "Cam",
-      campaignTitle: "Flash Sale",
-      campaignDescription: null,
-      endsAtLabel: null,
-      items: [item()],
-      storeUrl: STORE_URL,
-    })
-    expect(out.html).not.toContain("Ends")
   })
 
   it("renders multiple product items, links to each product handle", async () => {
@@ -90,9 +65,6 @@ describe("specials-broadcast email", () => {
     ]
     const out = await renderEmail(SpecialsBroadcast as any, {
       name: "Cam",
-      campaignTitle: "Flash Sale",
-      campaignDescription: null,
-      endsAtLabel: null,
       items,
       storeUrl: STORE_URL,
     })
@@ -105,9 +77,6 @@ describe("specials-broadcast email", () => {
   it("missing thumbnail renders no broken <img> tag", async () => {
     const out = await renderEmail(SpecialsBroadcast as any, {
       name: "Cam",
-      campaignTitle: "Flash Sale",
-      campaignDescription: null,
-      endsAtLabel: null,
       items: [item({ productThumbnail: null })],
       storeUrl: STORE_URL,
     })

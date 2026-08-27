@@ -4,7 +4,6 @@ import { sendTemplate, refreshEmailConfig, getStoreUrl } from "../lib/email"
 import { exceedsThrottle } from "../lib/alert-throttle"
 import { withJobLock } from "../lib/job-lock"
 import { SPECIALS_BATCH_MODULE } from "../modules/specials-batch"
-import { CAMPAIGN_MODULE } from "../modules/campaign"
 import { ALERT_DISPATCH_MODULE } from "../modules/alert-dispatch"
 import { INBOX_MODULE } from "../modules/inbox"
 import { finalizeSpecialsBatch } from "../workflows/send-specials-batch"
@@ -14,13 +13,6 @@ import * as SpecialsBroadcastTpl from "../emails/specials-broadcast"
 export const EMAIL_ATTEMPT_CAP = 3
 /** Per-run cap on recipients dispatched, across all in-flight batches. */
 const BATCH_SIZE = 50
-
-function fmtEndsAt(iso: string | null): string | null {
-  if (!iso) return null
-  const d = new Date(iso)
-  if (isNaN(d.getTime())) return null
-  return d.toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "short" })
-}
 
 async function countSentInWindow(
   dispatchService: any,
@@ -82,14 +74,6 @@ async function runDispatch(container: MedusaContainer) {
       const recipientBatch = pending.slice(0, remainingBudget)
 
       const items = await batchService.listSpecialsBatchItems({ batch_id: batch.id })
-      const campaignIds = [...new Set(items.map((i: any) => i.campaign_id))]
-      const campaign = campaignIds.length
-        ? (
-            await (container.resolve(CAMPAIGN_MODULE) as any).listSpecialCampaigns({
-              id: campaignIds,
-            })
-          )[0]
-        : null
 
       for (const recipient of recipientBatch) {
         try {
@@ -121,7 +105,7 @@ async function runDispatch(container: MedusaContainer) {
               await notificationService.createNotifications({
                 customer_id: recipient.customer_id,
                 type: "specials",
-                title: campaign?.title ? `Sale: ${campaign.title}` : "New special",
+                title: items.length === 1 ? "On special" : "This week's specials",
                 body: `${items.length} product${items.length > 1 ? "s" : ""} on sale now.`,
                 metadata: { batch_id: batch.id },
               })
@@ -159,9 +143,6 @@ async function runDispatch(container: MedusaContainer) {
                   template: SpecialsBroadcastTpl,
                   props: {
                     name: customer.first_name || "Collector",
-                    campaignTitle: campaign?.title || "Special offer",
-                    campaignDescription: campaign?.description ?? null,
-                    endsAtLabel: fmtEndsAt(campaign?.ends_at ?? null),
                     items: items.map((i: any) => ({
                       productTitle: i.product_title,
                       productHandle: i.product_handle,

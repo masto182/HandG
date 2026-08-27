@@ -1,10 +1,14 @@
 import { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { previewSpecialsBatch } from "../../../../workflows/send-specials-batch"
-import type { BroadcastSegmentFilter } from "../../../../lib/resolve-broadcast-segment"
+import {
+  listEligibleSpecialsItems,
+  previewSpecialsBatch,
+} from "../../../../workflows/send-specials-batch"
 
-export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
-  const body = req.body as { campaign_ids?: string[]; segment_filter?: BroadcastSegmentFilter }
-  const campaignIds = [...new Set(body.campaign_ids ?? [])]
-  const preview = await previewSpecialsBatch(req.scope, campaignIds, body.segment_filter ?? {})
-  res.json(preview)
+/** Everything currently on special, plus how many customers a send would reach right now. */
+export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
+  const [items, preview] = await Promise.all([
+    listEligibleSpecialsItems(req.scope),
+    previewSpecialsBatch(req.scope),
+  ])
+  res.json({ items, recipientCount: preview.recipientCount })
 }

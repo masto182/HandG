@@ -1,7 +1,7 @@
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { SPECIALS_BATCH_MODULE } from "../modules/specials-batch"
 import { CAMPAIGN_MODULE } from "../modules/campaign"
-import { resolveSegment, type BroadcastSegmentFilter } from "../lib/resolve-broadcast-segment"
+import { resolveSegment } from "../lib/resolve-broadcast-segment"
 import { computeDiscountedPrice } from "../lib/campaign-pricing"
 
 export class ClaimConflictError extends Error {
@@ -113,43 +113,52 @@ async function snapshotCampaignItems(
   return items
 }
 
-/** Preview-only: how many recipients + items a batch of these campaigns/segment would produce. */
-export async function previewSpecialsBatch(
-  container: any,
-  campaignIds: string[],
-  segmentFilter: BroadcastSegmentFilter
-) {
+/**
+ * All campaigns currently eligible to go into a specials send: active,
+ * not already claimed by another batch. No manual selection - "send a
+ * specials email" always means "everything on special right now".
+ */
+async function listEligibleCampaigns(container: any): Promise<any[]> {
   const campaignModule = container.resolve(CAMPAIGN_MODULE) as any
-  const campaigns = await campaignModule.listSpecialCampaigns({ id: campaignIds })
-  const items = await snapshotCampaignItems(container, campaigns)
-  const recipientIds = await resolveSegment(container, segmentFilter)
+  return campaignModule.listSpecialCampaigns({ status: "active", batch_id: null })
+}
+
+/** Read-only: the products currently on special, with price/discount info, for display before sending. */
+export async function listEligibleSpecialsItems(container: any): Promise<CampaignSnapshotItem[]> {
+  const campaigns = await listEligibleCampaigns(container)
+  return snapshotCampaignItems(container, campaigns)
+}
+
+/** Preview-only: how many recipients an "everyone" send would reach right now. */
+export async function previewSpecialsBatch(container: any) {
+  const items = await listEligibleSpecialsItems(container)
+  const recipientIds = await resolveSegment(container, {})
   return {
-    campaignCount: campaigns.length,
     itemCount: items.length,
     recipientCount: recipientIds.length,
   }
 }
 
 /**
- * Atomically claims the selected campaigns into a new batch, snapshots each
- * product's price/discount, resolves the recipient segment, and materializes
- * the delivery graph: one specials_batch_recipient per customer, one
- * specials_email_delivery per recipient. Throws ClaimConflictError or
- * NoEligibleCampaignsError on failure and cleans up anything already
- * created for this attempt.
+ * Atomically claims every currently-active, unclaimed campaign into a new
+ * batch, snapshots each product's price/discount, resolves every customer
+ * (no segment - a specials send always goes to everyone, gated only by the
+ * "specials" opt-out preference at send time), and materializes the
+ * delivery graph: one specials_batch_recipient + specials_email_delivery
+ * per customer. Throws NoEligibleCampaignsError if nothing is on special.
  */
 export async function sendSpecialsBatch(
   container: any,
-  input: {
-    campaign_ids: string[]
-    segment_filter: BroadcastSegmentFilter
-    label?: string | null
-    created_by?: string | null
-  }
+  input: { label?: string | null; created_by?: string | null } = {}
 ) {
   const batchService = container.resolve(SPECIALS_BATCH_MODULE) as any
   const campaignModule = container.resolve(CAMPAIGN_MODULE) as any
-  const campaignIds = [...new Set(input.campaign_ids)]
+
+  const eligible = await listEligibleCampaigns(container)
+  const campaignIds = eligible.map((c: any) => c.id)
+  if (!campaignIds.length) {
+    throw new NoEligibleCampaignsError()
+  }
 
   const batch = await batchService.createSpecialsBatches({
     label: input.label ?? null,
@@ -180,7 +189,7 @@ export async function sendSpecialsBatch(
     )
     createdItemIds = createdItems.map((i: any) => i.id)
 
-    const recipientIds = await resolveSegment(container, input.segment_filter)
+    const recipientIds = await resolveSegment(container, {})
 
     let recipientCount = 0
     for (const customerId of recipientIds) {

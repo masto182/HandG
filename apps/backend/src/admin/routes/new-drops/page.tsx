@@ -830,6 +830,210 @@ function HistoryTab() {
   )
 }
 
+type SpecialsItem = {
+  product_title: string
+  product_handle: string
+  product_thumbnail: string | null
+  original_price: number
+  discounted_price: number
+  discount_type: "percentage" | "fixed"
+  discount_value: number
+}
+
+type SpecialsBatch = {
+  id: string
+  label: string | null
+  status: "sending" | "sent" | "failed"
+  campaign_count: number
+  recipient_count: number
+  sent_count: number
+  failed_count: number
+  sent_at: string | null
+}
+
+const fmtAud = (cents: number) => `$${(cents / 100).toFixed(2)}`
+
+function SpecialsTab() {
+  const [items, setItems] = useState<SpecialsItem[]>([])
+  const [recipientCount, setRecipientCount] = useState(0)
+  const [batches, setBatches] = useState<SpecialsBatch[]>([])
+  const [loading, setLoading] = useState(true)
+  const [sending, setSending] = useState(false)
+  const prompt = usePrompt()
+
+  const load = async () => {
+    setLoading(true)
+    try {
+      const [preview, history] = await Promise.all([
+        sdk.client.fetch<{ items: SpecialsItem[]; recipientCount: number }>(
+          "/admin/specials-batches/preview"
+        ),
+        sdk.client.fetch<{ batches: SpecialsBatch[] }>("/admin/specials-batches"),
+      ])
+      setItems(preview.items || [])
+      setRecipientCount(preview.recipientCount || 0)
+      setBatches(history.batches || [])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    load()
+  }, [])
+
+  const handleSend = async () => {
+    const ok = await prompt({
+      title: "Send specials email?",
+      description: `This sends an email about ${items.length} product${
+        items.length === 1 ? "" : "s"
+      } currently on special to every customer (${recipientCount} recipient${
+        recipientCount === 1 ? "" : "s"
+      }, minus anyone opted out).`,
+      confirmText: "Send to everyone",
+      cancelText: "Cancel",
+    })
+    if (!ok) return
+    setSending(true)
+    try {
+      await sdk.client.fetch("/admin/specials-batches", { method: "POST", body: {} })
+      toast.success("Specials batch sent")
+      load()
+    } catch (e: any) {
+      toast.error(e?.message || "Send failed")
+    } finally {
+      setSending(false)
+    }
+  }
+
+  const retryFailed = async (id: string) => {
+    try {
+      await sdk.client.fetch(`/admin/specials-batches/${id}`, {
+        method: "POST",
+        body: { action: "retry-failed" },
+      })
+      toast.success("Retrying failed deliveries.")
+      load()
+    } catch {
+      toast.error("Failed to retry.")
+    }
+  }
+
+  if (loading) {
+    return (
+      <Container className="p-8 text-center">
+        <Text className="text-ui-fg-subtle">Loading…</Text>
+      </Container>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-y-6">
+      <Container className="p-0 overflow-hidden">
+        {items.length === 0 ? (
+          <div className="p-8 text-center">
+            <Text className="text-ui-fg-subtle">Nothing is currently on special.</Text>
+          </div>
+        ) : (
+          <>
+            <Table>
+              <Table.Header>
+                <Table.Row>
+                  <Table.HeaderCell>Product</Table.HeaderCell>
+                  <Table.HeaderCell>Original price</Table.HeaderCell>
+                  <Table.HeaderCell>Special price</Table.HeaderCell>
+                  <Table.HeaderCell>Discount</Table.HeaderCell>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {items.map((item) => (
+                  <Table.Row key={item.product_handle}>
+                    <Table.Cell className="flex items-center gap-2">
+                      {item.product_thumbnail && (
+                        <img
+                          src={item.product_thumbnail}
+                          alt=""
+                          className="w-8 h-8 rounded object-cover"
+                        />
+                      )}
+                      {item.product_title}
+                    </Table.Cell>
+                    <Table.Cell className="text-ui-fg-subtle line-through">
+                      {fmtAud(item.original_price)}
+                    </Table.Cell>
+                    <Table.Cell className="font-medium">{fmtAud(item.discounted_price)}</Table.Cell>
+                    <Table.Cell>
+                      {item.discount_type === "percentage"
+                        ? `${item.discount_value}% off`
+                        : `${fmtAud(item.discount_value * 100)} off`}
+                    </Table.Cell>
+                  </Table.Row>
+                ))}
+              </Table.Body>
+            </Table>
+            <div className="flex items-center justify-between p-4 border-t border-ui-border-base">
+              <Text size="small" className="text-ui-fg-subtle">
+                {recipientCount} recipient{recipientCount === 1 ? "" : "s"} (everyone opted in)
+              </Text>
+              <Button size="small" onClick={handleSend} isLoading={sending}>
+                Send to everyone
+              </Button>
+            </div>
+          </>
+        )}
+      </Container>
+
+      <div>
+        <Text weight="plus" className="mb-2 block">
+          Sending history
+        </Text>
+        {batches.length === 0 ? (
+          <Text className="text-ui-fg-subtle">No specials batches sent yet.</Text>
+        ) : (
+          <Container className="p-0 overflow-hidden">
+            <Table>
+              <Table.Header>
+                <Table.Row>
+                  <Table.HeaderCell>Status</Table.HeaderCell>
+                  <Table.HeaderCell>Products</Table.HeaderCell>
+                  <Table.HeaderCell>Recipients</Table.HeaderCell>
+                  <Table.HeaderCell>Sent / Failed</Table.HeaderCell>
+                  <Table.HeaderCell>Sent at</Table.HeaderCell>
+                  <Table.HeaderCell />
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {batches.map((b) => (
+                  <Table.Row key={b.id}>
+                    <Table.Cell>
+                      <StatusBadge status={b.status} />
+                    </Table.Cell>
+                    <Table.Cell>{b.campaign_count}</Table.Cell>
+                    <Table.Cell>{b.recipient_count}</Table.Cell>
+                    <Table.Cell>
+                      {b.sent_count} / {b.failed_count}
+                    </Table.Cell>
+                    <Table.Cell>
+                      {b.sent_at ? new Date(b.sent_at).toLocaleString() : "-"}
+                    </Table.Cell>
+                    <Table.Cell>
+                      {b.status === "failed" ? (
+                        <Button size="small" variant="secondary" onClick={() => retryFailed(b.id)}>
+                          Retry failed
+                        </Button>
+                      ) : null}
+                    </Table.Cell>
+                  </Table.Row>
+                ))}
+              </Table.Body>
+            </Table>
+          </Container>
+        )}
+      </div>
+    </div>
+  )
+}
+
 const NewDropsPage = () => {
   const [tab, setTab] = useState("pending")
 
@@ -843,12 +1047,16 @@ const NewDropsPage = () => {
         <Tabs.List>
           <Tabs.Trigger value="pending">Pending</Tabs.Trigger>
           <Tabs.Trigger value="history">Sending &amp; history</Tabs.Trigger>
+          <Tabs.Trigger value="specials">Specials</Tabs.Trigger>
         </Tabs.List>
         <Tabs.Content value="pending" className="pt-4">
           <PendingQueueTab />
         </Tabs.Content>
         <Tabs.Content value="history" className="pt-4">
           <HistoryTab />
+        </Tabs.Content>
+        <Tabs.Content value="specials" className="pt-4">
+          <SpecialsTab />
         </Tabs.Content>
       </Tabs>
     </Container>
