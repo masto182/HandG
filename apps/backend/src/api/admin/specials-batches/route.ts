@@ -9,6 +9,7 @@ import {
 
 const SendSchema = z.object({
   label: z.string().trim().max(200).nullable().optional(),
+  message: z.string().trim().max(2000).nullable().optional(),
 })
 
 export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
@@ -32,6 +33,7 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
   try {
     const { batch } = await sendSpecialsBatch(req.scope, {
       label: parsed.data.label ?? null,
+      message: parsed.data.message ?? null,
       created_by: actor,
     })
     res.status(201).json({ batch })

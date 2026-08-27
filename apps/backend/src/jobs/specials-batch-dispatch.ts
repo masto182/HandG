@@ -143,6 +143,7 @@ async function runDispatch(container: MedusaContainer) {
                   template: SpecialsBroadcastTpl,
                   props: {
                     name: customer.first_name || "Collector",
+                    message: batch.message ?? null,
                     items: items.map((i: any) => ({
                       productTitle: i.product_title,
                       productHandle: i.product_handle,

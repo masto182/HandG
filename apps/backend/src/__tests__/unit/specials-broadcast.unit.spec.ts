@@ -74,6 +74,25 @@ describe("specials-broadcast email", () => {
     expect(out.html).toContain("/products/b")
   })
 
+  it("renders the optional custom message when present", async () => {
+    const out = await renderEmail(SpecialsBroadcast as any, {
+      name: "Cam",
+      message: "Only while stocks last - grab them before Friday!",
+      items: [item()],
+      storeUrl: STORE_URL,
+    })
+    expect(out.html).toContain("Only while stocks last - grab them before Friday!")
+  })
+
+  it("omits the message block when not provided", async () => {
+    const out = await renderEmail(SpecialsBroadcast as any, {
+      name: "Cam",
+      items: [item()],
+      storeUrl: STORE_URL,
+    })
+    expect(out.html).not.toContain("Only while stocks last")
+  })
+
   it("missing thumbnail renders no broken <img> tag", async () => {
     const out = await renderEmail(SpecialsBroadcast as any, {
       name: "Cam",

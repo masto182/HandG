@@ -149,7 +149,7 @@ export async function previewSpecialsBatch(container: any) {
  */
 export async function sendSpecialsBatch(
   container: any,
-  input: { label?: string | null; created_by?: string | null } = {}
+  input: { label?: string | null; message?: string | null; created_by?: string | null } = {}
 ) {
   const batchService = container.resolve(SPECIALS_BATCH_MODULE) as any
   const campaignModule = container.resolve(CAMPAIGN_MODULE) as any
@@ -162,6 +162,7 @@ export async function sendSpecialsBatch(
 
   const batch = await batchService.createSpecialsBatches({
     label: input.label ?? null,
+    message: input.message ?? null,
     status: "sending",
     campaign_count: campaignIds.length,
     created_by: input.created_by ?? null,

@@ -13,6 +13,7 @@ import {
   toast,
   usePrompt,
   FocusModal,
+  Textarea,
 } from "@medusajs/ui"
 import { useEffect, useMemo, useState } from "react"
 import { sdk } from "../../lib/sdk"
@@ -859,6 +860,7 @@ function SpecialsTab() {
   const [batches, setBatches] = useState<SpecialsBatch[]>([])
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
+  const [message, setMessage] = useState("")
   const prompt = usePrompt()
 
   const load = async () => {
@@ -896,8 +898,12 @@ function SpecialsTab() {
     if (!ok) return
     setSending(true)
     try {
-      await sdk.client.fetch("/admin/specials-batches", { method: "POST", body: {} })
+      await sdk.client.fetch("/admin/specials-batches", {
+        method: "POST",
+        body: { message: message.trim() || null },
+      })
       toast.success("Specials batch sent")
+      setMessage("")
       load()
     } catch (e: any) {
       toast.error(e?.message || "Send failed")
@@ -971,13 +977,26 @@ function SpecialsTab() {
                 ))}
               </Table.Body>
             </Table>
-            <div className="flex items-center justify-between p-4 border-t border-ui-border-base">
-              <Text size="small" className="text-ui-fg-subtle">
-                {recipientCount} recipient{recipientCount === 1 ? "" : "s"} (everyone opted in)
-              </Text>
-              <Button size="small" onClick={handleSend} isLoading={sending}>
-                Send to everyone
-              </Button>
+            <div className="p-4 border-t border-ui-border-base flex flex-col gap-y-3">
+              <div>
+                <Label size="small" className="mb-1 block">
+                  Message (optional)
+                </Label>
+                <Textarea
+                  placeholder="Add a short note about this week's specials..."
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  rows={3}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <Text size="small" className="text-ui-fg-subtle">
+                  {recipientCount} recipient{recipientCount === 1 ? "" : "s"} (everyone opted in)
+                </Text>
+                <Button size="small" onClick={handleSend} isLoading={sending}>
+                  Send to everyone
+                </Button>
+              </div>
             </div>
           </>
         )}

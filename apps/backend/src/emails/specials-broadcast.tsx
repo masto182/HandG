@@ -7,6 +7,7 @@ import { SpecialsProductGrid, type SpecialsBatchItem } from "./_components/Speci
 
 export type SpecialsBroadcastProps = {
   name: string
+  message?: string | null
   items: SpecialsBatchItem[]
   storeUrl: string
 }
@@ -28,6 +29,7 @@ const SAMPLE_ITEM: SpecialsBatchItem = {
 
 export default function SpecialsBroadcastEmail({
   name = "Collector",
+  message = null,
   items = [SAMPLE_ITEM],
   storeUrl = "https://hopsandglory.au",
 }: SpecialsBroadcastProps) {
@@ -43,6 +45,7 @@ export default function SpecialsBroadcastEmail({
     <Layout preview={preview} storeUrl={storeUrl} isMarketing>
       <Heading>{items.length === 1 ? "On special" : "This week's specials"}</Heading>
       <Text style={greeting}>Hi {name},</Text>
+      {message ? <Text style={greeting}>{message}</Text> : null}
       <SpecialsProductGrid items={items} storeUrl={storeUrl} />
       <Button href={`${storeUrl}/store`}>Shop the specials</Button>
     </Layout>
