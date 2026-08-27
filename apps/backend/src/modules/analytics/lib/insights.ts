@@ -359,6 +359,7 @@ export function buildCheckoutFunnel(
   total_sessions: number
   completed_orders: number
   stages: CheckoutStage[]
+  dropped_by_stage: Record<CheckoutStageKey, CheckoutSessionSummary[]>
 } {
   const sessions = buildCheckoutSessionSummaries(events, since)
   const cartCount = sessions.filter((session) => session.counts.cart_views > 0).length
@@ -405,9 +406,24 @@ export function buildCheckoutFunnel(
         ["fulfilment", "payment", "review", "placed", "completed"].includes(session.max_stage))
   ).length
 
+  // Group sessions that never progressed past a given stage — i.e. exactly
+  // who dropped out where. A session is a "dropout" at its own max_stage
+  // (outcome !== "placed"/"completed"); it never reached the next stage.
+  const droppedByStage = sessions
+    .filter((session) => session.outcome === "dropped")
+    .reduce(
+      (acc, session) => {
+        acc[session.max_stage] = acc[session.max_stage] ?? []
+        acc[session.max_stage].push(session)
+        return acc
+      },
+      {} as Record<CheckoutStageKey, CheckoutSessionSummary[]>
+    )
+
   return {
     total_sessions: sessions.length,
     completed_orders: completedCount,
+    dropped_by_stage: droppedByStage,
     stages: [
       {
         key: "cart",

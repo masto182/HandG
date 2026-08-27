@@ -13,6 +13,7 @@ import {
   toast,
 } from "@medusajs/ui"
 import { useEffect, useState } from "react"
+import { Link } from "react-router-dom"
 import { sdk } from "../../lib/sdk"
 import { FunnelBar } from "../../components/funnel-bar"
 
@@ -437,11 +438,11 @@ function AlertsPage() {
                 <Text size="small" className="text-ui-fg-subtle mb-4">
                   Manage the site-wide announcement strip (info, promo, warning types).
                 </Text>
-                <a href="/app/announcements">
+                <Link to="/announcements">
                   <Button size="small" variant="secondary">
                     Manage announcements →
                   </Button>
-                </a>
+                </Link>
               </div>
 
               <div className="flex gap-3 justify-end">

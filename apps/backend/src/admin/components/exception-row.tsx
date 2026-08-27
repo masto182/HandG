@@ -1,4 +1,5 @@
 import { Badge, Text } from "@medusajs/ui"
+import { Link } from "react-router-dom"
 
 type Severity = "high" | "medium" | "low"
 
@@ -63,9 +64,9 @@ export function ExceptionRow({
   )
 
   return href ? (
-    <a href={href} className="block">
+    <Link to={href} className="block">
       {inner}
-    </a>
+    </Link>
   ) : (
     inner
   )

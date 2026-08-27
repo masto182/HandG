@@ -13,11 +13,13 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
   const {
     group,
     q,
+    id,
     limit: rawLimit,
     offset: rawOffset,
   } = req.query as {
     group?: string
     q?: string
+    id?: string
     limit?: string
     offset?: string
   }
@@ -38,7 +40,11 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
   })
 
   let filtered = allCustomers
-  if (group === "vip") {
+  if (id) {
+    // Direct lookup by customer ID — used to deep-link to a specific member
+    // (e.g. from an Insights drill-down) regardless of their group/tab.
+    filtered = filtered.filter((c: any) => c.id === id)
+  } else if (group === "vip") {
     filtered = filtered.filter(isVipGroup)
   } else if (group && group !== "all") {
     filtered = filtered.filter((c: any) => c.groups?.some((g: any) => g.name === group))

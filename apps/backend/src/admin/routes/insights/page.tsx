@@ -1,6 +1,7 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
 import { Container, Heading, Badge, Text, Tabs, Table } from "@medusajs/ui"
 import { useEffect, useState } from "react"
+import { Link } from "react-router-dom"
 import { sdk } from "../../lib/sdk"
 import { FunnelBar } from "../../components/funnel-bar"
 import { MetricCard } from "../../components/metric-card"
@@ -31,6 +32,9 @@ type OperateRow = {
   on_hand: number
   weeks_of_supply: number
   status: "out" | "reorder" | "healthy" | "no_sales"
+  title: string | null
+  brewery_name: string | null
+  handle: string
 }
 
 type InsightsData = {
@@ -42,6 +46,16 @@ type InsightsData = {
   }
   tiers: Record<string, number>
   abandoned_carts: number
+  abandoned_cart_details: Array<{
+    cart_id: string
+    customer_id: string | null
+    customer: CustomerLite | null
+    email: string | null
+    item_count: number
+    items: Array<{ title: string; quantity: number }>
+    updated_at: string
+    last_stage: string | null
+  }>
   revenue_30d: number
   revenue_delta_pct: number | null
   aov: number
@@ -67,6 +81,8 @@ type InsightsData = {
       views: number
       cart_adds: number
       view_to_cart_rate: number
+      title: string | null
+      brewery_name: string | null
     }>
     top_breweries: Array<{ slug: string; views: number }>
     filter_usage: Array<{ filter: string; count: number }>
@@ -141,6 +157,30 @@ type InsightsData = {
       customer: CustomerLite | null
     }>
   } | null
+  funnel_stage_drilldown: Array<{
+    session_id: string
+    customer_id: string
+    max_stage: string
+    outcome: string
+    fulfilment_method: "pickup" | "delivery" | null
+    started_at: string | null
+    last_at: string | null
+    customer: CustomerLite | null
+  }> | null
+  sell_through: {
+    overall_avg_days: number | null
+    sample_size: number
+    by_brewery: Array<{ label: string; avg_days: number; count: number }>
+    by_hop: Array<{ label: string; avg_days: number; count: number }>
+    by_abv_band: Array<{ label: string; avg_days: number; count: number }>
+    by_collab: Array<{ label: string; avg_days: number; count: number }>
+  }
+  buyer_segmentation: {
+    premium: { customers: number; revenue: number; sample: CustomerLite[] }
+    bargain: { customers: number; revenue: number; sample: CustomerLite[] }
+    window_days: number
+    method_note: string
+  }
 }
 
 const aud = (n: number) =>
@@ -173,6 +213,41 @@ function BarRow({
   )
 }
 
+function SellThroughList({
+  title,
+  rows,
+}: {
+  title: string
+  rows: Array<{ label: string; avg_days: number; count: number }>
+}) {
+  return (
+    <div>
+      <Text size="small" weight="plus" className="mb-2 block">
+        {title}
+      </Text>
+      {rows.length === 0 ? (
+        <Text size="small" className="text-ui-fg-muted">
+          Not enough data yet.
+        </Text>
+      ) : (
+        <div className="space-y-1">
+          {rows.map((r) => (
+            <div key={r.label} className="flex items-center gap-3 text-sm py-1">
+              <span className="flex-1 truncate">{r.label}</span>
+              <Badge size="2xsmall" color="blue">
+                {r.avg_days}d
+              </Badge>
+              <span className="text-xs text-ui-fg-muted w-16 text-right">
+                {r.count} beer{r.count === 1 ? "" : "s"}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function MemberLink({
   customer,
   sessionId,
@@ -188,9 +263,12 @@ function MemberLink({
     )
   }
   return (
-    <a href={`/app/members`} className="text-ui-fg-interactive hover:underline">
+    <Link
+      to={`/members?id=${encodeURIComponent(customer.id)}`}
+      className="text-ui-fg-interactive hover:underline"
+    >
       {customer.name}
-    </a>
+    </Link>
   )
 }
 
@@ -209,8 +287,11 @@ const InsightsPage = () => {
   const [loading, setLoading] = useState(true)
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null)
   const [selectedFilter, setSelectedFilter] = useState<string | null>(null)
+  const [selectedFunnelStage, setSelectedFunnelStage] = useState<string | null>(null)
   const [productDrilldown, setProductDrilldown] = useState<InsightsData["product_drilldown"]>(null)
   const [filterDrilldown, setFilterDrilldown] = useState<InsightsData["filter_drilldown"]>(null)
+  const [funnelStageDrilldown, setFunnelStageDrilldown] =
+    useState<InsightsData["funnel_stage_drilldown"]>(null)
 
   useEffect(() => {
     sdk.client
@@ -242,6 +323,19 @@ const InsightsPage = () => {
       .catch(() => setFilterDrilldown({ values: [], members: [] }))
   }, [selectedFilter])
 
+  useEffect(() => {
+    if (!selectedFunnelStage) {
+      setFunnelStageDrilldown(null)
+      return
+    }
+    sdk.client
+      .fetch<InsightsData>(
+        `/admin/insights?funnel_stage=${encodeURIComponent(selectedFunnelStage)}`
+      )
+      .then((response) => setFunnelStageDrilldown(response.funnel_stage_drilldown))
+      .catch(() => setFunnelStageDrilldown([]))
+  }, [selectedFunnelStage])
+
   if (loading)
     return (
       <Container>
@@ -267,7 +361,7 @@ const InsightsPage = () => {
     .slice(0, 12)
     .map((p) => ({
       id: p.product_id,
-      label: p.handle || p.product_id.slice(-10),
+      label: p.title ?? p.handle ?? p.product_id.slice(-10),
       x: p.views,
       y: p.view_to_cart_rate * 100,
     }))
@@ -335,15 +429,78 @@ const InsightsPage = () => {
               label="Total members"
               value={String(data.members.total)}
               sub={`${data.members.approved} approved`}
-              href="/app/members"
+              href="/members"
             />
             <MetricCard
               label="Abandoned carts"
               value={String(data.abandoned_carts)}
               sub="Inactive 24h+ with items"
               deltaPct={data.abandoned_carts > 0 ? 0 : null}
-              href="/app/carts"
             />
+          </div>
+
+          {/* Who's abandoning, and at what checkout stage */}
+          <div>
+            <Heading level="h2" className="mb-2">
+              Abandoned carts — who and where
+            </Heading>
+            <Text size="small" className="text-ui-fg-muted mb-3">
+              Carts with items, untouched for 24h+, not completed. "Last stage" is the furthest
+              checkout step we tracked for that cart — blank means they never started checkout.
+            </Text>
+            <div className="rounded-lg border border-ui-border-base overflow-hidden">
+              <Table>
+                <Table.Header>
+                  <Table.Row>
+                    <Table.HeaderCell>Member</Table.HeaderCell>
+                    <Table.HeaderCell>Items</Table.HeaderCell>
+                    <Table.HeaderCell>Last stage</Table.HeaderCell>
+                    <Table.HeaderCell>Last updated</Table.HeaderCell>
+                  </Table.Row>
+                </Table.Header>
+                <Table.Body>
+                  {data.abandoned_cart_details.length === 0 && (
+                    <Table.Row>
+                      <Table.Cell>
+                        <Text size="small" className="text-ui-fg-muted">
+                          No abandoned carts right now.
+                        </Text>
+                      </Table.Cell>
+                    </Table.Row>
+                  )}
+                  {data.abandoned_cart_details.map((cart) => (
+                    <Table.Row key={cart.cart_id}>
+                      <Table.Cell>
+                        {cart.customer ? (
+                          <MemberLink customer={cart.customer} sessionId={null} />
+                        ) : (
+                          <span className="text-ui-fg-muted">{cart.email ?? "Guest"}</span>
+                        )}
+                      </Table.Cell>
+                      <Table.Cell>
+                        <span className="text-sm text-ui-fg-subtle">
+                          {cart.items.map((i) => `${i.quantity}× ${i.title}`).join(", ")}
+                          {cart.item_count > cart.items.length &&
+                            ` +${cart.item_count - cart.items.length} more`}
+                        </span>
+                      </Table.Cell>
+                      <Table.Cell>
+                        {cart.last_stage ? (
+                          <Badge color="orange" size="2xsmall">
+                            {cart.last_stage}
+                          </Badge>
+                        ) : (
+                          <span className="text-ui-fg-muted text-sm">Never started checkout</span>
+                        )}
+                      </Table.Cell>
+                      <Table.Cell className="text-sm text-ui-fg-subtle">
+                        {new Date(cart.updated_at).toLocaleString()}
+                      </Table.Cell>
+                    </Table.Row>
+                  ))}
+                </Table.Body>
+              </Table>
+            </div>
           </div>
 
           {/* Attention Queue — decisions, not data */}
@@ -389,7 +546,7 @@ const InsightsPage = () => {
                 {data.recently_active.map((row) => (
                   <a
                     key={row.customer_id}
-                    href="/app/members"
+                    href="/members"
                     className="flex items-center justify-between gap-3 border-b border-ui-border-base py-2 hover:bg-ui-bg-subtle px-2 rounded"
                   >
                     <Text size="small">{row.customer?.name ?? row.customer_id.slice(-8)}</Text>
@@ -450,7 +607,8 @@ const InsightsPage = () => {
             <Table>
               <Table.Header>
                 <Table.Row>
-                  <Table.HeaderCell>Product</Table.HeaderCell>
+                  <Table.HeaderCell>Brewery</Table.HeaderCell>
+                  <Table.HeaderCell>Beer</Table.HeaderCell>
                   <Table.HeaderCell>Sold (30d)</Table.HeaderCell>
                   <Table.HeaderCell>On hand</Table.HeaderCell>
                   <Table.HeaderCell>Weeks of supply</Table.HeaderCell>
@@ -471,12 +629,15 @@ const InsightsPage = () => {
                   const status = OPERATE_STATUS[row.status]
                   return (
                     <Table.Row key={row.product_id}>
+                      <Table.Cell className="text-ui-fg-subtle">
+                        {row.brewery_name ?? "—"}
+                      </Table.Cell>
                       <Table.Cell>
                         <a
-                          href={`/app/products/${row.product_id}`}
+                          href={`/products/${row.product_id}`}
                           className="text-ui-fg-interactive hover:underline"
                         >
-                          {row.product_id.slice(-10)}
+                          {row.title ?? row.handle ?? row.product_id.slice(-10)}
                         </a>
                       </Table.Cell>
                       <Table.Cell>{row.sold}</Table.Cell>
@@ -494,6 +655,40 @@ const InsightsPage = () => {
                 })}
               </Table.Body>
             </Table>
+          </div>
+
+          <div>
+            <Heading level="h2" className="mb-2">
+              Sell-through velocity — "days on shelf"
+            </Heading>
+            <Text size="small" className="text-ui-fg-muted mb-3">
+              Days between listing and last sale, for beers that have actually sold out
+              (still-in-stock beers aren't included — their shelf life isn't finished yet). Lower is
+              better: it sold fast, time to reorder. Based on {data.sell_through.sample_size}{" "}
+              sold-out beer
+              {data.sell_through.sample_size === 1 ? "" : "s"} in the last year.
+            </Text>
+            {data.sell_through.sample_size === 0 ? (
+              <Text size="small" className="text-ui-fg-muted">
+                No sold-out beers with a recorded sale yet.
+              </Text>
+            ) : (
+              <>
+                <div className="mb-4">
+                  <MetricCard
+                    label="Overall average"
+                    value={`${data.sell_through.overall_avg_days} days`}
+                    sub={`across ${data.sell_through.sample_size} sold-out beers`}
+                  />
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <SellThroughList title="By brewery" rows={data.sell_through.by_brewery} />
+                  <SellThroughList title="By hop" rows={data.sell_through.by_hop} />
+                  <SellThroughList title="By ABV band" rows={data.sell_through.by_abv_band} />
+                  <SellThroughList title="Solo vs collab" rows={data.sell_through.by_collab} />
+                </div>
+              </>
+            )}
           </div>
         </Tabs.Content>
 
@@ -518,7 +713,12 @@ const InsightsPage = () => {
                       className="flex w-full items-center gap-3 border-b border-ui-border-base py-2 hover:bg-ui-bg-subtle px-2 rounded text-left"
                     >
                       <span className="text-ui-fg-muted text-sm w-6">#{i + 1}</span>
-                      <span className="text-sm flex-1">{p.handle || p.product_id.slice(-10)}</span>
+                      <span className="text-sm flex-1 truncate">
+                        {p.brewery_name && (
+                          <span className="text-ui-fg-subtle">{p.brewery_name} · </span>
+                        )}
+                        {p.title ?? p.handle ?? p.product_id.slice(-10)}
+                      </span>
                       <Badge color="blue" size="2xsmall">
                         {p.views} views
                       </Badge>
@@ -771,9 +971,50 @@ const InsightsPage = () => {
                   count={stage.count}
                   total={funnelMax}
                   rate={stage.conversion_rate}
+                  active={selectedFunnelStage === stage.key}
+                  onClick={() =>
+                    setSelectedFunnelStage((current) => (current === stage.key ? null : stage.key))
+                  }
                 />
               ))}
             </div>
+            {selectedFunnelStage && (
+              <div className="mt-4 max-w-3xl">
+                <Heading level="h2" className="mb-3">
+                  Dropped at "{data.funnel.stages.find((s) => s.key === selectedFunnelStage)?.label}
+                  "
+                </Heading>
+                <Text size="small" className="text-ui-fg-muted mb-3">
+                  Sessions that reached this stage and never progressed further (excludes sessions
+                  that went on to place or complete an order).
+                </Text>
+                <div className="space-y-2">
+                  {(funnelStageDrilldown ?? []).map((row) => (
+                    <div
+                      key={row.session_id}
+                      className="flex items-center justify-between gap-3 border-b border-ui-border-base py-2"
+                    >
+                      <MemberLink customer={row.customer} sessionId={row.session_id} />
+                      <div className="flex items-center gap-2 text-sm text-ui-fg-subtle">
+                        {row.fulfilment_method && (
+                          <Badge color="grey" size="2xsmall">
+                            {row.fulfilment_method}
+                          </Badge>
+                        )}
+                        <Text size="xsmall" className="text-ui-fg-muted">
+                          {row.last_at ? new Date(row.last_at).toLocaleString() : "—"}
+                        </Text>
+                      </div>
+                    </div>
+                  ))}
+                  {(funnelStageDrilldown ?? []).length === 0 && (
+                    <Text size="small" className="text-ui-fg-muted">
+                      No dropped sessions at this stage in the lookback window.
+                    </Text>
+                  )}
+                </div>
+              </div>
+            )}
             <Heading level="h2" className="mt-8 mb-3">
               Stage conversion — numerator/denominator
             </Heading>
@@ -849,6 +1090,64 @@ const InsightsPage = () => {
           </div>
 
           <div>
+            <Heading level="h2" className="mb-2">
+              Buyer type — premium vs bargain
+            </Heading>
+            <Text size="small" className="text-ui-fg-muted mb-3">
+              {data.buyer_segmentation.method_note} Window: last{" "}
+              {data.buyer_segmentation.window_days} days.
+            </Text>
+            <div className="grid grid-cols-2 gap-4 max-w-lg mb-4">
+              <MetricCard
+                label="Premium buyers"
+                value={String(data.buyer_segmentation.premium.customers)}
+                sub={`${aud(data.buyer_segmentation.premium.revenue)} revenue`}
+              />
+              <MetricCard
+                label="Bargain buyers"
+                value={String(data.buyer_segmentation.bargain.customers)}
+                sub={`${aud(data.buyer_segmentation.bargain.revenue)} revenue`}
+              />
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <Text size="small" weight="plus" className="mb-2 block">
+                  Premium buyers (sample)
+                </Text>
+                <div className="space-y-1">
+                  {data.buyer_segmentation.premium.sample.map((c) => (
+                    <div key={c.id} className="text-sm py-1 border-b border-ui-border-base">
+                      <MemberLink customer={c} />
+                    </div>
+                  ))}
+                  {data.buyer_segmentation.premium.sample.length === 0 && (
+                    <Text size="small" className="text-ui-fg-muted">
+                      No qualifying orders in this window.
+                    </Text>
+                  )}
+                </div>
+              </div>
+              <div>
+                <Text size="small" weight="plus" className="mb-2 block">
+                  Bargain buyers (sample)
+                </Text>
+                <div className="space-y-1">
+                  {data.buyer_segmentation.bargain.sample.map((c) => (
+                    <div key={c.id} className="text-sm py-1 border-b border-ui-border-base">
+                      <MemberLink customer={c} />
+                    </div>
+                  ))}
+                  {data.buyer_segmentation.bargain.sample.length === 0 && (
+                    <Text size="small" className="text-ui-fg-muted">
+                      No qualifying orders in this window.
+                    </Text>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
             <Heading level="h2" className="mb-3">
               Buy-at-Price offers
             </Heading>
@@ -857,12 +1156,12 @@ const InsightsPage = () => {
                 label="Pending"
                 value={String(data.wishlist.pending_offers)}
                 deltaPct={data.wishlist.pending_offers > 0 ? 0 : null}
-                href="/app/buy-at-price"
+                href="/buy-at-price"
               />
               <MetricCard
                 label="Approved"
                 value={String(data.wishlist.approved_offers)}
-                href="/app/buy-at-price"
+                href="/buy-at-price"
               />
               <MetricCard
                 label="Total"

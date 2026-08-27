@@ -125,6 +125,14 @@ describe("insights aggregation — unit (pure logic)", () => {
       expect(funnel.completed_orders).toBe(1)
       expect(funnel.stages.find((stage) => stage.key === "cart")?.count).toBe(2)
       expect(funnel.stages.find((stage) => stage.key === "completed")?.count).toBe(1)
+
+      // s2 (c2) never progressed past "payment" — it should surface as a
+      // named dropout at that stage, not just be absorbed into the aggregate.
+      expect(funnel.dropped_by_stage.payment).toHaveLength(1)
+      expect(funnel.dropped_by_stage.payment[0].customer_id).toBe("c2")
+      expect(funnel.dropped_by_stage.payment[0].session_id).toBe("cart_2")
+      // s1 (c1) completed — it must not appear in any dropout bucket.
+      expect(funnel.dropped_by_stage.review ?? []).toHaveLength(0)
     })
 
     it("uses only delivery sessions that reached fulfilment as the address denominator", () => {

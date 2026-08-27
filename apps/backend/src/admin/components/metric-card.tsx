@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom"
 import { Sparkline } from "./sparkline"
 
 // Stripe-style metric card: one dominant number + comparison delta + sparkline.
@@ -52,9 +53,9 @@ export function MetricCard({
   )
 
   return href ? (
-    <a href={href} className="block h-full">
+    <Link to={href} className="block h-full">
       {inner}
-    </a>
+    </Link>
   ) : (
     inner
   )

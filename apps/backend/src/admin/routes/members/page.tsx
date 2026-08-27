@@ -13,6 +13,7 @@ import {
   usePrompt,
 } from "@medusajs/ui"
 import { useEffect, useState } from "react"
+import { useSearchParams } from "react-router-dom"
 import { sdk } from "../../lib/sdk"
 
 type ReferredBy = { id: string; name: string; tier: string }
@@ -190,6 +191,7 @@ const MembersPage = () => {
   const [activity, setActivity] = useState<MemberActivityData | null>(null)
   const [actioning, setActioning] = useState(false)
   const prompt = usePrompt()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const isPending = activeTab === "pending"
 
@@ -224,6 +226,31 @@ const MembersPage = () => {
     load(activeTab, "", 0)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab])
+
+  // Deep-link support: ?id=<customer_id> opens that member's drawer directly,
+  // regardless of which tab/group they belong to (e.g. from an Insights
+  // drill-down link). Clears the query param once handled.
+  useEffect(() => {
+    const targetId = searchParams.get("id")
+    if (!targetId) return
+    sdk.client
+      .fetch<{ members: Member[] }>(`/admin/members?id=${encodeURIComponent(targetId)}`)
+      .then((data) => {
+        const match = data.members?.[0]
+        if (match) {
+          setDrawer(match)
+        } else {
+          toast.error("Member not found")
+        }
+      })
+      .catch(() => toast.error("Failed to load member"))
+      .finally(() => {
+        const next = new URLSearchParams(searchParams)
+        next.delete("id")
+        setSearchParams(next, { replace: true })
+      })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Order history for the drawer (non-pending only)
   useEffect(() => {

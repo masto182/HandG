@@ -4,8 +4,10 @@ import { VIP_SCORE_MODULE } from "../../../modules/vip-score"
 import { WISHLIST_MODULE } from "../../../modules/wishlist"
 import { ANALYTICS_MODULE } from "../../../modules/analytics"
 import { REFERRAL_MODULE } from "../../../modules/referral"
+import { CAMPAIGN_MODULE } from "../../../modules/campaign"
 import {
   buildCheckoutFunnel,
+  buildCheckoutSessionSummaries,
   buildDemandMetrics,
   buildFilterDrilldown,
   buildInterestingProducts,
@@ -16,6 +18,10 @@ import {
 
 const LOW_STOCK_THRESHOLD = 6
 const INSIGHTS_LOOKBACK_DAYS = 30
+// Sell-through velocity and buyer segmentation are durable traits, not 30d
+// snapshots — they need a much wider order history to have any sample size
+// (a beer that sold out 90 days ago still tells you how fast it moved).
+const BEHAVIOUR_LOOKBACK_DAYS = 365
 
 export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   const customerModule = req.scope.resolve(Modules.CUSTOMER) as any
@@ -26,9 +32,14 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
   const referralService = req.scope.resolve(REFERRAL_MODULE) as any
   const analyticsService = req.scope.resolve(ANALYTICS_MODULE) as any
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
-  const { product_id: productId, filter: filterKey } = req.query as {
+  const {
+    product_id: productId,
+    filter: filterKey,
+    funnel_stage: funnelStage,
+  } = req.query as {
     product_id?: string
     filter?: string
+    funnel_stage?: string
   }
   const since = new Date(Date.now() - INSIGHTS_LOOKBACK_DAYS * 24 * 60 * 60 * 1000)
 
@@ -60,32 +71,36 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
 
   // Abandoned carts: filter at query level with updated_at < 24h ago.
   // The `completed_at: null` filter reduces the working set; updated_at window
-  // is applied at DB level via the filters parameter.
+  // is applied at DB level via the filters parameter. "Has items" cannot be
+  // expressed at the DB filter level here, so it's always applied as a
+  // post-filter below — a cart with zero items was never abandoned purchase
+  // intent, just an empty visit, and must not inflate the count.
   const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
   let abandonedCarts = 0
+  let abandonedCartRecords: any[] = []
   try {
-    const [, cartCount] = await cartModule.listAndCountCarts(
+    const [carts, cartCount] = await cartModule.listAndCountCarts(
       {
         completed_at: null,
         updated_at: { $lt: oneDayAgo.toISOString() },
       },
-      { select: ["id", "items"] }
+      { select: ["id", "customer_id", "email", "updated_at"], relations: ["items"] }
     )
     // listAndCountCarts may not support updated_at filter in all Medusa versions;
-    // fall back to a filtered list if count is 0 and the above is unsupported.
-    if (typeof cartCount === "number") {
-      abandonedCarts = cartCount
-    } else {
-      const carts = await cartModule.listCarts(
-        { completed_at: null },
-        { select: ["id", "updated_at", "items"] }
-      )
-      abandonedCarts = carts.filter((c: any) => {
-        const hasItems = (c.items?.length || 0) > 0
-        const stale = new Date(c.updated_at) < oneDayAgo
-        return hasItems && stale
-      }).length
-    }
+    // fall back to a filtered list if unsupported (indicated by a non-numeric count).
+    const candidateCarts =
+      typeof cartCount === "number"
+        ? carts
+        : await cartModule.listCarts(
+            { completed_at: null },
+            { select: ["id", "customer_id", "email", "updated_at"], relations: ["items"] }
+          )
+    abandonedCartRecords = candidateCarts.filter((c: any) => {
+      const hasItems = (c.items?.length || 0) > 0
+      const stale = new Date(c.updated_at) < oneDayAgo
+      return hasItems && stale
+    })
+    abandonedCarts = abandonedCartRecords.length
   } catch {}
 
   // Revenue + AOV over the last 30 days (order.total stored as-is, not cents)
@@ -262,11 +277,54 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
   }
   const demand = buildDemandMetrics(events, since)
   const funnel = buildCheckoutFunnel(events, since)
+
+  // Abandoned cart detail: join raw (authoritative) cart records to the
+  // event-derived checkout session, which is keyed by cart_id whenever a
+  // cart_id was captured in the checkout event payloads — giving "who" (from
+  // the cart itself, works even if analytics events never fired) and "how
+  // far they got" (from tracked checkout steps, when available).
+  const stageLabelByKey = new Map(funnel.stages.map((s) => [s.key, s.label]))
+  const sessionByCartId = new Map(
+    buildCheckoutSessionSummaries(events, since).map((s) => [s.session_id, s])
+  )
+  const abandonedCartCustomerIds = abandonedCartRecords
+    .map((c: any) => c.customer_id)
+    .filter(Boolean)
+  const abandonedCartCustomersById = await loadCustomersById(req.scope, abandonedCartCustomerIds)
+  const abandonedCartDetails = abandonedCartRecords
+    .slice()
+    .sort((a: any, b: any) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+    .slice(0, 50)
+    .map((cart: any) => {
+      const session = sessionByCartId.get(cart.id)
+      return {
+        cart_id: cart.id,
+        customer_id: cart.customer_id ?? null,
+        customer: cart.customer_id
+          ? (abandonedCartCustomersById.get(cart.customer_id) ?? null)
+          : null,
+        email: cart.email ?? null,
+        item_count: (cart.items ?? []).length,
+        items: (cart.items ?? []).slice(0, 5).map((item: any) => ({
+          title: item.product_title ?? item.title ?? "Item",
+          quantity: item.quantity ?? 1,
+        })),
+        updated_at: cart.updated_at,
+        last_stage: session ? (stageLabelByKey.get(session.max_stage) ?? session.max_stage) : null,
+      }
+    })
+
   const productDrilldown = productId
     ? await hydrateCustomerDrilldown(req.scope, buildProductDrilldown(events, productId, since))
     : null
   const filterDrilldown = filterKey
     ? await hydrateFilterDrilldown(req.scope, buildFilterDrilldown(events, filterKey, since))
+    : null
+  const funnelStageDrilldown = funnelStage
+    ? await hydrateCustomerDrilldown(
+        req.scope,
+        funnel.dropped_by_stage[funnelStage as keyof typeof funnel.dropped_by_stage] ?? []
+      )
     : null
   const referrals = await buildReferralInsights(req.scope, referralService, capturedOrders)
 
@@ -284,6 +342,77 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
 
   const searchIntent = buildSearchIntent(events, since)
   const interestingProducts = buildInterestingProducts(events, since)
+
+  // Hydrate real product identity (title + brewery) everywhere a product_id
+  // is displayed. Event-payload `handle` is best-effort (only present when the
+  // firing event happened to capture it) and was showing raw IDs whenever it
+  // was missing — hydrating from the catalogue is always authoritative.
+  const productIdsToHydrate = new Set<string>([
+    ...operate.map((row) => row.product_id),
+    ...demand.top_products.map((p) => p.product_id),
+    ...interestingProducts.map((p) => p.product_id),
+  ])
+  const productsById = await loadProductsById(productModule, [...productIdsToHydrate])
+  const breweryNameBySlug = await loadBreweryNameBySlug(query)
+  const withProductIdentity = <T extends { product_id: string; handle?: string }>(row: T) => {
+    const product = productsById.get(row.product_id)
+    const brewerySlug = product?.metadata?.brewery_slug
+    return {
+      ...row,
+      title: product?.title ?? null,
+      brewery_name: brewerySlug ? (breweryNameBySlug.get(brewerySlug) ?? brewerySlug) : null,
+      handle: row.handle || product?.handle || "",
+    }
+  }
+  const hydratedOperate = operate.map(withProductIdentity)
+  const hydratedTopProducts = demand.top_products.map(withProductIdentity)
+  const hydratedInterestingProducts = interestingProducts.map(withProductIdentity)
+
+  // Wider (365d) captured-order history for the two "durable trait" features
+  // below — sell-through velocity and buyer type are not meaningful on a 30d
+  // window (a beer that sold through weeks ago still tells you how fast it
+  // moved; a customer's price sensitivity doesn't reset every month).
+  const longRangeOrders = await fetchLongRangeCapturedOrders(query, BEHAVIOUR_LOOKBACK_DAYS)
+
+  const sellThrough = await computeSellThrough(
+    query,
+    hydratedOperate,
+    productsById,
+    breweryNameBySlug,
+    longRangeOrders
+  )
+
+  const buyerSegmentationRaw = await computeBuyerSegmentation(
+    req.scope,
+    wishlistService,
+    longRangeOrders
+  )
+  const [premiumSample, bargainSample] = await Promise.all([
+    loadCustomersById(req.scope, buyerSegmentationRaw.premiumCustomerIds.slice(0, 20)),
+    loadCustomersById(req.scope, buyerSegmentationRaw.bargainCustomerIds.slice(0, 20)),
+  ])
+  const buyerSegmentation = {
+    premium: {
+      customers: buyerSegmentationRaw.premiumCustomerIds.length,
+      revenue: buyerSegmentationRaw.premiumRevenue,
+      sample: buyerSegmentationRaw.premiumCustomerIds
+        .slice(0, 20)
+        .map((id) => premiumSample.get(id))
+        .filter(Boolean),
+    },
+    bargain: {
+      customers: buyerSegmentationRaw.bargainCustomerIds.length,
+      revenue: buyerSegmentationRaw.bargainRevenue,
+      sample: buyerSegmentationRaw.bargainCustomerIds
+        .slice(0, 20)
+        .map((id) => bargainSample.get(id))
+        .filter(Boolean),
+    },
+    window_days: BEHAVIOUR_LOOKBACK_DAYS,
+    method_note:
+      "Bargain = at least one order overlapping a tracked campaign discount window for that product, or converted from an approved buy-at-price wishlist offer. Premium = every tracked order was at full price. CSV-only sale pricing (no campaign record, no start/end dates) can't be detected this way and may undercount bargain buyers.",
+  }
+
   const revenueDeltaPct =
     revenuePrior30d > 0
       ? Math.round(((revenue30d - revenuePrior30d) / revenuePrior30d) * 100)
@@ -307,7 +436,7 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
       detail: "Zero units available. Reorder to keep catalogue complete.",
       magnitude: soldOut,
       magnitude_label: `${soldOut} products`,
-      href: "/app/products",
+      href: "/products",
     })
   }
   if (lowStock > 0) {
@@ -318,7 +447,7 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
       detail: `On-hand at or below ${LOW_STOCK_THRESHOLD} units. Check the Operate tab for reorder flags.`,
       magnitude: lowStock,
       magnitude_label: `${lowStock} products`,
-      href: "/app/products",
+      href: "/products",
     })
   }
   const noCart = interestingProducts.filter((p) => p.cart_adds === 0 && p.views < 60)
@@ -330,7 +459,7 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
       detail: "High exposure, zero cart adds. Consider price, stock visibility, or position.",
       magnitude: Math.max(...noCart.map((p) => p.views)),
       magnitude_label: `up to ${Math.max(...noCart.map((p) => p.views))} views`,
-      href: "/app/products",
+      href: "/products",
     })
   }
   const zeroResultSearches = searchIntent.filter((s) => s.zero_results > 0)
@@ -345,7 +474,7 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
         .join(", "),
       magnitude: zeroResultSearches.reduce((sum, s) => sum + s.zero_results, 0),
       magnitude_label: `${zeroResultSearches.reduce((sum, s) => sum + s.zero_results, 0)} zero-result searches`, // prettier-ignore
-      href: "/app/products",
+      href: "/products",
     })
   }
   if (pendingOffers > 0) {
@@ -356,7 +485,7 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
       detail: "A customer wants to set a price. Approving keeps momentum.",
       magnitude: pendingOffers,
       magnitude_label: `${pendingOffers} offers`,
-      href: "/app/buy-at-price",
+      href: "/buy-at-price",
     })
   }
   if (pendingMembers > 0) {
@@ -367,7 +496,7 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
       detail: "Approve or decline to keep membership responsive.",
       magnitude: pendingMembers,
       magnitude_label: `${pendingMembers} applications`,
-      href: "/app/members",
+      href: "/members",
     })
   }
   if (demotionRisk > 0) {
@@ -378,7 +507,7 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
       detail: "Falling below spend threshold. Consider a win-back touchpoint.",
       magnitude: demotionRisk,
       magnitude_label: `${demotionRisk} members`,
-      href: "/app/members",
+      href: "/members",
     })
   }
   attention.sort((a, b) => {
@@ -395,28 +524,32 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
     },
     tiers: tierDistribution,
     abandoned_carts: abandonedCarts,
+    abandoned_cart_details: abandonedCartDetails,
     revenue_30d: revenue30d,
     revenue_delta_pct: revenueDeltaPct,
     aov,
     orders_30d: orders30d,
     demotion_risk: demotionRisk,
     catalogue: { low_stock: lowStock, sold_out: soldOut },
-    operate,
+    operate: hydratedOperate,
     attention,
     wishlist: {
       top_products: topWishlistProducts,
       pending_offers: pendingOffers,
       approved_offers: approvedOffers,
     },
-    demand,
+    demand: { ...demand, top_products: hydratedTopProducts },
     funnel,
     search_intent: searchIntent,
-    interesting_products: interestingProducts,
+    interesting_products: hydratedInterestingProducts,
+    sell_through: sellThrough,
+    buyer_segmentation: buyerSegmentation,
     data: { through: dataThrough, events: events.length },
     referrals,
     recently_active,
     product_drilldown: productDrilldown,
     filter_drilldown: filterDrilldown,
+    funnel_stage_drilldown: funnelStageDrilldown,
   })
 }
 
@@ -431,6 +564,227 @@ async function listAnalyticsEvents(analyticsService: any) {
   } catch {
     return []
   }
+}
+
+async function fetchLongRangeCapturedOrders(query: any, days: number) {
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
+  try {
+    const { data: orders } = await query.graph({
+      entity: "order",
+      fields: [
+        "id",
+        "customer_id",
+        "total",
+        "created_at",
+        "payment_collections.status",
+        "payment_collections.captured_amount",
+        "items.product_id",
+        "items.variant_id",
+        "items.quantity",
+      ],
+      filters: { created_at: { $gte: since.toISOString() } } as any,
+    })
+    return (orders as any[]).filter(hasCapturedPayment)
+  } catch {
+    return []
+  }
+}
+
+// Sell-through velocity ("days on shelf"): for products that have actually
+// sold out, days between listing (product.created_at — the only reliable
+// proxy; there's no dedicated "published_at" field) and their most recent
+// recorded sale within the lookback window. Products still in stock are
+// excluded — their shelf life hasn't finished yet, so any number would be a
+// lower bound dressed up as an average, which is the misleading thing here.
+async function computeSellThrough(
+  query: any,
+  operate: any[],
+  productsById: Map<string, any>,
+  breweryNameBySlug: Map<string, string>,
+  longRangeOrders: any[]
+) {
+  const empty = {
+    overall_avg_days: null as number | null,
+    sample_size: 0,
+    by_brewery: [] as Array<{ label: string; avg_days: number; count: number }>,
+    by_hop: [] as Array<{ label: string; avg_days: number; count: number }>,
+    by_abv_band: [] as Array<{ label: string; avg_days: number; count: number }>,
+    by_collab: [] as Array<{ label: string; avg_days: number; count: number }>,
+  }
+
+  const outOfStockIds = operate.filter((r) => r.status === "out").map((r) => r.product_id)
+  if (!outOfStockIds.length) return empty
+
+  const lastSoldByProduct = new Map<string, Date>()
+  for (const order of longRangeOrders) {
+    const at = new Date(order.created_at)
+    for (const item of order.items || []) {
+      if (!item.product_id) continue
+      const current = lastSoldByProduct.get(item.product_id)
+      if (!current || at > current) lastSoldByProduct.set(item.product_id, at)
+    }
+  }
+
+  let hopsByProduct = new Map<string, string[]>()
+  try {
+    const { data: hopProducts } = await query.graph({
+      entity: "product",
+      fields: ["id", "hops.name"],
+      filters: { id: outOfStockIds } as any,
+    })
+    hopsByProduct = new Map(
+      (hopProducts as any[]).map((p) => [p.id, (p.hops || []).map((h: any) => h.name)])
+    )
+  } catch {}
+
+  let breweriesByProduct = new Map<string, Array<{ name: string; slug: string }>>()
+  try {
+    const { data: breweries } = await query.graph({
+      entity: "brewery",
+      fields: ["name", "slug", "products.id"],
+    })
+    breweriesByProduct = new Map()
+    for (const b of breweries as any[]) {
+      for (const p of b.products || []) {
+        const arr = breweriesByProduct.get(p.id) || []
+        arr.push({ name: b.name, slug: b.slug })
+        breweriesByProduct.set(p.id, arr)
+      }
+    }
+  } catch {}
+
+  type Row = {
+    days: number
+    brewery_name: string | null
+    hops: string[]
+    abv_band: string | null
+    is_collab: boolean
+  }
+  const rows: Row[] = []
+  for (const productId of outOfStockIds) {
+    const product = productsById.get(productId)
+    const lastSold = lastSoldByProduct.get(productId)
+    if (!product?.created_at || !lastSold) continue
+    const days = Math.max(
+      0,
+      Math.round((lastSold.getTime() - new Date(product.created_at).getTime()) / 86400000)
+    )
+    const brewerySlug = product.metadata?.brewery_slug
+    const breweryName = brewerySlug ? (breweryNameBySlug.get(brewerySlug) ?? brewerySlug) : null
+    const linkedBreweries = breweriesByProduct.get(productId) || []
+    const isCollab = linkedBreweries.some((b) => b.slug !== brewerySlug)
+    const abv = product.metadata?.abv ? parseFloat(product.metadata.abv) : NaN
+    const abvBand = Number.isNaN(abv)
+      ? null
+      : abv < 5
+        ? "Under 5%"
+        : abv < 7
+          ? "5–6.9%"
+          : abv < 9
+            ? "7–8.9%"
+            : "9%+"
+    rows.push({
+      days,
+      brewery_name: breweryName,
+      hops: hopsByProduct.get(productId) || [],
+      abv_band: abvBand,
+      is_collab: isCollab,
+    })
+  }
+  if (!rows.length) return empty
+
+  const avg = (nums: number[]) =>
+    Math.round((nums.reduce((s, n) => s + n, 0) / nums.length) * 10) / 10
+  const groupBy = (keyFn: (r: Row) => string[] | string | null) => {
+    const map = new Map<string, number[]>()
+    for (const r of rows) {
+      const raw = keyFn(r)
+      if (raw == null) continue
+      const keys = Array.isArray(raw) ? raw : [raw]
+      for (const key of keys) {
+        const arr = map.get(key) || []
+        arr.push(r.days)
+        map.set(key, arr)
+      }
+    }
+    return Array.from(map.entries())
+      .map(([label, days]) => ({ label, avg_days: avg(days), count: days.length }))
+      .sort((a, b) => a.avg_days - b.avg_days)
+  }
+
+  return {
+    overall_avg_days: avg(rows.map((r) => r.days)),
+    sample_size: rows.length,
+    by_brewery: groupBy((r) => r.brewery_name),
+    by_hop: groupBy((r) => (r.hops.length ? r.hops : null)),
+    by_abv_band: groupBy((r) => r.abv_band),
+    by_collab: groupBy((r) => (r.is_collab ? "Collab" : "Solo")),
+  }
+}
+
+// Buyer segmentation: classify each captured order as "bargain" (bought
+// during a tracked discount window, or converted from an approved
+// buy-at-price wishlist offer) or "premium" (full price, as far as we can
+// tell). A customer counts as "bargain" if ANY of their orders qualifies.
+// See method_note in the API response for the coverage caveat (CSV-only
+// sale pricing has no start/end dates and can't be detected this way).
+async function computeBuyerSegmentation(scope: any, wishlistService: any, longRangeOrders: any[]) {
+  let campaigns: any[] = []
+  try {
+    const campaignService = scope.resolve(CAMPAIGN_MODULE) as any
+    campaigns = await campaignService.listSpecialCampaigns({})
+  } catch {}
+
+  let bargainWishlistPairs = new Set<string>()
+  try {
+    const approvedOffers = await wishlistService.listWishlists({
+      mode: "buy_at_price",
+      admin_approved_offer: true,
+    })
+    bargainWishlistPairs = new Set(
+      approvedOffers.map((w: any) => `${w.customer_id}:${w.product_id}`)
+    )
+  } catch {}
+
+  const isDiscountedAt = (productId: string, at: Date) =>
+    campaigns.some((c: any) => {
+      const targets = Array.isArray(c.target_product_ids) ? c.target_product_ids : []
+      if (!targets.includes(productId)) return false
+      const starts = new Date(c.starts_at)
+      const ends = c.ends_at ? new Date(c.ends_at) : null
+      return at >= starts && (!ends || at <= ends)
+    })
+
+  const byCustomer = new Map<string, { bargainOrders: number; revenue: number }>()
+  for (const order of longRangeOrders) {
+    if (!order.customer_id) continue
+    const at = new Date(order.created_at)
+    const isBargainOrder = (order.items || []).some((item: any) => {
+      if (!item.product_id) return false
+      if (isDiscountedAt(item.product_id, at)) return true
+      return bargainWishlistPairs.has(`${order.customer_id}:${item.product_id}`)
+    })
+    const agg = byCustomer.get(order.customer_id) ?? { bargainOrders: 0, revenue: 0 }
+    if (isBargainOrder) agg.bargainOrders++
+    agg.revenue += Number(order.total || 0)
+    byCustomer.set(order.customer_id, agg)
+  }
+
+  const bargainCustomerIds: string[] = []
+  const premiumCustomerIds: string[] = []
+  let bargainRevenue = 0
+  let premiumRevenue = 0
+  for (const [customerId, agg] of byCustomer) {
+    if (agg.bargainOrders > 0) {
+      bargainCustomerIds.push(customerId)
+      bargainRevenue += agg.revenue
+    } else {
+      premiumCustomerIds.push(customerId)
+      premiumRevenue += agg.revenue
+    }
+  }
+
+  return { bargainCustomerIds, premiumCustomerIds, bargainRevenue, premiumRevenue }
 }
 
 function hasCapturedPayment(order: any): boolean {
@@ -460,6 +814,24 @@ async function hydrateFilterDrilldown(scope: any, drilldown: any) {
       customer: customersById.get(member.customer_id) ?? null,
     })),
   }
+}
+
+async function loadProductsById(productModule: any, ids: string[]): Promise<Map<string, any>> {
+  const uniqueIds = [...new Set(ids)].filter(Boolean)
+  if (!uniqueIds.length) return new Map<string, any>()
+  const products = await productModule.listProducts(
+    { id: uniqueIds },
+    { select: ["id", "title", "handle", "thumbnail", "metadata", "created_at"] }
+  )
+  return new Map(products.map((p: any) => [p.id, p]))
+}
+
+async function loadBreweryNameBySlug(query: any) {
+  const { data } = await query.graph({
+    entity: "brewery",
+    fields: ["slug", "name"],
+  })
+  return new Map((data as any[]).map((b) => [b.slug, b.name]))
 }
 
 async function loadCustomersById(scope: any, ids: string[]) {
