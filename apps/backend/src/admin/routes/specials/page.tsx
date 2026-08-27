@@ -1260,7 +1260,7 @@ const CampaignsPage = () => {
 }
 
 export const config = defineRouteConfig({
-  label: "Campaigns",
+  label: "Specials & Campaigns",
 })
 
 export default CampaignsPage
