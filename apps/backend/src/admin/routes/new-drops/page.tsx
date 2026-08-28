@@ -852,7 +852,7 @@ type SpecialsBatch = {
   sent_at: string | null
 }
 
-const fmtAud = (amount: number) => `$${amount.toFixed(2)}`
+const fmtAud = (amount: number) => `$${Number(amount).toFixed(2)}`
 
 function SpecialsTab() {
   const [items, setItems] = useState<SpecialsItem[]>([])

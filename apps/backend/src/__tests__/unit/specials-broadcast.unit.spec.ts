@@ -134,4 +134,23 @@ describe("specials-broadcast email", () => {
     })
     expect(out.html).not.toContain("see them all")
   })
+
+  it("renders prices when they arrive as strings, matching what pg returns for NUMERIC columns", async () => {
+    // Regression: specials_batch_item.original_price/discounted_price are DB
+    // `numeric` columns - node-postgres returns those as strings, not numbers,
+    // to avoid silent precision loss. A real send failed in production
+    // (TypeError: amount.toFixed is not a function) because the dispatch job
+    // passed the DB row straight through without coercing to Number first.
+    const stringPricedItem = item({
+      originalPrice: "25.00" as any,
+      discountedPrice: "20.00" as any,
+    })
+    const out = await renderEmail(SpecialsBroadcast as any, {
+      name: "Cam",
+      items: [stringPricedItem],
+      storeUrl: STORE_URL,
+    })
+    expect(out.html).toContain("$25.00")
+    expect(out.html).toContain("$20.00")
+  })
 })

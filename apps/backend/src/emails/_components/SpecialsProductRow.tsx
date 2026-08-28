@@ -16,7 +16,7 @@ export function isAbsoluteUrl(url: string | null): url is string {
 }
 
 function formatAud(amount: number): string {
-  return `$${amount.toFixed(2)}`
+  return `$${Number(amount).toFixed(2)}`
 }
 
 function discountLabel(item: SpecialsBatchItem): string {
