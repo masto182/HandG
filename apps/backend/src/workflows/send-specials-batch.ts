@@ -40,8 +40,11 @@ export type SpecialsSnapshotItem = {
  * One row per (sale price row, base price row) pair sharing a price_set;
  * dedupes to the best (lowest) discounted price per product if more than
  * one sale price list somehow targets the same product. Skips rows with
- * no AUD base price to compare against, or where the "sale" price isn't
- * actually lower than the base price.
+ * no AUD base price to compare against, where the "sale" price isn't
+ * actually lower than the base price, an unpublished product, or a
+ * sold-out variant (available_quantity summed across all stock locations
+ * <= 0 - variants with manage_inventory off are always treated as
+ * available, matching storefront stock-check semantics).
  */
 export async function listEligibleSpecialsItems(container: any): Promise<SpecialsSnapshotItem[]> {
   const knex = container.resolve(ContainerRegistrationKeys.PG_CONNECTION)
@@ -58,7 +61,17 @@ export async function listEligibleSpecialsItems(container: any): Promise<Special
        AND base.currency_code = 'aud' AND base.deleted_at IS NULL
      WHERE pl.type = 'sale' AND pl.status = 'active' AND pl.deleted_at IS NULL
        AND (pl.starts_at IS NULL OR pl.starts_at <= now())
-       AND (pl.ends_at IS NULL OR pl.ends_at >= now())`
+       AND (pl.ends_at IS NULL OR pl.ends_at >= now())
+       AND p.status = 'published'
+       AND (
+         pv.manage_inventory = false
+         OR COALESCE((
+           SELECT SUM(il.stocked_quantity - il.reserved_quantity)
+           FROM product_variant_inventory_item pvii
+           JOIN inventory_level il ON il.inventory_item_id = pvii.inventory_item_id AND il.deleted_at IS NULL
+           WHERE pvii.variant_id = pv.id AND pvii.deleted_at IS NULL
+         ), 0) > 0
+       )`
   )
   const rows = result?.rows ?? result?.[0] ?? []
 
