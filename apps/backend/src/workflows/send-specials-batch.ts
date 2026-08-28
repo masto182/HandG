@@ -1,6 +1,9 @@
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { SPECIALS_BATCH_MODULE } from "../modules/specials-batch"
 import { resolveSegment } from "../lib/resolve-broadcast-segment"
+import { renderEmail } from "../lib/render-email"
+import { getStoreUrl } from "../lib/email"
+import * as SpecialsBroadcastTpl from "../emails/specials-broadcast"
 
 export class NoActiveSpecialsError extends Error {
   constructor() {
@@ -93,6 +96,30 @@ export async function previewSpecialsBatch(container: any) {
     itemCount: items.length,
     recipientCount: recipientIds.length,
   }
+}
+
+/**
+ * Renders (never sends or persists) the exact email a "send to everyone"
+ * click would produce right now, using every currently-active special -
+ * same auto-selection and same in-template featured-item cap the real send
+ * uses. Read-only, callable as many times as the operator wants.
+ */
+export async function renderSpecialsPreview(container: any, message: string | null) {
+  const items = await listEligibleSpecialsItems(container)
+  return renderEmail(SpecialsBroadcastTpl as any, {
+    name: "Collector",
+    message,
+    items: items.map((i) => ({
+      productTitle: i.product_title,
+      productHandle: i.product_handle,
+      productThumbnail: i.product_thumbnail,
+      originalPrice: i.original_price,
+      discountedPrice: i.discounted_price,
+      discountType: i.discount_type,
+      discountValue: i.discount_value,
+    })),
+    storeUrl: getStoreUrl(),
+  })
 }
 
 /**

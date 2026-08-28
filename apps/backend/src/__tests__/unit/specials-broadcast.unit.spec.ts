@@ -101,4 +101,37 @@ describe("specials-broadcast email", () => {
     })
     expect(out.html).not.toContain("<img")
   })
+
+  it("features only the 12 steepest discounts and links to the rest when over the cap", async () => {
+    const items = Array.from({ length: 20 }, (_, i) =>
+      item({
+        productTitle: `Beer ${i}`,
+        productHandle: `beer-${i}`,
+        discountValue: i, // Beer 19 has the steepest discount, Beer 0 the shallowest
+      })
+    )
+    const out = await renderEmail(SpecialsBroadcast as any, {
+      name: "Cam",
+      items,
+      storeUrl: STORE_URL,
+    })
+    expect(out.html).toContain("/products/beer-19")
+    expect(out.html).toContain("/products/beer-8")
+    expect(out.html).not.toContain("/products/beer-7")
+    expect(out.html).not.toContain("/products/beer-0")
+    expect(out.html).toMatch(/Plus\s*(<!--.*?-->)?\s*8\s*(<!--.*?-->)?\s*more special/)
+    expect(out.html).toContain("see them all")
+  })
+
+  it("does not add a featured-cap link when at or under the cap", async () => {
+    const items = Array.from({ length: 12 }, (_, i) =>
+      item({ productTitle: `Beer ${i}`, productHandle: `beer-${i}` })
+    )
+    const out = await renderEmail(SpecialsBroadcast as any, {
+      name: "Cam",
+      items,
+      storeUrl: STORE_URL,
+    })
+    expect(out.html).not.toContain("see them all")
+  })
 })

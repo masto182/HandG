@@ -861,6 +861,9 @@ function SpecialsTab() {
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [message, setMessage] = useState("")
+  const [emailPreview, setEmailPreview] = useState<{ html: string; subject: string } | null>(null)
+  const [previewLoading, setPreviewLoading] = useState(false)
+  const [previewError, setPreviewError] = useState<string | null>(null)
   const prompt = usePrompt()
 
   const load = async () => {
@@ -884,6 +887,22 @@ function SpecialsTab() {
     load()
   }, [])
 
+  const loadPreviewEmail = async () => {
+    setPreviewLoading(true)
+    setPreviewError(null)
+    try {
+      const result = await sdk.client.fetch<{ html: string; subject: string }>(
+        "/admin/specials-batches/preview-render",
+        { method: "POST", body: { message: message.trim() || null } }
+      )
+      setEmailPreview(result)
+    } catch {
+      setPreviewError("Could not render this email - try again.")
+    } finally {
+      setPreviewLoading(false)
+    }
+  }
+
   const handleSend = async () => {
     const ok = await prompt({
       title: "Send specials email?",
@@ -904,6 +923,7 @@ function SpecialsTab() {
       })
       toast.success("Specials batch sent")
       setMessage("")
+      setEmailPreview(null)
       load()
     } catch (e: any) {
       toast.error(e?.message || "Send failed")
@@ -978,6 +998,12 @@ function SpecialsTab() {
               </Table.Body>
             </Table>
             <div className="p-4 border-t border-ui-border-base flex flex-col gap-y-3">
+              {items.length > 12 ? (
+                <Text size="small" className="text-ui-fg-subtle">
+                  The email features the 12 steepest discounts, with a link to shop the rest - keeps
+                  it a quick read instead of a wall of {items.length} products.
+                </Text>
+              ) : null}
               <div>
                 <Label size="small" className="mb-1 block">
                   Message (optional)
@@ -993,10 +1019,37 @@ function SpecialsTab() {
                 <Text size="small" className="text-ui-fg-subtle">
                   {recipientCount} recipient{recipientCount === 1 ? "" : "s"} (everyone opted in)
                 </Text>
-                <Button size="small" onClick={handleSend} isLoading={sending}>
-                  Send to everyone
-                </Button>
+                <div className="flex items-center gap-x-2">
+                  <Button
+                    size="small"
+                    variant="secondary"
+                    onClick={loadPreviewEmail}
+                    isLoading={previewLoading}
+                  >
+                    Preview email
+                  </Button>
+                  <Button size="small" onClick={handleSend} isLoading={sending}>
+                    Send to everyone
+                  </Button>
+                </div>
               </div>
+              {previewError ? (
+                <Text size="small" className="text-ui-fg-error">
+                  {previewError}
+                </Text>
+              ) : emailPreview ? (
+                <div className="flex flex-col gap-y-2">
+                  <Text size="small" className="text-ui-fg-subtle">
+                    Subject: {emailPreview.subject}
+                  </Text>
+                  <iframe
+                    title="Specials email preview"
+                    srcDoc={emailPreview.html}
+                    sandbox=""
+                    className="w-full h-96 rounded-lg border border-ui-border-base bg-white"
+                  />
+                </div>
+              ) : null}
             </div>
           </>
         )}
