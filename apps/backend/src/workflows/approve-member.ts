@@ -1,4 +1,5 @@
 import { createWorkflow, WorkflowResponse, transform } from "@medusajs/framework/workflows-sdk"
+import { emitEventStep } from "@medusajs/medusa/core-flows"
 import { assignCustomerGroupStep } from "./steps/assign-customer-group"
 import { generateReferralCodeStep } from "./steps/generate-referral-code"
 import { createVipScoreStep } from "./steps/create-vip-score"
@@ -29,6 +30,15 @@ const approveMemberWorkflow = createWorkflow(
     updateCustomerMetadataStep({
       customer_id: input.customer_id,
       metadata: { status: "approved" },
+    })
+
+    // customerModule.updateCustomers() does NOT auto-emit customer.updated —
+    // Medusa's own updateCustomersWorkflow explicitly emits it via
+    // emitEventStep, so we must too or the member-notifications subscriber
+    // never fires and the approval email never sends.
+    emitEventStep({
+      eventName: "customer.updated",
+      data: { id: input.customer_id },
     })
 
     return new WorkflowResponse(referralCode)
