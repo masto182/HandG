@@ -238,8 +238,13 @@ export async function finalizeSpecialsBatch(
 
 /**
  * Resets terminally-failed email deliveries on a failed batch back to
- * pending (never touches already-sent deliveries), and flips the batch back
- * to 'sending' so the dispatch job picks it up again next tick.
+ * pending (never touches already-sent deliveries) with a fresh attempt
+ * budget, clears dispatched_at on their recipients so the dispatch job's
+ * "pending work" query actually picks them up again (dispatched_at was set
+ * when the recipient was first fully handled, including reaching the
+ * terminal "failed" state - leaving it set would make the dispatch job
+ * finalize the batch as "sent" without ever retrying anything), and flips
+ * the batch back to 'sending'.
  */
 export async function retryFailedSpecialsBatch(container: any, batchId: string) {
   const batchService = container.resolve(SPECIALS_BATCH_MODULE) as any
@@ -259,9 +264,18 @@ export async function retryFailedSpecialsBatch(container: any, batchId: string) 
         batchService.updateSpecialsEmailDeliveries({
           id: d.id,
           status: "pending",
+          attempts: 0,
           next_attempt_at: null,
           last_error: null,
         })
+      )
+    )
+    const failedRecipientIds = [
+      ...new Set<string>(failedDeliveries.map((d: any) => d.recipient_id)),
+    ]
+    await Promise.all(
+      failedRecipientIds.map((id: string) =>
+        batchService.updateSpecialsBatchRecipients({ id, dispatched_at: null })
       )
     )
   }
