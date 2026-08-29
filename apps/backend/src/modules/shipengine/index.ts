@@ -13,4 +13,12 @@ export { StubShipEngineClient } from "./stub"
 export { getShipEngineClient, resetShipEngineClientCache } from "./factory"
 export { computeShipmentWeightG } from "./weight"
 export { rateToShippingOption, cartToShipEngineShipment, CurrencyMismatchError } from "./mapping"
+export {
+  schedulePickupForFulfillments,
+  getPickupAvailabilityForCarrier,
+  listPickupsForCarrier,
+  cancelPickup,
+  PickupIneligibleError,
+} from "./pickups"
+export type { PickupEligibleFulfillment } from "./pickups"
 export * from "./types"

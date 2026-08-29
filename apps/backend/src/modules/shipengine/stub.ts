@@ -4,8 +4,11 @@ import {
   ShipEngineGetRatesInput,
   ShipEngineLabel,
   ShipEngineLikeClient,
+  ShipEnginePickup,
+  ShipEnginePickupAvailability,
   ShipEngineRate,
   ShipEngineRateResponse,
+  ShipEngineRequestPickupInput,
   ShipEngineTrackingInfo,
 } from "./types"
 
@@ -15,8 +18,18 @@ const STUB_CARRIER_AUSPOST: ShipEngineCarrier = {
   friendly_name: "Australia Post (stub)",
   primary: true,
   services: [
-    { service_code: "australia_post_parcel_post", name: "Parcel Post", domestic: true, international: false },
-    { service_code: "australia_post_express_post", name: "Express Post", domestic: true, international: false },
+    {
+      service_code: "australia_post_parcel_post",
+      name: "Parcel Post",
+      domestic: true,
+      international: false,
+    },
+    {
+      service_code: "australia_post_express_post",
+      name: "Express Post",
+      domestic: true,
+      international: false,
+    },
   ],
 }
 
@@ -27,14 +40,18 @@ const STUB_CARRIER_COURIERSPLEASE: ShipEngineCarrier = {
   primary: false,
   services: [
     { service_code: "couriers_please_metro", name: "Metro", domestic: true, international: false },
-    { service_code: "couriers_please_road", name: "Road Express", domestic: true, international: false },
+    {
+      service_code: "couriers_please_road",
+      name: "Road Express",
+      domestic: true,
+      international: false,
+    },
   ],
 }
 
 function buildStubRates(currency: string): ShipEngineRate[] {
   const today = new Date()
-  const eta = (days: number) =>
-    new Date(today.getTime() + days * 24 * 60 * 60 * 1000).toISOString()
+  const eta = (days: number) => new Date(today.getTime() + days * 24 * 60 * 60 * 1000).toISOString()
   return [
     {
       rate_id: "stub-auspost-parcel",
@@ -80,6 +97,8 @@ function buildStubRates(currency: string): ShipEngineRate[] {
 
 export class StubShipEngineClient implements ShipEngineLikeClient {
   private labelCounter = 0
+  private pickupCounter = 0
+  private pickups: ShipEnginePickup[] = []
 
   async getRates(input: ShipEngineGetRatesInput): Promise<ShipEngineRateResponse> {
     const currency = "aud"
@@ -102,7 +121,11 @@ export class StubShipEngineClient implements ShipEngineLikeClient {
     }
   }
 
-  private buildStubLabel(carrier_id: string, carrier_code: string, service_code: string): ShipEngineLabel {
+  private buildStubLabel(
+    carrier_id: string,
+    carrier_code: string,
+    service_code: string
+  ): ShipEngineLabel {
     this.labelCounter += 1
     const id = `stub-label-${Date.now()}-${this.labelCounter}`
     return {
@@ -132,12 +155,16 @@ export class StubShipEngineClient implements ShipEngineLikeClient {
     return this.buildStubLabel(
       rate?.carrier_id ?? STUB_CARRIER_AUSPOST.carrier_id,
       rate?.carrier_code ?? "australia_post",
-      rate?.service_code ?? "australia_post_parcel_post",
+      rate?.service_code ?? "australia_post_parcel_post"
     )
   }
 
   async buyLabel(input: ShipEngineBuyLabelInput): Promise<ShipEngineLabel> {
-    return this.buildStubLabel(input.shipment.carrier_id, "australia_post", input.shipment.service_code)
+    return this.buildStubLabel(
+      input.shipment.carrier_id,
+      "australia_post",
+      input.shipment.service_code
+    )
   }
 
   async voidLabel(_labelId: string): Promise<{ approved: boolean; message?: string }> {
@@ -156,5 +183,45 @@ export class StubShipEngineClient implements ShipEngineLikeClient {
 
   async listCarriers(): Promise<ShipEngineCarrier[]> {
     return [STUB_CARRIER_AUSPOST, STUB_CARRIER_COURIERSPLEASE]
+  }
+
+  async requestPickup(input: ShipEngineRequestPickupInput): Promise<ShipEnginePickup> {
+    this.pickupCounter += 1
+    const pickup: ShipEnginePickup = {
+      pickup_id: `stub-pickup-${Date.now()}-${this.pickupCounter}`,
+      status: "scheduled",
+      carrier_id: input.carrier_id,
+      pickup_window: input.pickup_window,
+      label_ids: input.label_ids,
+      confirmation_numbers: [`STUBCONF${this.pickupCounter}`],
+    }
+    this.pickups.push(pickup)
+    return pickup
+  }
+
+  async getPickupAvailability(_carrierId: string): Promise<ShipEnginePickupAvailability> {
+    const today = new Date()
+    const start = new Date(today.getTime() + 24 * 60 * 60 * 1000)
+    start.setHours(9, 0, 0, 0)
+    const end = new Date(start.getTime())
+    end.setHours(17, 0, 0, 0)
+    return {
+      pickup_window: [
+        { start_at: start.toISOString(), end_at: end.toISOString(), has_time_constraint: false },
+      ],
+    }
+  }
+
+  async listPickups(params?: { carrier_id?: string }): Promise<ShipEnginePickup[]> {
+    if (!params?.carrier_id) return [...this.pickups]
+    return this.pickups.filter((p) => p.carrier_id === params.carrier_id)
+  }
+
+  async cancelPickup(pickupId: string): Promise<{ approved: boolean; message?: string }> {
+    const before = this.pickups.length
+    this.pickups = this.pickups.filter((p) => p.pickup_id !== pickupId)
+    return this.pickups.length < before
+      ? { approved: true }
+      : { approved: true, message: "stub pickup not found (already cancelled)" }
   }
 }

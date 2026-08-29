@@ -179,6 +179,44 @@ export type ShipEngineTrackingInfo = {
   events: ShipEngineTrackingEvent[]
 }
 
+export type ShipEnginePickupWindow = {
+  start_at: string
+  end_at: string
+}
+
+export type ShipEnginePickup = {
+  pickup_id: string
+  status: string
+  carrier_id: string
+  pickup_window: ShipEnginePickupWindow
+  label_ids: string[]
+  confirmation_numbers?: string[]
+}
+
+export type ShipEngineContactDetails = {
+  name: string
+  email: string
+  phone: string
+}
+
+export type ShipEngineRequestPickupInput = {
+  carrier_id: string
+  label_ids: string[]
+  pickup_window: ShipEnginePickupWindow
+  contact_details: ShipEngineContactDetails
+  pickup_notes?: string
+}
+
+export type ShipEnginePickupAvailabilityWindow = {
+  start_at: string
+  end_at: string
+  has_time_constraint?: boolean
+}
+
+export type ShipEnginePickupAvailability = {
+  pickup_window: ShipEnginePickupAvailabilityWindow[]
+}
+
 export interface ShipEngineLikeClient {
   getRates(input: ShipEngineGetRatesInput): Promise<ShipEngineRateResponse>
   buyLabelFromRate(
@@ -189,6 +227,13 @@ export interface ShipEngineLikeClient {
   voidLabel(labelId: string): Promise<{ approved: boolean; message?: string }>
   trackByLabel(labelId: string): Promise<ShipEngineTrackingInfo>
   listCarriers(): Promise<ShipEngineCarrier[]>
+  requestPickup(input: ShipEngineRequestPickupInput): Promise<ShipEnginePickup>
+  getPickupAvailability(
+    carrierId: string,
+    params?: { ship_date?: string }
+  ): Promise<ShipEnginePickupAvailability>
+  listPickups(params?: { carrier_id?: string }): Promise<ShipEnginePickup[]>
+  cancelPickup(pickupId: string): Promise<{ approved: boolean; message?: string }>
 }
 
 export class ShipEngineApiError extends Error {
