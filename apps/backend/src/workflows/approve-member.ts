@@ -4,6 +4,7 @@ import { assignCustomerGroupStep } from "./steps/assign-customer-group"
 import { generateReferralCodeStep } from "./steps/generate-referral-code"
 import { createVipScoreStep } from "./steps/create-vip-score"
 import { updateCustomerMetadataStep } from "./steps/update-customer-metadata"
+import { awardReferralBonusStep } from "./steps/award-referral-bonus"
 
 type ApproveMemberInput = {
   customer_id: string
@@ -23,6 +24,8 @@ const approveMemberWorkflow = createWorkflow(
     })
 
     createVipScoreStep({ customer_id: input.customer_id })
+
+    awardReferralBonusStep({ customer_id: input.customer_id })
 
     // Set metadata.status to "approved" after referral code is written so
     // the customer.updated subscriber fires with the correct final state and
