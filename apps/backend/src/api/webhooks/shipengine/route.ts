@@ -47,27 +47,38 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     }) => Promise<{ data: Array<Record<string, unknown>> }>
   }
 
-  // Find the fulfillment whose label references this tracking number. Query the
-  // fulfillment_label entity by its own tracking_number column — filtering a
-  // `fulfillment` by the nested `labels.tracking_number` relation is not
-  // supported by query.graph and silently returned nothing (the webhook was a
-  // no-op). H2.
+  // Find the fulfillment whose label references this tracking number.
+  //
+  // BUG FIX (2026-08-29): this previously queried a top-level "fulfillment_label"
+  // entity, which does not exist in this Medusa version — query.graph resolved it
+  // to the fulfillment module and looked for a `listFulfillmentLabels` method that
+  // was never defined, throwing "Method \"listFulfillmentLabels\" does not exist
+  // on \"fulfillment\"" on every single webhook call. This was never caught by
+  // tests (the unit spec only covers the pure helper functions, not this route),
+  // and was only discovered by manually POSTing a real webhook event to prod.
+  //
+  // Fix: query "fulfillment" directly (a valid entity) filtered to our own
+  // provider, then match tracking_number client-side against fulfillment.data
+  // (a jsonb column set by ShipEngineProviderService.createFulfillment — see
+  // modules/shipengine/service.ts). query.graph can't filter by nested
+  // labels.tracking_number OR arbitrary jsonb keys, so this is the same
+  // JS-side-filter-on-own-data pattern already used in api/admin/pickups/route.ts.
   let fulfillmentId: string | null = null
   let orderId: string | null = null
   try {
     const result = await query.graph({
-      entity: "fulfillment_label",
-      fields: ["tracking_number", "fulfillment.id", "fulfillment.shipment.order_id"],
-      filters: { tracking_number: update.tracking_number },
-      pagination: { take: 1 },
+      entity: "fulfillment",
+      fields: ["id", "data", "shipment.order_id"],
+      filters: { provider_id: "shipengine" },
     })
-    const row = result.data?.[0] as
-      | { fulfillment?: { id?: string; shipment?: { order_id?: string } } }
-      | undefined
-    const ful = row?.fulfillment
-    if (ful?.id) {
-      fulfillmentId = ful.id
-      orderId = ful.shipment?.order_id ?? null
+    const match = (result.data ?? []).find(
+      (f) =>
+        (f.data as Record<string, unknown> | null | undefined)?.tracking_number ===
+        update.tracking_number
+    ) as { id?: string; shipment?: { order_id?: string } } | undefined
+    if (match?.id) {
+      fulfillmentId = match.id
+      orderId = match.shipment?.order_id ?? null
     }
   } catch (err) {
     logger.warn(`[shipengine-webhook] fulfillment lookup failed: ${(err as Error).message}`)
