@@ -44,7 +44,7 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
         "canceled_at",
         "delivered_at",
       ],
-      filters: { provider_id: "shipengine" },
+      filters: { provider_id: "shipengine_shipengine" },
     })
 
     const fulfillments = (result.data ?? []) as Array<{

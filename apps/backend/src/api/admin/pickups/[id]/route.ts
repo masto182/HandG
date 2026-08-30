@@ -30,7 +30,7 @@ export async function DELETE(req: AuthenticatedMedusaRequest, res: MedusaRespons
     const affected = await query.graph({
       entity: "fulfillment",
       fields: ["id", "metadata"],
-      filters: { provider_id: "shipengine" },
+      filters: { provider_id: "shipengine_shipengine" },
     })
     const toClear = (affected.data ?? []).filter(
       (f) =>
