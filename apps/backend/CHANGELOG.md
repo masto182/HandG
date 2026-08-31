@@ -1,5 +1,67 @@
 # Changelog
 
+## [0.0.4](https://github.com/masto182/HandG/compare/v0.0.3...v0.0.4) (2026-08-31)
+
+
+### Features
+
+* **account:** add click-through links to all notification types ([d9ca1b4](https://github.com/masto182/HandG/commit/d9ca1b468d9e6637bc6c09f6bdf5e6fd4c76a98b))
+* **account:** add full Notifications inbox page + harden broadcast dispatch ([554ec15](https://github.com/masto182/HandG/commit/554ec15993e176b93e2b3d94da97a68847badca3))
+* **admin:** add broadcast announcements (email + in-app inbox) ([d154c44](https://github.com/masto182/HandG/commit/d154c44f94eec99db43df5541fb165d8cdad7874))
+* **admin:** add Email Templates preview page ([57697a5](https://github.com/masto182/HandG/commit/57697a588db517e50258f360c621fd80fb30a781))
+* **admin:** allow a custom message on each specials send ([4dd5387](https://github.com/masto182/HandG/commit/4dd5387552d78bd1fea51036c50b7527683ecf24))
+* **admin:** broadcast channels, site-banner integration, individual targeting, draft editing ([b9b583f](https://github.com/masto182/HandG/commit/b9b583fc7908780acdcd4de572b0a613a67d7f12))
+* **admin:** cap the specials email to the best discounts, add a preview ([043bd37](https://github.com/masto182/HandG/commit/043bd37ea9cf1591e9192a6a30be66b6e157ecea))
+* **admin:** specials/price-drop batch broadcast ([2ab6b8e](https://github.com/masto182/HandG/commit/2ab6b8e10db41086dde5a982e3e75b2b72905f73))
+* **analytics:** fix funnel/drilldown, add session tracking, demand capture ([f2af55f](https://github.com/masto182/HandG/commit/f2af55fedb32e21ef87a8fec812b462471b2f276))
+* **insights:** redesign admin Insights as a decision-first dashboard ([dd6e500](https://github.com/masto182/HandG/commit/dd6e500788dcd8c6ce872abd171fe93fe3e5046e))
+* **notifications:** default everyone into "all new releases" (opt-out) ([bf690c8](https://github.com/masto182/HandG/commit/bf690c8df05441fd28a638b405db30426c17926a))
+* **notifications:** exclude recipient from send, auto-render, auto-label, grid digest ([b8f88dc](https://github.com/masto182/HandG/commit/b8f88dc397b561c01571f6ea8fc0364a1f67855d))
+* **notifications:** replace per-product new-drop emails with a personalized batch digest ([a558fa9](https://github.com/masto182/HandG/commit/a558fa9eda72c42760a1659c390bc6cae9b5db02))
+* **promotions:** add Tree House brewery buy-4-get-1-free promotion ([#7](https://github.com/masto182/HandG/issues/7)) ([bcf85f8](https://github.com/masto182/HandG/commit/bcf85f8e2db5d9b7b5ddab8f53801e27b5c23961))
+* **shipengine:** add carrier pickup scheduling ([47d0559](https://github.com/masto182/HandG/commit/47d0559e2422a63276be07db6ea3fa5ad6a00c44))
+
+
+### Bug Fixes
+
+* **admin:** allow clearing broadcast segment dropdowns ([f90fd50](https://github.com/masto182/HandG/commit/f90fd50854255504a06ecaeb040c19943a9e905d))
+* **admin:** coerce specials_batch_item prices to Number before formatting ([295a39d](https://github.com/masto182/HandG/commit/295a39d82e0b909f6b6a04ef4139a1ba96534375))
+* **admin:** exclude sold-out and unpublished products from specials ([2cc16bc](https://github.com/masto182/HandG/commit/2cc16bc505931c2b99544c4d7aa4a4989ce68f1e))
+* **admin:** make specials notification category opt-in, not opt-out ([18806c7](https://github.com/masto182/HandG/commit/18806c79fe2791cf02e0a413bc45b04d54136b08))
+* **admin:** move custom Campaigns/Specials page off colliding route ([55f196c](https://github.com/masto182/HandG/commit/55f196c4628c1256cf278f2ed1bd0f56e17998d8))
+* **admin:** repair Insights links/funnel and add sell-through + buyer-type intelligence ([a3aafce](https://github.com/masto182/HandG/commit/a3aafce93d096cdadf3ce1825405573d6cdbf44f))
+* **admin:** restore customer picker on draft reopen, show real recipient count before send ([f6fba7e](https://github.com/masto182/HandG/commit/f6fba7e60c33e17750d6c59c253c457f4d8f45f6))
+* **admin:** retry failed specials batch never actually re-sent anything ([01440cc](https://github.com/masto182/HandG/commit/01440cc8fda5f3bdf36030b6bc9e6f2bbdfae4c4))
+* **admin:** revert specials notification category to opt-out ([f9fa6f2](https://github.com/masto182/HandG/commit/f9fa6f27627cd1d57da9342d4ff80780917261d7))
+* **admin:** source specials from real sale price lists, not the unused campaign module ([3a43744](https://github.com/masto182/HandG/commit/3a43744ed97e594b84008dcbbacf24229a4d2201))
+* also repair order billing addresses in address-repair script ([7c683ab](https://github.com/masto182/HandG/commit/7c683abc20a3df2e9ff7789b6d970d33ccf33635))
+* **auth:** use updateCustomers (plural) in password reset flow ([37e8817](https://github.com/masto182/HandG/commit/37e8817cdc72bb4d902ea2124ffc963a43e554d1))
+* backfill NULL raw_stocked_quantity on staging inventory_level rows ([a8a3ea6](https://github.com/masto182/HandG/commit/a8a3ea61110f839a317347a4c5b3da105120a653))
+* correct ShipEngine label data and malformed address capture ([e34d4b8](https://github.com/masto182/HandG/commit/e34d4b835b1cf2a429ec73b5227cdbbb26d6744c))
+* **data:** merge duplicate Brujos/Fidens/Other Half brewery records ([d81c16e](https://github.com/masto182/HandG/commit/d81c16e673e4579d59f9ab6c790cf4a8ef16c1aa))
+* **email:** order total resolved to 0 when items were requested together ([286674c](https://github.com/masto182/HandG/commit/286674c9c2745facdc7241d4f4f38e48aaa208ed))
+* **email:** order-placed template divided prices by 100 incorrectly ([383b488](https://github.com/masto182/HandG/commit/383b488894b227268b279dff00942556aec318ae))
+* **email:** order.placed subscriber sent $0.00 total in live emails ([e608ed2](https://github.com/masto182/HandG/commit/e608ed238aa14d435c4ff7abeae95e3692348bd6))
+* emit customer.updated on member approve/reject so notification emails send ([d557dfc](https://github.com/masto182/HandG/commit/d557dfc92d129d2fee4bc70ea5c5d4aac9e7cb51))
+* **notifications:** don't defer admin-triggered new drop sends for quiet hours ([ee0c4d7](https://github.com/masto182/HandG/commit/ee0c4d77f396444d62f6c3261a58170e1f8238a3))
+* **notifications:** don't exclude a recipient unless their email actually sent ([5a7a8b8](https://github.com/masto182/HandG/commit/5a7a8b844f7ab5c1722b57d2badc791387f00ed1))
+* **referral:** resolve blank names and wire up referrer point contribution ([ec16aea](https://github.com/masto182/HandG/commit/ec16aea66cd99b7570d7ef91cc1f5cf91ef58cb8))
+* remove unfinished email-log module registration from medusa-config ([cb0ec8d](https://github.com/masto182/HandG/commit/cb0ec8df15c94c4d5cea97cce95a62d0f84a75a4))
+* **scripts:** backfill-new-drop-queue only skips products with a real sent email ([f9e5ecf](https://github.com/masto182/HandG/commit/f9e5ecf8a893cf0016a8b66246c6777f67400385))
+* **search:** keep inventory_qty live so counts and facets never go stale ([a323214](https://github.com/masto182/HandG/commit/a323214f922e7855e34932ff259b95f19e19eb4b))
+* **search:** style filter never linked new beers, counted out-of-stock, and showed empty styles ([08506bc](https://github.com/masto182/HandG/commit/08506bc7cc3d5427c002ec098290e886537cea4e))
+* send AusPost Extra Cover as a suboption, not a bare option_code ([7876922](https://github.com/masto182/HandG/commit/78769228508ff50d1c1c354038d6fd6539dcb56b))
+* **shipengine:** correct hardcoded ship-from address and phone ([fd2d1a0](https://github.com/masto182/HandG/commit/fd2d1a0a2064b01f669e8690d9402dbc4f0651ba))
+* **shipengine:** correct provider_id filter in pickups API ([7074326](https://github.com/masto182/HandG/commit/7074326b4e981e8d1cdd30f7e0d73f5546c70e8f))
+* **shipengine:** fulfillment_label entity does not exist, breaking tracking webhooks ([7d3c30a](https://github.com/masto182/HandG/commit/7d3c30aa3d49e3bb99b605533419953999cb3988))
+* stop seed.ts from recreating admin-renamed pickup locations ([4fee4ea](https://github.com/masto182/HandG/commit/4fee4ea2e91f9d5350d17143dc645f69cae1cb4d))
+* **test:** update member-activity mock for getLastActiveByCustomerIds ([2167ea7](https://github.com/masto182/HandG/commit/2167ea765030b978f06084756d1126f42b1525d5))
+
+
+### Refactoring
+
+* **admin:** redesign specials send to auto-select and send to everyone ([22e9cc1](https://github.com/masto182/HandG/commit/22e9cc1864afba8aa3932ff4bfd148abb47e44d4))
+
 ## [0.0.3](https://github.com/masto182/HandG/compare/v0.0.2...v0.0.3) (2026-08-17)
 
 

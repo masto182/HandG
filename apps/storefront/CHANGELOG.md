@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.3.0](https://github.com/masto182/HandG/compare/v1.2.0...v1.3.0) (2026-08-31)
+
+
+### Features
+
+* **account:** add click-through links to all notification types ([d9ca1b4](https://github.com/masto182/HandG/commit/d9ca1b468d9e6637bc6c09f6bdf5e6fd4c76a98b))
+* **account:** add full Notifications inbox page + harden broadcast dispatch ([554ec15](https://github.com/masto182/HandG/commit/554ec15993e176b93e2b3d94da97a68847badca3))
+* **account:** use open/closed envelope icon for notification read state ([c8ca34e](https://github.com/masto182/HandG/commit/c8ca34ee6bd466e24a2c765c454408d5f1ca26b0))
+* **admin:** add broadcast announcements (email + in-app inbox) ([d154c44](https://github.com/masto182/HandG/commit/d154c44f94eec99db43df5541fb165d8cdad7874))
+* **analytics:** fix funnel/drilldown, add session tracking, demand capture ([f2af55f](https://github.com/masto182/HandG/commit/f2af55fedb32e21ef87a8fec812b462471b2f276))
+* **notifications:** replace per-product new-drop emails with a personalized batch digest ([a558fa9](https://github.com/masto182/HandG/commit/a558fa9eda72c42760a1659c390bc6cae9b5db02))
+* **promotions:** add Tree House brewery buy-4-get-1-free promotion ([#7](https://github.com/masto182/HandG/issues/7)) ([bcf85f8](https://github.com/masto182/HandG/commit/bcf85f8e2db5d9b7b5ddab8f53801e27b5c23961))
+
+
+### Bug Fixes
+
+* correct ShipEngine label data and malformed address capture ([e34d4b8](https://github.com/masto182/HandG/commit/e34d4b835b1cf2a429ec73b5227cdbbb26d6744c))
+* **search:** keep inventory_qty live so counts and facets never go stale ([a323214](https://github.com/masto182/HandG/commit/a323214f922e7855e34932ff259b95f19e19eb4b))
+* **search:** style filter never linked new beers, counted out-of-stock, and showed empty styles ([08506bc](https://github.com/masto182/HandG/commit/08506bc7cc3d5427c002ec098290e886537cea4e))
+* stop seed.ts from recreating admin-renamed pickup locations ([4fee4ea](https://github.com/masto182/HandG/commit/4fee4ea2e91f9d5350d17143dc645f69cae1cb4d))
+* **storefront:** route bell dropdown through working server-action auth ([77268ad](https://github.com/masto182/HandG/commit/77268ad9e6f415e26dc3d17c20a6a06901403e5b))
+
 ## [1.2.0](https://github.com/masto182/HandG/compare/v1.1.0...v1.2.0) (2026-08-17)
 
 
