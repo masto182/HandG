@@ -14,6 +14,7 @@ import { HOP_MODULE } from "../modules/hop"
 import { BEER_STYLE_MODULE } from "../modules/beer-style"
 import type { ExecArgs } from "@medusajs/framework/types"
 import { createProductsWorkflow, createPriceListsWorkflow } from "@medusajs/medusa/core-flows"
+import { resolveSalePricing } from "../lib/sale-pricing"
 import * as fs from "fs"
 import * as path from "path"
 
@@ -443,8 +444,21 @@ export default async function importProducts({ container }: ExecArgs) {
     const breweryName = normalizeTitle(row["Brewery"] || "")
     if (!title || !breweryName) continue
 
-    const rawPrice = parseFloat(row["Price"] || "0")
-    const was = parseFloat(row["Was"] || "0")
+    // Sale% is authoritative — see src/lib/sale-pricing.ts. The spreadsheet's
+    // "Price" is a derived, frequently-rounded value, so it is discarded whenever
+    // a usable "Sale" percentage is present. This is what stops a rounded paste
+    // from permanently destroying the cents, as happened on 2026-08-26.
+    const pricing = resolveSalePricing({
+      price: row["Price"],
+      sale: row["Sale"],
+      was: row["Was"],
+    })
+    if (pricing.correction) {
+      logger.warn(`${title}: ${pricing.correction}`)
+    }
+    const rawPrice = pricing.price ?? 0
+    const was = pricing.was ?? 0
+
     // When Was > Price, the product is on sale:
     //   basePrice  = Was (shown as strikethrough)
     //   salePrice  = Price (effective selling price via SALE price list)
