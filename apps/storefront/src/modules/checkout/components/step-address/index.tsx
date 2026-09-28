@@ -447,6 +447,24 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
                 />
               </div>
             </div>
+            <div className="space-y-2">
+              <label className="font-semibold text-[12px] text-hg-text-secondary uppercase tracking-widest">
+                Phone
+              </label>
+              <input
+                name="shipping_address.phone"
+                type="tel"
+                autoComplete="tel"
+                value={formData["shipping_address.phone"]}
+                onChange={handleChange}
+                required
+                placeholder="04XX XXX XXX"
+                className="w-full bg-hg-surface border-0 ring-1 ring-hg-border focus:ring-2 focus:ring-hg-gold rounded-xl px-4 py-4 text-hg-text placeholder:text-hg-text-muted transition-all outline-none"
+              />
+              <p className="text-xs text-hg-text-secondary">
+                The courier will use this number to contact you about delivery.
+              </p>
+            </div>
             <input
               type="hidden"
               name="shipping_address.country_code"

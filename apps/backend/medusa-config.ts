@@ -131,7 +131,7 @@ module.exports = defineConfig({
             options: {
               api_key: process.env.SHIPENGINE_API_KEY,
               api_base: process.env.SHIPENGINE_API_BASE,
-              carrier_ids: (process.env.SHIPENGINE_CARRIER_IDS || "se-5530570,se-5530571")
+              carrier_ids: (process.env.SHIPENGINE_CARRIER_IDS || "")
                 .split(",")
                 .map((s: string) => s.trim())
                 .filter(Boolean),

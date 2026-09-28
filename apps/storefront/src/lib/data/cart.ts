@@ -536,6 +536,12 @@ export async function setAddresses(
       throw new Error("No existing cart found when setting addresses")
     }
 
+    if (!input.shipping_address?.phone?.trim()) {
+      throw new Error(
+        "Please enter a phone number so the courier can contact you about delivery.",
+      )
+    }
+
     const data: Record<string, unknown> = {
       shipping_address: input.shipping_address,
       email: input.email,
