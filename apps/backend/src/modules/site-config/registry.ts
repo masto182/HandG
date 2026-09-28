@@ -539,7 +539,7 @@ export const SITE_CONFIG_REGISTRY: Record<string, SiteConfigDefinition> = {
     key: "auto_pick_cheapest_label",
     type: "boolean",
     isPublic: false,
-    default: true,
+    default: false,
     group: "shipping",
     label: "Auto-pick cheapest carrier at fulfillment",
     description:

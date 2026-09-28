@@ -365,7 +365,7 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
     }
 
     // ---------- Auto-pick cheapest gate ----------
-    const autoPick = await this.siteConfigGet<boolean>("auto_pick_cheapest_label", true)
+    const autoPick = await this.siteConfigGet<boolean>("auto_pick_cheapest_label", false)
     const customerChoice = {
       rate_id: data?.rate_id as string | undefined,
       carrier_id: data?.carrier_id as string | undefined,
