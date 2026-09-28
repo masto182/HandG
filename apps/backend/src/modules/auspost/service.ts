@@ -28,6 +28,7 @@ import {
   type PackedBox,
 } from "../shipping-common/packing"
 import type { PacServiceCode } from "./types"
+import { readSiteConfigDirect } from "../site-config/direct-reader"
 
 const HEAT_HOLD_BLOCKED_CODE = "HEAT_HOLD_BLOCKED"
 
@@ -98,14 +99,17 @@ class AusPostProviderService extends AbstractFulfillmentProviderService {
     if (fromOptions !== undefined && fromOptions !== null) {
       return fromOptions as T
     }
-    if (!this.container_) return fallback
-    try {
-      const svc = this.container_.resolve("siteConfig") as SiteConfigLike
-      const value = await svc.get(key)
-      return value === undefined || value === null ? fallback : (value as T)
-    } catch {
-      return fallback
+    if (this.container_) {
+      try {
+        const svc = this.container_.resolve("siteConfig") as SiteConfigLike
+        const value = await svc.get(key)
+        if (value !== undefined && value !== null) return value as T
+      } catch {
+        // siteConfig not exposed in the provider scope; fall through
+      }
     }
+    const direct = await readSiteConfigDirect(key)
+    return direct === undefined || direct === null ? fallback : (direct as T)
   }
 
   private async resolveFromPostcode(): Promise<string> {

@@ -1,3 +1,4 @@
+import { readSiteConfigDirect } from "../site-config/direct-reader"
 import { AbstractFulfillmentProviderService, MedusaError } from "@medusajs/framework/utils"
 import type { Logger } from "@medusajs/framework/types"
 import type {
@@ -120,6 +121,8 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
         // resolver may throw for missing services; ignore and fall through
       }
     }
+    const direct = await readSiteConfigDirect(key)
+    if (direct !== undefined && direct !== null) return direct as T
     return fallback
   }
 
