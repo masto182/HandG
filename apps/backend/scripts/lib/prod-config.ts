@@ -287,6 +287,10 @@ export const BREWERY_NAMES: Record<string, string> = {
   trillium: "Trillium Brewing",
   freak_folk: "Freak Folk Brewing",
   messorem: "Messorem",
+  treehouse: "Tree House",
+  deep_fried_beers: "Deep Fried Beers",
+  clag: "Clag Brewing Company",
+  test: "Test",
 }
 
 export function resolveBreweryKey(freeText: string): string | null {
