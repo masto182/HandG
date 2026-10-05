@@ -81,7 +81,10 @@ const PaymentDetails = ({
                     <Text className="txt-medium text-hg-text-secondary">
                       Reference
                     </Text>
-                    <Text className="txt-medium text-hg-text">
+                    <Text
+                      className="txt-medium text-hg-text"
+                      data-testid="payid-reference"
+                    >
                       {referenceCode}
                     </Text>
                   </div>

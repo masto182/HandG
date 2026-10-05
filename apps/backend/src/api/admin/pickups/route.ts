@@ -1,5 +1,6 @@
 import type { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { updateFulfillmentWorkflow } from "@medusajs/medusa/core-flows"
 import {
   schedulePickupForFulfillments,
   PickupIneligibleError,
@@ -112,26 +113,25 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
 
     const fulfillmentModule = req.scope.resolve(Modules.FULFILLMENT) as {
       retrieveFulfillment: (id: string) => Promise<{ metadata?: Record<string, unknown> }>
-      updateFulfillment: (
-        id: string,
-        data: { metadata: Record<string, unknown> }
-      ) => Promise<unknown>
     }
 
     for (const fulfillment of fulfillments) {
       const existing = await fulfillmentModule.retrieveFulfillment(fulfillment.id)
-      await fulfillmentModule.updateFulfillment(fulfillment.id, {
-        metadata: {
-          ...(existing.metadata ?? {}),
-          pickup: {
-            pickup_id: pickup.pickup_id,
-            status: pickup.status,
-            pickup_window: pickup.pickup_window,
-            confirmation_numbers: pickup.confirmation_numbers ?? [],
-            scheduled_at: new Date().toISOString(),
+      await updateFulfillmentWorkflow(req.scope).run({
+        input: {
+          id: fulfillment.id,
+          metadata: {
+            ...(existing.metadata ?? {}),
+            pickup: {
+              pickup_id: pickup.pickup_id,
+              status: pickup.status,
+              pickup_window: pickup.pickup_window,
+              confirmation_numbers: pickup.confirmation_numbers ?? [],
+              scheduled_at: new Date().toISOString(),
+            },
           },
         },
-      }) // workflow-exempt: admin-triggered external carrier call + metadata write
+      })
     }
 
     res.json({ ok: true, pickup })

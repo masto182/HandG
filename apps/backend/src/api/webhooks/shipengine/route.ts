@@ -59,7 +59,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
   //
   // Fix: query "fulfillment" directly (a valid entity) filtered to our own
   // provider, then match tracking_number client-side against fulfillment.data
-  // (a jsonb column set by ShipEngineProviderService.createFulfillment — see
+  // (a jsonb column written by the ShipEngine provider when it creates a fulfillment — see
   // modules/shipengine/service.ts). query.graph can't filter by nested
   // labels.tracking_number OR arbitrary jsonb keys, so this is the same
   // JS-side-filter-on-own-data pattern already used in api/admin/pickups/route.ts.

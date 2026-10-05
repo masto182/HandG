@@ -42,9 +42,19 @@ export async function apply(page: Page, i: ApplyInput): Promise<void> {
       .catch(() => {})
   }
   await page.locator('button[type="submit"]').click()
-  await page
+  const landed = await page
     .waitForURL(/\/apply\/(pending|rejected)|\/account/, { timeout: 15_000 })
-    .catch(() => {})
+    .then(() => true)
+    .catch(() => false)
+  if (!landed) {
+    const alerts = await page
+      .locator('[role="alert"], [data-testid*="error"], .text-red-500, .text-rose-500')
+      .allTextContents()
+      .catch(() => [] as string[])
+    throw new Error(
+      `apply(${i.email}) did not reach pending/account; url=${page.url()} alerts=${JSON.stringify(alerts)}`,
+    )
+  }
 }
 
 export async function login(
@@ -197,11 +207,6 @@ export async function checkoutPickupPayid(
       .first(),
   ).toBeVisible({ timeout: 10_000 })
 
-  const refLocator = page.locator("main").last()
-  const ref = (await refLocator.textContent()) || ""
-  const refMatch = ref.match(/HG-[A-Z0-9]+/)
-  const orderRef = refMatch?.[0] ?? ""
-
   // Accept payment terms (button is enabled after a payment method is selected)
   const payTermsBtn = page
     .locator('button:has-text("I Understand"), button:has-text("Continue")')
@@ -223,6 +228,7 @@ export async function checkoutPickupPayid(
   // Extract order ID from the confirmed URL if we landed there.
   const confirmedMatch = page.url().match(/\/order\/([^/]+)\/confirmed/)
   const orderId = confirmedMatch?.[1] ?? ""
+  const orderRef = await readConfirmedOrderRef(page)
 
   return { orderRef, orderId }
 }
@@ -259,6 +265,7 @@ export async function gotoDeliveryPaymentStep(page: Page): Promise<void> {
   await page.fill('input[name="shipping_address.city"]', "Melbourne")
   await page.fill('input[name="shipping_address.province"]', "VIC")
   await page.fill('input[name="shipping_address.postal_code"]', "3000")
+  await page.fill('input[name="shipping_address.phone"]', "0412345678")
   const emailField = page.locator('input[name="email"]')
   if (await emailField.isVisible({ timeout: 2_000 }).catch(() => false)) {
     const cur = await emailField.inputValue().catch(() => "")
@@ -305,6 +312,7 @@ export async function checkoutDeliveryPayid(
   await page.fill('input[name="shipping_address.city"]', "Melbourne")
   await page.fill('input[name="shipping_address.province"]', "VIC")
   await page.fill('input[name="shipping_address.postal_code"]', "3000")
+  await page.fill('input[name="shipping_address.phone"]', "0412345678")
   const emailField = page.locator('input[name="email"]')
   if (await emailField.isVisible({ timeout: 2_000 }).catch(() => false)) {
     const cur = await emailField.inputValue().catch(() => "")
@@ -359,8 +367,6 @@ export async function checkoutDeliveryPayid(
       .locator('h3:has-text("PayID Payment Details"), h2:has-text("PayID")')
       .first(),
   ).toBeVisible({ timeout: 10_000 })
-  const ref = (await page.locator("main").last().textContent()) || ""
-  const orderRef = ref.match(/HG-[A-Z0-9]+/)?.[0] ?? ""
 
   const payTermsBtn = page
     .locator('button:has-text("I Understand"), button:has-text("Continue")')
@@ -379,8 +385,19 @@ export async function checkoutDeliveryPayid(
 
   const confirmedMatchDelivery = page.url().match(/\/order\/([^/]+)\/confirmed/)
   const orderId = confirmedMatchDelivery?.[1] ?? ""
+  const orderRef = await readConfirmedOrderRef(page)
 
   return { orderRef, orderId }
+}
+
+/**
+ * The PayID reference is the plain order number, so it only exists once the
+ * order is placed. Read it from the confirmation page.
+ */
+async function readConfirmedOrderRef(page: Page): Promise<string> {
+  const ref = page.getByTestId("payid-reference").first()
+  await expect(ref).toBeVisible({ timeout: 15_000 })
+  return ((await ref.textContent()) || "").trim()
 }
 
 /**

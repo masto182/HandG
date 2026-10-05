@@ -1,3 +1,4 @@
+// workflow-exempt: read-only segment count for the composer preview
 import { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import {
   countSegment,
