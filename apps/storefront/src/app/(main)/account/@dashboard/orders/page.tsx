@@ -3,6 +3,7 @@ import { Metadata } from "next"
 import OrderOverview from "@modules/account/components/order-overview"
 import { notFound } from "next/navigation"
 import { listOrders } from "@lib/data/orders"
+import { getPayidAlias } from "@lib/data/site-config"
 
 export const metadata: Metadata = {
   title: "Orders",
@@ -10,7 +11,10 @@ export const metadata: Metadata = {
 }
 
 export default async function Orders() {
-  const orders = await listOrders()
+  const [orders, payidAlias] = await Promise.all([
+    listOrders(),
+    getPayidAlias(),
+  ])
 
   if (!orders) {
     notFound()
@@ -24,7 +28,7 @@ export default async function Orders() {
           Every drop you&apos;ve secured.
         </p>
       </header>
-      <OrderOverview orders={orders} />
+      <OrderOverview orders={orders} payidAlias={payidAlias} />
     </div>
   )
 }

@@ -22,7 +22,6 @@ import StepAddress from "@modules/checkout/components/step-address"
 import StepShipping from "@modules/checkout/components/step-shipping"
 import StepPayment from "@modules/checkout/components/step-payment"
 import StepReview from "@modules/checkout/components/step-review"
-import StepConfirm from "@modules/checkout/components/step-confirm"
 import { Metadata } from "next"
 import { redirect } from "next/navigation"
 
@@ -141,20 +140,7 @@ export default async function Checkout({
           <StepReview cart={cart} isPickup={isPickup} heatHold={heatHold} />
         )
       case "confirm":
-        const [confirmHoldHours, confirmOrdersEmail, confirmPayidAlias] =
-          await Promise.all([
-            getPayidHoldHours(),
-            getOrdersEmail(),
-            getPayidAlias(),
-          ])
-        return (
-          <StepConfirm
-            cart={cart}
-            holdHours={confirmHoldHours}
-            ordersEmail={confirmOrdersEmail}
-            payidAlias={confirmPayidAlias}
-          />
-        )
+        redirect("/checkout?step=review")
       default:
         return null
     }

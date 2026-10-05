@@ -20,6 +20,17 @@ export const PAYID_ALIAS =
   process.env.NEXT_PUBLIC_PAYID_ALIAS || PUBLIC_SITE_CONFIG_DEFAULTS.payid_alias
 
 /**
+ * The single PayID payment reference shown to customers: the plain order
+ * number. Must match the order-placed email (`orderDisplayId`). Only exists
+ * once an order is placed; carts have no reference.
+ */
+export function payidReference(order: {
+  display_id?: number | string | null
+}): string {
+  return order.display_id != null ? String(order.display_id) : ""
+}
+
+/**
  * PayID auto-cancel window in hours.
  * Backend job `cancel-unpaid-payid-orders` cancels PayID orders unpaid
  * after this many hours. Cash-on-pickup orders are NOT auto-cancelled.

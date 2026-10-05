@@ -45,19 +45,12 @@ class PayIdPaymentProviderService extends AbstractPaymentProvider<PayIdOptions> 
   async initiatePayment(input: InitiatePaymentInput): Promise<InitiatePaymentOutput> {
     const ctx = (input as any).context || {}
     const cartId: string | undefined = ctx.cart?.id || ctx.resource_id
-    const reference = cartId
-      ? `HG-${cartId
-          .replace(/[^A-Z0-9]/gi, "")
-          .slice(-8)
-          .toUpperCase()}`
-      : `HG-${Date.now().toString(36).toUpperCase().slice(-8)}`
 
+    // The customer-facing reference is the order number and the PayID comes
+    // from SiteConfig; neither is snapshotted here so they can't diverge.
     return {
-      id: `payid_${reference}`,
-      data: {
-        payid_alias: this.options_.payid_alias || process.env.PAYID_ALIAS,
-        reference,
-      },
+      id: `payid_${cartId ?? Date.now().toString(36)}`,
+      data: {},
     }
   }
 

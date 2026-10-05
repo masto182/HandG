@@ -74,22 +74,7 @@ const StepPayment: React.FC<Props> = ({
     setTimeout(() => setCopied(null), 2000)
   }
 
-  const payidSession = cart.payment_collection?.payment_sessions?.find(
-    (s) => s.provider_id === "payid",
-  )
-  const payidData = (payidSession?.data ?? {}) as {
-    payid_alias?: string
-    reference?: string
-  }
-  const payidEmail = payidData.payid_alias || payidAlias || PAYID_ALIAS
-  const referenceCode =
-    payidData.reference ||
-    (cart.id
-      ? `HG-${cart.id
-          .replace(/[^A-Z0-9]/gi, "")
-          .slice(-8)
-          .toUpperCase()}`
-      : "HG-PENDING")
+  const payidEmail = payidAlias || PAYID_ALIAS
 
   const isPayidSelected = isPayId(selected)
   const isCashSelected = isManual(selected)
@@ -267,45 +252,17 @@ const StepPayment: React.FC<Props> = ({
               </button>
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-hg-bg rounded-lg border border-hg-border">
-              <div>
-                <p className="font-semibold text-[10px] text-hg-text-secondary uppercase tracking-widest">
-                  Reference Code
-                </p>
-                <p className="text-base font-bold text-hg-text mt-1">
-                  {referenceCode}
-                </p>
-              </div>
-              <button
-                onClick={() => copyToClipboard(referenceCode, "ref")}
-                className="text-hg-text-secondary hover:text-hg-gold transition-colors p-2"
-              >
-                {copied === "ref" ? (
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    className="text-hg-gold"
-                  >
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                ) : (
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                  >
-                    <rect x="9" y="9" width="13" height="13" rx="2" />
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                  </svg>
-                )}
-              </button>
+            <div className="p-4 bg-hg-bg rounded-lg border border-hg-border">
+              <p className="font-semibold text-[10px] text-hg-text-secondary uppercase tracking-widest">
+                Reference
+              </p>
+              <p className="text-base font-bold text-hg-text mt-1">
+                Your order number
+              </p>
+              <p className="text-[11px] text-hg-text-secondary mt-0.5">
+                Shown once your order is placed and included in your
+                confirmation email.
+              </p>
             </div>
           </div>
 
@@ -326,7 +283,7 @@ const StepPayment: React.FC<Props> = ({
             <div className="text-center">
               <span className="text-2xl font-bold text-hg-text-muted">03</span>
               <p className="text-xs text-hg-text-secondary mt-2">
-                Enter exact amount and reference {referenceCode}.
+                Enter the exact amount and your order number as the reference.
               </p>
             </div>
           </div>

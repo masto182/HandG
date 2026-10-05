@@ -75,7 +75,7 @@ test.describe.serial("New flows — PR 3 / 4 / 5", () => {
     ).toBe(false)
   })
 
-  test("PayID reference is server-derived and alias matches config", async ({
+  test("PayID checkout uses order number as reference and alias matches config", async ({
     browser,
   }) => {
     const applyCtx = await browser.newContext()
@@ -116,8 +116,9 @@ test.describe.serial("New flows — PR 3 / 4 / 5", () => {
     }
 
     const mainText = (await page.locator("main").last().textContent()) || ""
-    // Reference starts with HG- and contains 8 chars from the cart id.
-    expect(mainText).toMatch(/HG-[A-Z0-9]{4,}/)
+    // No pre-order reference: the order number is the reference.
+    expect(mainText).not.toMatch(/HG-[A-Z0-9]{4,}/)
+    expect(mainText).toContain("Your order number")
     // Alias should match the configured one, not the stale stale@example.test.
     expect(mainText).toContain("payments@example.test")
     expect(mainText).not.toContain("stale@example.test")

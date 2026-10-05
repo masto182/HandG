@@ -10,7 +10,11 @@ import OrderPlacedTracker from "@modules/order/components/order-placed-tracker"
 import ShippingDetails from "@modules/order/components/shipping-details"
 import PaymentDetails from "@modules/order/components/payment-details"
 import { HttpTypes } from "@medusajs/types"
-import { getPayidHoldHours, getOrdersEmail } from "@lib/data/site-config"
+import {
+  getPayidHoldHours,
+  getOrdersEmail,
+  getPayidAlias,
+} from "@lib/data/site-config"
 
 type OrderCompletedTemplateProps = {
   order: HttpTypes.StoreOrder
@@ -20,9 +24,10 @@ export default async function OrderCompletedTemplate({
   order,
 }: OrderCompletedTemplateProps) {
   const cookies = await nextCookies()
-  const [holdHours, ordersEmail] = await Promise.all([
+  const [holdHours, ordersEmail, payidAlias] = await Promise.all([
     getPayidHoldHours(),
     getOrdersEmail(),
+    getPayidAlias(),
   ])
 
   const isOnboarding = cookies.get("_medusa_onboarding")?.value === "true"
@@ -59,6 +64,7 @@ export default async function OrderCompletedTemplate({
             order={order}
             holdHours={holdHours}
             ordersEmail={ordersEmail}
+            payidAlias={payidAlias}
           />
           <Help />
         </div>

@@ -3,11 +3,12 @@ import { useMemo } from "react"
 import Thumbnail from "@modules/products/components/thumbnail"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import { convertToLocale } from "@lib/util/money"
-import { PAYID_ALIAS } from "@lib/constants/payment"
+import { PAYID_ALIAS, payidReference } from "@lib/constants/payment"
 import { HttpTypes } from "@medusajs/types"
 
 type OrderCardProps = {
   order: HttpTypes.StoreOrder
+  payidAlias?: string
 }
 
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
@@ -67,7 +68,7 @@ function getStatusBadge(order: HttpTypes.StoreOrder) {
   return config
 }
 
-const OrderCard = ({ order }: OrderCardProps) => {
+const OrderCard = ({ order, payidAlias }: OrderCardProps) => {
   const numberOfProducts = useMemo(() => order.items?.length ?? 0, [order])
   const statusBadge = getStatusBadge(order)
   const isAwaitingPayment = statusBadge.label.includes("Awaiting")
@@ -143,12 +144,12 @@ const OrderCard = ({ order }: OrderCardProps) => {
               </svg>
               <div>
                 <p className="text-amber-500 font-bold text-body-sm">
-                  PayID: {PAYID_ALIAS}
+                  PayID: {payidAlias || PAYID_ALIAS}
                 </p>
                 <p className="text-on-surface-variant text-xs">
                   Reference:{" "}
                   <span className="font-mono text-on-surface">
-                    HG-{order.display_id}-X
+                    {payidReference(order)}
                   </span>
                 </p>
               </div>

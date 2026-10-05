@@ -29,7 +29,13 @@ function getOrderStatus(order: HttpTypes.StoreOrder): string {
   return "all"
 }
 
-const OrderOverview = ({ orders }: { orders: HttpTypes.StoreOrder[] }) => {
+const OrderOverview = ({
+  orders,
+  payidAlias,
+}: {
+  orders: HttpTypes.StoreOrder[]
+  payidAlias?: string
+}) => {
   const [activeFilter, setActiveFilter] = useState("all")
   const [visibleCount, setVisibleCount] = useState(5)
 
@@ -70,7 +76,7 @@ const OrderOverview = ({ orders }: { orders: HttpTypes.StoreOrder[] }) => {
         ) : (
           <div className="space-y-6">
             {visibleOrders.map((o) => (
-              <OrderCard key={o.id} order={o} />
+              <OrderCard key={o.id} order={o} payidAlias={payidAlias} />
             ))}
           </div>
         )}

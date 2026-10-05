@@ -1,7 +1,7 @@
 import { Container, Heading, Text } from "@modules/common/components/ui"
 
 import { isPayId, isManual, paymentInfoMap } from "@lib/constants"
-import { PAYID_ALIAS } from "@lib/constants/payment"
+import { PAYID_ALIAS, payidReference } from "@lib/constants/payment"
 import Divider from "@modules/common/components/divider"
 import { convertToLocale } from "@lib/util/money"
 import { HttpTypes } from "@medusajs/types"
@@ -10,31 +10,22 @@ type PaymentDetailsProps = {
   order: HttpTypes.StoreOrder
   holdHours?: number
   ordersEmail?: string
+  payidAlias?: string
 }
 
 const PaymentDetails = ({
   order,
   holdHours = 24,
   ordersEmail,
+  payidAlias,
 }: PaymentDetailsProps) => {
   const payment = order.payment_collections?.[0].payments?.[0]
   const providerId = payment?.provider_id ?? ""
   const isPayid = isPayId(providerId)
   const isCash = isManual(providerId)
 
-  const payidData = (payment?.data ?? {}) as {
-    payid_alias?: string
-    reference?: string
-  }
-  const payidEmail = payidData.payid_alias || PAYID_ALIAS
-  const referenceCode =
-    payidData.reference ||
-    (order.id
-      ? `HG-${order.id
-          .replace(/[^A-Z0-9]/gi, "")
-          .slice(-8)
-          .toUpperCase()}`
-      : "")
+  const payidEmail = payidAlias || PAYID_ALIAS
+  const referenceCode = payidReference(order)
 
   return (
     <div>
