@@ -32,6 +32,21 @@ describe("sendTemplate gating", () => {
     sendMock.mockClear()
   })
 
+  function makeEmailLogContainer() {
+    const recordSend = jest.fn(async () => undefined)
+    return {
+      recordSend,
+      container: {
+        resolve(key: string) {
+          if (key === "emailLog") {
+            return { recordSend }
+          }
+          throw new Error(`unknown ${key}`)
+        },
+      },
+    }
+  }
+
   function makeContainer({
     customerExists = true,
     optedIn = true,
@@ -159,5 +174,48 @@ describe("sendTemplate gating", () => {
       container: makeContainer({ notifModulePresent: false }),
     })
     expect(result.sent).toBe(true)
+  })
+
+  it("returns error and logs failed send when Resend returns an error payload", async () => {
+    sendMock.mockResolvedValueOnce({ data: null, error: { message: "provider unavailable" } })
+    const { recordSend, container } = makeEmailLogContainer()
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { sendTemplate } = require("../../lib/email")
+
+    const result = await sendTemplate({
+      to: "to@x.com",
+      customerId: "cust_1",
+      category: "restock_alerts",
+      template: RestockAvailable as any,
+      props: {
+        name: "X",
+        beerName: "Stout",
+        breweryName: "BR",
+        handle: "h",
+        storeUrl: "https://x",
+      },
+      container: {
+        resolve(key: string) {
+          if (key === "customer") {
+            return {
+              retrieveCustomer: async () => ({ id: "cust_1" }),
+            }
+          }
+          if (key === "notificationPreference") {
+            return { isOptedIn: async () => true }
+          }
+          return container.resolve(key)
+        },
+      },
+    })
+
+    expect(result).toEqual({ sent: false, reason: "error" })
+    expect(recordSend).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resend_id: null,
+        status: "failed",
+        error_reason: "provider unavailable",
+      })
+    )
   })
 })

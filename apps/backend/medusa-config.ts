@@ -80,6 +80,7 @@ module.exports = defineConfig({
     { resolve: "./src/modules/campaign" },
     { resolve: "./src/modules/specials-batch" },
     { resolve: "./src/modules/analytics" },
+    { resolve: "./src/modules/email-log" },
     { resolve: "@medusajs/index" },
     {
       resolve: "@medusajs/medusa/file",

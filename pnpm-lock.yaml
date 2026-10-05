@@ -136,6 +136,9 @@ importers:
       resend:
         specifier: ^6.17.2
         version: 6.17.2(@react-email/render@1.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+      svix:
+        specifier: ^2.0.0
+        version: 2.0.0
       zod:
         specifier: ^4.4.3
         version: 4.4.3
@@ -10548,6 +10551,10 @@ packages:
   supports-preserve-symlinks-flag@1.0.0:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
     engines: {node: '>= 0.4'}
+
+  svix@2.0.0:
+    resolution: {integrity: sha512-rywid6EHCJZwonqXCuo3nF/tovnz+CIoHlH0sMdxCTtgKwTRNmqJn2TCM40DTvMZUgshLhiP1KUfOZoTrli2/Q==}
+    engines: {node: '>=22'}
 
   swap-case@2.0.2:
     resolution: {integrity: sha512-kc6S2YS/2yXbtkSMunBtKdah4VFETZ8Oh6ONSmSd9bRxhqTrtARUCBUiWXH3xVPpvR7tz2CSnkuXVE42EcGnMw==}
@@ -23637,6 +23644,10 @@ snapshots:
       supports-color: 7.2.0
 
   supports-preserve-symlinks-flag@1.0.0: {}
+
+  svix@2.0.0:
+    dependencies:
+      standardwebhooks: 1.0.0
 
   swap-case@2.0.2:
     dependencies:

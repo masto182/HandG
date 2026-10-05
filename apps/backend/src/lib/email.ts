@@ -45,16 +45,104 @@ export async function refreshEmailConfig(container: any): Promise<void> {
   }
 }
 
+const TRACKING_ENABLED = process.env.EMAIL_TRACKING_ENABLED !== "false"
+
+/**
+ * Best-effort write to the email-log module. Never throws — a logging
+ * failure must never block or fail a real send.
+ */
+async function logSend(
+  container: any,
+  entry: {
+    resendId?: string | null
+    to: string
+    category: string
+    templateName: string
+    subject?: string
+    customerId?: string | null
+    status?: "sent" | "failed"
+    errorReason?: string | null
+  }
+): Promise<void> {
+  if (!container) return
+  try {
+    const svc = container.resolve("emailLog") as {
+      recordSend: (input: Record<string, unknown>) => Promise<unknown>
+    }
+    await svc.recordSend({
+      resend_id: entry.resendId ?? null,
+      to_address: entry.to,
+      category: entry.category,
+      template_name: entry.templateName,
+      subject: entry.subject ?? null,
+      customer_id: entry.customerId ?? null,
+      status: entry.status ?? "sent",
+      error_reason: entry.errorReason ?? null,
+    })
+  } catch (error) {
+    console.error(`[Email] Failed to write email-log entry for ${entry.to}:`, error)
+  }
+}
+
+function getResendErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) return error.message
+  if (typeof error === "string") return error
+  if (
+    error &&
+    typeof error === "object" &&
+    "message" in error &&
+    typeof (error as any).message === "string"
+  ) {
+    return (error as any).message
+  }
+  return "Unknown Resend error"
+}
+
+class LoggedSendError extends Error {}
+
+async function handleSendFailure(
+  container: any,
+  entry: {
+    to: string
+    category: string
+    templateName: string
+    subject?: string
+    customerId?: string | null
+  },
+  error: unknown
+): Promise<string> {
+  const errorMessage = getResendErrorMessage(error)
+  await logSend(container, {
+    resendId: null,
+    to: entry.to,
+    subject: entry.subject,
+    category: entry.category,
+    templateName: entry.templateName,
+    customerId: entry.customerId,
+    status: "failed",
+    errorReason: errorMessage,
+  })
+  return errorMessage
+}
+
 export async function sendEmail({
   to,
   subject,
   html,
   text,
+  category = "uncategorized",
+  templateName = "raw",
+  customerId,
+  container,
 }: {
   to: string
   subject: string
   html: string
   text?: string
+  category?: string
+  templateName?: string
+  customerId?: string
+  container?: any
 }) {
   if (!process.env.RESEND_API_KEY) {
     console.log(`[Email] Would send to ${to}: ${subject}`)
@@ -62,15 +150,47 @@ export async function sendEmail({
   }
 
   try {
-    await resend.emails.send({
+    const result = await resend.emails.send({
       from: _fromEmail,
       to,
       subject,
       html,
       text,
+      trackOpens: TRACKING_ENABLED,
+      trackClicks: TRACKING_ENABLED,
     } as any)
+    if ((result as any)?.error) {
+      const errorMessage = await handleSendFailure(
+        container,
+        { to, subject, category, templateName, customerId },
+        (result as any).error
+      )
+      throw new LoggedSendError(errorMessage)
+    }
+    await logSend(container, {
+      resendId: (result as any)?.data?.id ?? null,
+      to,
+      subject,
+      category,
+      templateName,
+      customerId,
+    })
   } catch (error) {
     console.error(`[Email] Failed to send to ${to}:`, error)
+    if (!(error instanceof LoggedSendError)) {
+      const errorMessage = getResendErrorMessage(error)
+      await logSend(container, {
+        resendId: null,
+        to,
+        subject,
+        category,
+        templateName,
+        customerId,
+        status: "failed",
+        errorReason: errorMessage,
+      })
+    }
+    throw error
   }
 }
 
@@ -174,6 +294,9 @@ export async function sendTemplate<P>({
   props,
   container,
 }: SendTemplateArgs<P>): Promise<SendTemplateResult> {
+  const templateName =
+    (template.default as any)?.displayName || (template.default as any)?.name || "unknown"
+
   if (!process.env.RESEND_API_KEY) {
     const { subject } = template
     console.log(`[Email] Would send (no RESEND_API_KEY) to ${to}: ${subject(props)}`)
@@ -198,15 +321,37 @@ export async function sendTemplate<P>({
 
   try {
     const { html, text, subject } = await renderEmail(template, props)
-    await resend.emails.send({
+    const result = await resend.emails.send({
       from: _fromEmail,
       to,
       subject,
       html,
       text,
+      trackOpens: TRACKING_ENABLED,
+      trackClicks: TRACKING_ENABLED,
     } as any)
+    if ((result as any)?.error) {
+      const errorMessage = await handleSendFailure(
+        container,
+        { to, subject, category, templateName, customerId },
+        (result as any).error
+      )
+      console.error(`[Email] sendTemplate failed (${category} → ${to}): ${errorMessage}`)
+      return { sent: false, reason: "error" }
+    }
+    await logSend(container, {
+      resendId: (result as any)?.data?.id ?? null,
+      to,
+      subject,
+      category,
+      templateName,
+      customerId,
+    })
     return { sent: true }
   } catch (error) {
+    if (!(error instanceof LoggedSendError)) {
+      await handleSendFailure(container, { to, category, templateName, customerId }, error)
+    }
     console.error(`[Email] sendTemplate failed (${category} → ${to}):`, error)
     return { sent: false, reason: "error" }
   }

@@ -113,5 +113,17 @@ export default defineMiddlewares({
       method: "POST",
       middlewares: [normalizeAuthEmail],
     },
+    {
+      // Resend delivery/engagement webhook. svix verifies the HMAC signature
+      // against the RAW request bytes, so the body parser must stash them on
+      // req.rawBody. This is the ONLY supported way to enable that: Medusa's
+      // route loader recognises only AUTHENTICATE, CORS and HTTP-method
+      // exports from a route file, so a route-level
+      // `export const config = { bodyParser: ... }` is silently ignored and
+      // req.rawBody stays undefined (making every callback fail with 400).
+      matcher: "/webhooks/resend",
+      method: "POST",
+      bodyParser: { preserveRawBody: true },
+    },
   ],
 })
