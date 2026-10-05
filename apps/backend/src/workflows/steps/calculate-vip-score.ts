@@ -21,7 +21,7 @@ const DEFAULT_VIP_CONFIG: VipConfig = {
   rollingWindowMonths: VIP_ROLLING_WINDOW_MONTHS,
 }
 
-async function resolveVipConfig(container: any): Promise<VipConfig> {
+export async function resolveVipConfig(container: any): Promise<VipConfig> {
   try {
     const svc = container.resolve(SITE_CONFIG_MODULE) as any
     const [direct, indirect, window] = await Promise.all([
@@ -62,13 +62,13 @@ type OrderRow = {
   payment_collections?: Array<{ status?: string | null; captured_amount?: number | null }> | null
 }
 
-function windowStart(now: Date, rollingWindowMonths: number): Date {
+export function windowStart(now: Date, rollingWindowMonths: number): Date {
   const d = new Date(now)
   d.setMonth(d.getMonth() - rollingWindowMonths)
   return d
 }
 
-function sumCaptured(orders: OrderRow[], since: Date): { total: number; count: number } {
+export function sumCaptured(orders: OrderRow[], since: Date): { total: number; count: number } {
   let total = 0
   let count = 0
   for (const o of orders) {
@@ -89,7 +89,7 @@ function sumCaptured(orders: OrderRow[], since: Date): { total: number; count: n
   return { total, count }
 }
 
-async function fetchCustomerOrders(query: any, customerId: string): Promise<OrderRow[]> {
+export async function fetchCustomerOrders(query: any, customerId: string): Promise<OrderRow[]> {
   const { data } = await query.graph({
     entity: "order",
     fields: [
@@ -103,6 +103,56 @@ async function fetchCustomerOrders(query: any, customerId: string): Promise<Orde
     filters: { customer_id: customerId },
   })
   return (data || []) as OrderRow[]
+}
+
+/**
+ * Spend-derived referral points per direct referee, using the same rules as the
+ * VIP score: captured orders in the rolling window, stealth referrals excluded,
+ * direct multiplier on the referee's spend plus indirect multiplier on the spend
+ * of the referee's own (non-stealth) referrals.
+ */
+export async function calculateReferralSpendPoints(
+  customerId: string,
+  deps: {
+    query: { graph(args: any): Promise<{ data: OrderRow[] }> }
+    referralService: any
+    vipConfig?: VipConfig
+  },
+  now: Date = new Date()
+): Promise<Map<string, number>> {
+  const { query, referralService } = deps
+  const vipConfig = deps.vipConfig ?? DEFAULT_VIP_CONFIG
+  const since = windowStart(now, vipConfig.rollingWindowMonths)
+  const points = new Map<string, number>()
+
+  const directReferrals = (await referralService.listReferrals({
+    referrer_customer_id: customerId,
+    stealth_mode: false,
+  })) as Array<{ referred_customer_id: string }>
+
+  for (const ref of directReferrals) {
+    const orders = await fetchCustomerOrders(query, ref.referred_customer_id)
+    const directSpend = sumCaptured(orders, since).total
+
+    const secondHop = (await referralService.listReferrals({
+      referrer_customer_id: ref.referred_customer_id,
+      stealth_mode: false,
+    })) as Array<{ referred_customer_id: string }>
+    let indirectSpend = 0
+    for (const grand of secondHop) {
+      const grandOrders = await fetchCustomerOrders(query, grand.referred_customer_id)
+      indirectSpend += sumCaptured(grandOrders, since).total
+    }
+
+    points.set(
+      ref.referred_customer_id,
+      Math.round(
+        vipConfig.directMultiplier * directSpend + vipConfig.indirectMultiplier * indirectSpend
+      )
+    )
+  }
+
+  return points
 }
 
 export const calculateVipScoreStep = createStep(

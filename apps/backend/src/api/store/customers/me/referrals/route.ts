@@ -1,10 +1,14 @@
 import { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { Modules } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { REFERRAL_MODULE } from "../../../../../modules/referral"
 import { VIP_SCORE_MODULE } from "../../../../../modules/vip-score"
 import { VIP_EVENT_TYPES } from "../../../../../modules/vip-score/service"
 import { SITE_CONFIG_MODULE } from "../../../../../modules/site-config"
 import type SiteConfigModuleService from "../../../../../modules/site-config/service"
+import {
+  calculateReferralSpendPoints,
+  resolveVipConfig,
+} from "../../../../../workflows/steps/calculate-vip-score"
 import crypto from "crypto"
 
 function formatDate(value: unknown): string | null {
@@ -71,6 +75,17 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
     for (const event of bonusEvents) {
       const existing = contributionByReferredId.get(event.reference_id) || 0
       contributionByReferredId.set(event.reference_id, existing + (event.points ?? 0))
+    }
+  } catch {}
+
+  try {
+    const spendPoints = await calculateReferralSpendPoints(customerId, {
+      query: req.scope.resolve(ContainerRegistrationKeys.QUERY),
+      referralService: req.scope.resolve(REFERRAL_MODULE),
+      vipConfig: await resolveVipConfig(req.scope),
+    })
+    for (const [refId, points] of spendPoints) {
+      contributionByReferredId.set(refId, (contributionByReferredId.get(refId) || 0) + points)
     }
   } catch {}
 
