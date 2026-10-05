@@ -5,6 +5,8 @@ export type SortOptions =
   | "created_at_asc"
   | "packaged_at"
   | "packaged_at_asc"
+  | "price_asc"
+  | "price_desc"
   | "title_asc"
   | "title_desc"
   | "abv_desc"
@@ -26,6 +28,8 @@ type SortProductsProps = {
 const sortOptions: { label: string; value: SortOptions }[] = [
   { label: "Newest First", value: "created_at" },
   { label: "Oldest First", value: "created_at_asc" },
+  { label: "Price Low–High", value: "price_asc" },
+  { label: "Price High–Low", value: "price_desc" },
   { label: "Name A–Z", value: "title_asc" },
   { label: "Name Z–A", value: "title_desc" },
   { label: "ABV High–Low", value: "abv_desc" },

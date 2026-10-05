@@ -7,6 +7,26 @@ function getBeerName(title: string | null | undefined): string {
   return sep === -1 ? title : title.slice(sep + 3)
 }
 
+function getMinPrice(product: HttpTypes.StoreProduct): number | null {
+  const amounts = (product.variants ?? [])
+    .map((v: any) => v.calculated_price?.calculated_amount)
+    .filter((a: unknown): a is number => typeof a === "number")
+  return amounts.length ? Math.min(...amounts) : null
+}
+
+function comparePrice(
+  a: HttpTypes.StoreProduct,
+  b: HttpTypes.StoreProduct,
+  direction: 1 | -1,
+): number {
+  const pa = getMinPrice(a)
+  const pb = getMinPrice(b)
+  if (pa === null && pb === null) return 0
+  if (pa === null) return 1
+  if (pb === null) return -1
+  return (pa - pb) * direction
+}
+
 export function sortProducts(
   products: HttpTypes.StoreProduct[],
   sortBy: SortOptions,
@@ -24,6 +44,10 @@ export function sortProducts(
         (a, b) =>
           new Date(a.created_at!).getTime() - new Date(b.created_at!).getTime(),
       )
+    case "price_asc":
+      return sorted.sort((a, b) => comparePrice(a, b, 1))
+    case "price_desc":
+      return sorted.sort((a, b) => comparePrice(a, b, -1))
     case "title_asc":
       return sorted.sort((a, b) =>
         getBeerName(a.title).localeCompare(getBeerName(b.title)),
