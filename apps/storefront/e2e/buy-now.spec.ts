@@ -80,7 +80,7 @@ test.describe("Buy-at-price (Buy Now)", () => {
 
     // 5. Checkout + capture (regression for the discounted-order capture path).
     const { orderRef } = await checkoutPickupPayid(cPage)
-    expect(orderRef).toMatch(/^HG-/)
+    expect(orderRef).toMatch(/^\d+$/)
     await captureFirstAwaitingPayment(aPage)
 
     await cCtx.close()

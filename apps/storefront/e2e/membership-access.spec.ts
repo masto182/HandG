@@ -403,6 +403,7 @@ test.describe("Membership Access Control — Full Flow", () => {
       await page.fill('input[name="shipping_address.city"]', "Melbourne")
       await page.fill('input[name="shipping_address.province"]', "VIC")
       await page.fill('input[name="shipping_address.postal_code"]', "3000")
+      await page.fill('input[name="shipping_address.phone"]', "0412345678")
       const emailField = page.locator('input[name="email"]')
       if (await emailField.isVisible({ timeout: 2000 }).catch(() => false)) {
         if (!(await emailField.inputValue().catch(() => "")))

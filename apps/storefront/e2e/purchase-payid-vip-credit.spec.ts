@@ -63,7 +63,7 @@ test.describe("Purchase → PayID → VIP credit @smoke", () => {
     await gotoProductByHandle(cPage, PRODUCT_HANDLE)
     await addCurrentProductToCart(cPage)
     const { orderRef, orderId } = await checkoutPickupPayid(cPage)
-    expect(orderRef).toMatch(/^HG-/)
+    expect(orderRef).toMatch(/^\d+$/)
 
     // 3. Admin captures payment for the specific order (not first-in-list)
     await captureOrderPayment(aPage, orderId)

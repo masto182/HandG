@@ -127,7 +127,7 @@ test.describe("VIP tier progression — full walk", () => {
       await addCurrentProductToCart(cPage)
       const { orderRef } = await checkoutPickupPayid(cPage)
       expect(orderRef, `purchase ${i + 1} got an order reference`).toMatch(
-        /^HG-/,
+        /^\d+$/,
       )
       await captureFirstAwaitingPayment(aPage)
 

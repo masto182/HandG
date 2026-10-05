@@ -89,7 +89,7 @@ test.describe("Referral attribution @smoke", () => {
     await gotoProductByHandle(reePage, PRODUCT_HANDLE)
     await addCurrentProductToCart(reePage)
     const { orderRef, orderId } = await checkoutPickupPayid(reePage)
-    expect(orderRef).toMatch(/^HG-/)
+    expect(orderRef).toMatch(/^\d+$/)
     await captureOrderPayment(aPage, orderId)
 
     // 4. Referrer's score should pick up 0.2 × order value within poll window.
