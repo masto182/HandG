@@ -102,26 +102,34 @@ jobs:
             curl -sf http://localhost:7700/health && break || sleep 1
           done
 
+      # minio/minio and minio/mc are no longer pullable from Docker Hub or
+      # quay.io anonymously. Chainguard's images are maintained; pinned by
+      # digest. They run as uid 65532, so data lives under /tmp.
       - name: Start MinIO
         run: |
           docker run -d --name minio \
             -p 9100:9000 \
             -e MINIO_ROOT_USER=medusa \
             -e MINIO_ROOT_PASSWORD=medusa_dev_password \
-            minio/minio:RELEASE.2024-10-13T13-34-11Z server /data
+            cgr.dev/chainguard/minio@sha256:4cf4831a2bbcf13ddca09c1cbcc9faff716dd3c4247e0babc32864b8ee8e0034 \
+            server /tmp/data
           for i in $(seq 1 30); do
-            curl -sf http://localhost:9100/minio/health/live && break || sleep 1
+            curl -sf http://localhost:9100/minio/health/live && exit 0
+            sleep 1
           done
+          docker logs minio
+          echo "MinIO did not become healthy" >&2
+          exit 1
 
       - name: Init MinIO bucket
         run: |
           docker run --rm --network=host \
             -e MC_HOST_minio=http://medusa:medusa_dev_password@localhost:9100 \
-            minio/mc:RELEASE.2024-10-08T09-37-26Z \
+            cgr.dev/chainguard/minio-client@sha256:b20bdc339b3f2596c8f731793f861d2445fd13a9a3cfb517ff020969f4e4bf71 \
             mb minio/medusa --ignore-existing
           docker run --rm --network=host \
             -e MC_HOST_minio=http://medusa:medusa_dev_password@localhost:9100 \
-            minio/mc:RELEASE.2024-10-08T09-37-26Z \
+            cgr.dev/chainguard/minio-client@sha256:b20bdc339b3f2596c8f731793f861d2445fd13a9a3cfb517ff020969f4e4bf71 \
             anonymous set none minio/medusa
 
       - uses: pnpm/action-setup@v6
