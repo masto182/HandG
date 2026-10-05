@@ -123,7 +123,7 @@ export default async function prepareEnrichedCsv({ container }: ExecArgs) {
     const stock = stockByProduct.get(p.id) ?? ""
 
     // Default container and volume for all current products (all cans)
-    const container = md.container_type || md.container || "Can 440ml"
+    const container = md.container_type || md.container || "Can 473ml"
     const volume_ml = md.volume_ml ?? ""
 
     const record: Record<string, unknown> = {

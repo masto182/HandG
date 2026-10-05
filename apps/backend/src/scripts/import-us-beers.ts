@@ -79,12 +79,12 @@ function getContainer(
     }
   }
   if (breweryName === "Troon") {
-    return { container: "Crowler 950ml", volume_ml: 950, weight: 1100 }
+    return { container: "Crowler 950ml", volume_ml: 950, weight: 1150 }
   }
   if (breweryName === "Russian River" && title === "Pliny the Elder") {
-    return { container: "Bottle 510ml", volume_ml: 510, weight: 700 }
+    return { container: "Bottle 510ml", volume_ml: 510, weight: 750 }
   }
-  return { container: "Can 473ml", volume_ml: 473, weight: 500 }
+  return { container: "Can 473ml", volume_ml: 473, weight: 550 }
 }
 
 function normalizeTitle(str: string): string {
@@ -647,7 +647,7 @@ export default async function importProducts({ container }: ExecArgs) {
             .join(" · "),
           status: ProductStatus.PUBLISHED,
           metadata,
-          options: [{ title: "Format", values: ["Can"] }],
+          options: [{ title: "Format", values: [container.split(" ")[0]] }],
           variants: [
             {
               title: `${title} — ${container}`,
@@ -655,7 +655,7 @@ export default async function importProducts({ container }: ExecArgs) {
               manage_inventory: true,
               weight,
               prices: [{ currency_code: "aud", amount: basePrice }],
-              options: { Format: "Can" },
+              options: { Format: container.split(" ")[0] },
             },
           ],
           sales_channels: [{ id: salesChannel.id }],

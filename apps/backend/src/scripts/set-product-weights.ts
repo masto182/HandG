@@ -4,9 +4,9 @@ import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 const BOTTLE_PRODUCTS = ["pliny the elder"]
 
 const WEIGHTS: Record<string, number> = {
-  can: 500,
-  bottle: 600,
-  crowler: 1200,
+  can: 550,
+  bottle: 750,
+  crowler: 1150,
 }
 
 const VOLUMES: Record<string, number> = {
@@ -22,7 +22,15 @@ export default async function setProductWeights({ container }: ExecArgs) {
 
   const { data: products } = await query.graph({
     entity: "product",
-    fields: ["id", "title", "metadata", "variants.id", "variants.weight", "variants.options.value", "variants.options.option.title"],
+    fields: [
+      "id",
+      "title",
+      "metadata",
+      "variants.id",
+      "variants.weight",
+      "variants.options.value",
+      "variants.options.option.title",
+    ],
   })
 
   let updated = 0
@@ -51,13 +59,15 @@ export default async function setProductWeights({ container }: ExecArgs) {
     }
 
     const expectedFormat = targetFormat ?? "Can"
-    const currentOptions = (product.variants?.[0]?.options ?? [])
-    const formatOpt = currentOptions.find((o: any) =>
-      (o.option?.title === "Format" || o.option?.title === "format")
+    const currentOptions = product.variants?.[0]?.options ?? []
+    const formatOpt = currentOptions.find(
+      (o: any) => o.option?.title === "Format" || o.option?.title === "format"
     )
     if (formatOpt && formatOpt.value !== expectedFormat) {
       try {
-        await (productModule as any).updateProductOptionValues(formatOpt.id, { value: expectedFormat })
+        await (productModule as any).updateProductOptionValues(formatOpt.id, {
+          value: expectedFormat,
+        })
         logger.info(`  Updated format option for "${product.title}" → ${expectedFormat}`)
       } catch (err: any) {
         logger.warn(`  Could not update format option for "${product.title}": ${err.message}`)
@@ -70,9 +80,15 @@ export default async function setProductWeights({ container }: ExecArgs) {
     const currentContainer = product.metadata?.container_type
     if (currentVolume !== expectedVolume || currentContainer !== effectiveFormat) {
       await productModule.updateProducts(product.id, {
-        metadata: { ...product.metadata, volume_ml: expectedVolume, container_type: effectiveFormat },
+        metadata: {
+          ...product.metadata,
+          volume_ml: expectedVolume,
+          container_type: effectiveFormat,
+        },
       })
-      logger.info(`  Set metadata.volume_ml=${expectedVolume}, container_type=${effectiveFormat} for "${product.title}"`)
+      logger.info(
+        `  Set metadata.volume_ml=${expectedVolume}, container_type=${effectiveFormat} for "${product.title}"`
+      )
     }
   }
 

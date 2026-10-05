@@ -134,7 +134,7 @@ export default async function importEnrichedCsv({ container }: ExecArgs) {
 
       const resolvedHops = row.hops.map((n) => (hopMap as any).get(n.toLowerCase())).filter(Boolean)
 
-      const containerValue = row.container || "Can 440ml"
+      const containerValue = row.container || "Can 473ml"
       const volumeMl = row.volume_ml ? parseFloat(row.volume_ml) : undefined
 
       const metaPatch: Record<string, any> = {

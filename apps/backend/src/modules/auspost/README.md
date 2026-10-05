@@ -10,11 +10,11 @@ WI-34. See `Site-Build/.snowflake/cortex/plans/auspost-pac-integration.plan.md` 
 
 AusPost has three developer APIs:
 
-| API | What it does | Who can use it |
-|---|---|---|
-| **PAC** | Rates only. Retail (RRP) prices. | Anyone with a free API key. |
+| API                     | What it does                                  | Who can use it                                 |
+| ----------------------- | --------------------------------------------- | ---------------------------------------------- |
+| **PAC**                 | Rates only. Retail (RRP) prices.              | Anyone with a free API key.                    |
 | **Shipping & Tracking** | Rates + labels + manifest. Contracted prices. | Contract customers only (eParcel / StarTrack). |
-| **Delivery Choices** | Customer-facing timeslot picker. | Invitation-only, eParcel-only. |
+| **Delivery Choices**    | Customer-facing timeslot picker.              | Invitation-only, eParcel-only.                 |
 
 MyPost Business is a **self-serve retail account, not a contract**. There is no public AusPost API that exposes MPB-contracted rates or labels. PAC is the only path.
 
@@ -22,10 +22,10 @@ Implication: the customer sees PAC retail prices. You actually pay (less) MPB-co
 
 ## Endpoints used
 
-| Need | Endpoint | Method |
-|---|---|---|
-| Available services for a parcel + lane | `/postage/parcel/domestic/service.json` | GET |
-| Calculate price for a service (with options) | `/postage/parcel/domestic/calculate.json` | GET |
+| Need                                         | Endpoint                                  | Method |
+| -------------------------------------------- | ----------------------------------------- | ------ |
+| Available services for a parcel + lane       | `/postage/parcel/domestic/service.json`   | GET    |
+| Calculate price for a service (with options) | `/postage/parcel/domestic/calculate.json` | GET    |
 
 Auth: `AUTH-KEY` header (single line). No account number.
 
@@ -60,16 +60,16 @@ Surcharges (SOD, Extra Cover) always pass through at PAC cost. Discount % only a
 
 ## SiteConfig keys (shipping group)
 
-| Key | Type | Default | Purpose |
-|---|---|---|---|
-| `auspost_enabled` | boolean | false | Master switch. When false, AusPost rates are silently omitted from `/store/shipping/rates`. |
-| `auspost_mode` | string | "production" | "production" hits digitalapi.auspost.com.au. (Test endpoint retired.) |
-| `auspost_api_key` | string (secret) | "" | PAC AUTH-KEY. Empty -> stub mode. Env: `AUSPOST_API_KEY`. |
-| `auspost_services_enabled` | jsonb | `["AUS_PARCEL_REGULAR","AUS_PARCEL_EXPRESS"]` | Service codes to surface. |
-| `auspost_discount_pct_standard` | number | 0 | % off Parcel Post base rate shown to customer. |
-| `auspost_discount_pct_express` | number | 0 | % off Express Post base rate shown to customer. |
-| `auspost_extra_cover_threshold_aud` | number | 200 | Auto-add Extra Cover at/above this subtotal. |
-| `auspost_sod_trigger_aud` | number | 300 | Auto-add SOD when subtotal exceeds this (lifts cover cap). |
+| Key                                 | Type            | Default                                       | Purpose                                                                                     |
+| ----------------------------------- | --------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `auspost_enabled`                   | boolean         | false                                         | Master switch. When false, AusPost rates are silently omitted from `/store/shipping/rates`. |
+| `auspost_mode`                      | string          | "production"                                  | "production" hits digitalapi.auspost.com.au. (Test endpoint retired.)                       |
+| `auspost_api_key`                   | string (secret) | ""                                            | PAC AUTH-KEY. Empty -> stub mode. Env: `AUSPOST_API_KEY`.                                   |
+| `auspost_services_enabled`          | jsonb           | `["AUS_PARCEL_REGULAR","AUS_PARCEL_EXPRESS"]` | Service codes to surface.                                                                   |
+| `auspost_discount_pct_standard`     | number          | 0                                             | % off Parcel Post base rate shown to customer.                                              |
+| `auspost_discount_pct_express`      | number          | 0                                             | % off Express Post base rate shown to customer.                                             |
+| `auspost_extra_cover_threshold_aud` | number          | 200                                           | Auto-add Extra Cover at/above this subtotal.                                                |
+| `auspost_sod_trigger_aud`           | number          | 300                                           | Auto-add SOD when subtotal exceeds this (lifts cover cap).                                  |
 
 ## Environment variables
 
@@ -89,7 +89,7 @@ Prints the services PAC returns for a Sydney -> Melbourne 1.5kg sample. Use it t
 Before flipping `auspost_enabled = true`:
 
 1. **Remeasure real cartons.** Box dims in `shipping-common/packing.ts` are approximate. PAC quotes exactly what we send. Re-measure your Small / Medium / Large cartons and update the constants if they drift > 1cm.
-2. **Weigh sample bottles and crowlers.** `CONTAINER_WEIGHTS` defaults: can 500g, bottle 600g, crowler 1200g. Weigh 5 of each and update if averages drift > 100g.
+2. **Weigh sample bottles and crowlers.** `CONTAINER_WEIGHTS` defaults: can 550g, bottle 750g, crowler 1150g. Weigh 5 of each and update if averages drift > 100g.
 3. **Compare PAC RRP vs MyPost Business invoices** for your last 10 lodgements. Decide an `auspost_discount_pct_*` value (often 5-15% off RRP for Standard, 0-5% for Express). Default is 0 (pass-through RRP).
 
 ## Architecture
@@ -193,17 +193,17 @@ After WI-35, `/store/shipping/rates` returns enriched, grouped rates and support
 
 ### Carrier service code reference (live as of 2026-05-18)
 
-| Provider | Carrier | Service code | Tier | Behaviour |
-|---|---|---|---|---|
-| auspost | Australia Post | `AUS_PARCEL_REGULAR` | standard | attempted |
-| auspost | Australia Post | `AUS_PARCEL_REGULAR` + SOD | standard | signature |
-| auspost | Australia Post | `AUS_PARCEL_EXPRESS` | express | attempted |
-| auspost | Australia Post | `AUS_PARCEL_EXPRESS` + SOD | express | signature |
-| shipengine | CouriersPlease | `couriersplease_walleted_parcel` | standard | attempted |
-| shipengine | Aramex | `aramex_au_walleted_standard` | standard | attempted |
-| shipengine | Aramex | `aramex_au_walleted_leave_at_door` | standard | leave_at_door |
-| shipengine | Aramex | `aramex_au_walleted_signature_required` | standard | signature |
-| shipengine | Aramex (Fastway) | `fastway_au_walleted_priority` | express | attempted |
+| Provider   | Carrier          | Service code                            | Tier     | Behaviour     |
+| ---------- | ---------------- | --------------------------------------- | -------- | ------------- |
+| auspost    | Australia Post   | `AUS_PARCEL_REGULAR`                    | standard | attempted     |
+| auspost    | Australia Post   | `AUS_PARCEL_REGULAR` + SOD              | standard | signature     |
+| auspost    | Australia Post   | `AUS_PARCEL_EXPRESS`                    | express  | attempted     |
+| auspost    | Australia Post   | `AUS_PARCEL_EXPRESS` + SOD              | express  | signature     |
+| shipengine | CouriersPlease   | `couriersplease_walleted_parcel`        | standard | attempted     |
+| shipengine | Aramex           | `aramex_au_walleted_standard`           | standard | attempted     |
+| shipengine | Aramex           | `aramex_au_walleted_leave_at_door`      | standard | leave_at_door |
+| shipengine | Aramex           | `aramex_au_walleted_signature_required` | standard | signature     |
+| shipengine | Aramex (Fastway) | `fastway_au_walleted_priority`          | express  | attempted     |
 
 Aramex does NOT sell a signature variant on Fastway Priority - only on standard road. CouriersPlease has only one service code (no leave-at-door or signature variants on this account).
 
@@ -250,31 +250,46 @@ Response shape (matches `CarrierRatesResponse` after WI-36):
           "delivery_behaviour": "attempted",
           "is_default_behaviour": true,
           "signature_sibling": { "rate_id": "...sig-...", "amount": 1635, "delta_cents": 395 },
-          "data": { "delivery_days": 4, "cover_total_aud": 250 }
-        }
-      ]
+          "data": { "delivery_days": 4, "cover_total_aud": 250 },
+        },
+      ],
     },
     {
       "carrier_group": "aramex",
       "carrier_display_name": "Aramex",
       "rates": [
-        { "id": "aramex-std-...", "name": "Road Express", "amount": 1350,
-          "delivery_behaviour": "attempted", "is_default_behaviour": true,
-          "signature_sibling": { "rate_id": "aramex-sig-...", "amount": 1580, "delta_cents": 230 } },
-        { "id": "aramex-atl-...", "name": "Road Express - Leave at door", "amount": 1120,
-          "delivery_behaviour": "leave_at_door", "is_default_behaviour": false }
-      ]
+        {
+          "id": "aramex-std-...",
+          "name": "Road Express",
+          "amount": 1350,
+          "delivery_behaviour": "attempted",
+          "is_default_behaviour": true,
+          "signature_sibling": { "rate_id": "aramex-sig-...", "amount": 1580, "delta_cents": 230 },
+        },
+        {
+          "id": "aramex-atl-...",
+          "name": "Road Express - Leave at door",
+          "amount": 1120,
+          "delivery_behaviour": "leave_at_door",
+          "is_default_behaviour": false,
+        },
+      ],
     },
     {
       "carrier_group": "couriers_please",
       "carrier_display_name": "CouriersPlease",
       "rates": [
-        { "id": "cp-...", "name": "Standard parcel", "amount": 1185,
-          "delivery_behaviour": "attempted", "is_default_behaviour": true }
-      ]
-    }
+        {
+          "id": "cp-...",
+          "name": "Standard parcel",
+          "amount": 1185,
+          "delivery_behaviour": "attempted",
+          "is_default_behaviour": true,
+        },
+      ],
+    },
   ],
-  "best_price_rate_id": "aramex-atl-..."
+  "best_price_rate_id": "aramex-atl-...",
 }
 ```
 
@@ -284,8 +299,8 @@ Response shape (matches `CarrierRatesResponse` after WI-36):
 
 ### SiteConfig keys (v2)
 
-| Key | Type | Default | Purpose |
-|---|---|---|---|
-| `shipping_dedup_within_carrier` | boolean | true | Show only the cheapest rate per (carrier, tier, behaviour). |
-| `shipping_carrier_order` | jsonb | `["australia_post","aramex","couriers_please"]` | Display order. |
-| `shipping_signature_recommended_threshold_aud` | number (public) | 300 | Storefront auto-ticks Require signature above this subtotal. |
+| Key                                            | Type            | Default                                         | Purpose                                                      |
+| ---------------------------------------------- | --------------- | ----------------------------------------------- | ------------------------------------------------------------ |
+| `shipping_dedup_within_carrier`                | boolean         | true                                            | Show only the cheapest rate per (carrier, tier, behaviour).  |
+| `shipping_carrier_order`                       | jsonb           | `["australia_post","aramex","couriers_please"]` | Display order.                                               |
+| `shipping_signature_recommended_threshold_aud` | number (public) | 300                                             | Storefront auto-ticks Require signature above this subtotal. |

@@ -36,9 +36,9 @@ export const MEDIUM_BOX = { lengthCm: 24, widthCm: 19, heightCm: 12, maxUnits: 6
 export const LARGE_BOX = { lengthCm: 39, widthCm: 28, heightCm: 14, maxUnits: 16 }
 
 export const CONTAINER_WEIGHTS: Record<ContainerType, number> = {
-  can: 500,
-  bottle: 600,
-  crowler: 1200,
+  can: 550,
+  bottle: 750,
+  crowler: 1150,
 }
 
 export function resolveContainerType(formatOption?: string | null): ContainerType {

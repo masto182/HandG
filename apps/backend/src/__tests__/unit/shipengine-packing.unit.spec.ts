@@ -127,9 +127,9 @@ describe("shipengine packing", () => {
 
   describe("CONTAINER_WEIGHTS", () => {
     it("has correct default weights", () => {
-      expect(CONTAINER_WEIGHTS.can).toBe(500)
-      expect(CONTAINER_WEIGHTS.bottle).toBe(600)
-      expect(CONTAINER_WEIGHTS.crowler).toBe(1200)
+      expect(CONTAINER_WEIGHTS.can).toBe(550)
+      expect(CONTAINER_WEIGHTS.bottle).toBe(750)
+      expect(CONTAINER_WEIGHTS.crowler).toBe(1150)
     })
   })
 
