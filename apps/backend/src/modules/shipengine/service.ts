@@ -252,13 +252,14 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
     const handlingFeeAud = await this.siteConfigGet<number>("shipping_handling_fee_aud", 0)
     const handlingFeeCents = Math.round(handlingFeeAud * 100)
     try {
+      // data.amount comes from /store/shipping/rates, which already includes the handling fee.
       const cachedAmount = typeof data?.amount === "number" ? (data.amount as number) : undefined
       if (
         cachedAmount !== undefined &&
         this.isRateCacheFresh(data?.rate_quoted_at as string | undefined)
       ) {
         return {
-          calculated_amount: toMajor(cachedAmount + handlingFeeCents),
+          calculated_amount: toMajor(cachedAmount),
           is_calculated_price_tax_inclusive: false,
         }
       }

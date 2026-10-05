@@ -175,6 +175,18 @@ describe("ShipEngineProviderService currency safety", () => {
   })
 })
 
+describe("ShipEngineProviderService handling fee", () => {
+  it("does not re-add the handling fee to a fresh cached rate (already included in /store/shipping/rates)", async () => {
+    const provider = makeProvider({ shipping_handling_fee_aud: 3 })
+    const res = await provider.calculatePrice(
+      {} as any,
+      { amount: 1385, rate_quoted_at: new Date().toISOString() } as any,
+      { shipping_address: sampleAddress, currency_code: "aud", items: [] } as any
+    )
+    expect(res.calculated_amount).toBe(13.85)
+  })
+})
+
 describe("ShipEngineProviderService cancellation", () => {
   it("cancelFulfillment tolerates an unknown label_id", async () => {
     const provider = makeProvider({})

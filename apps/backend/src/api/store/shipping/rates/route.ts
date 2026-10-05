@@ -222,7 +222,14 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     fetchAusPostRates({ packages, cart, sc, logger, currency, requireSignature, debug, debugInfo }),
   ])
 
-  let allRates: CarrierRate[] = [...seResult.rates, ...apResult.rates]
+  const handlingFeeCents = Math.round(
+    Number(await sc<number>("shipping_handling_fee_aud", 0)) * 100
+  )
+  const seRates = handlingFeeCents
+    ? seResult.rates.map((r) => ({ ...r, amount: r.amount + handlingFeeCents }))
+    : seResult.rates
+
+  let allRates: CarrierRate[] = [...seRates, ...apResult.rates]
 
   // v3 sibling pairing for ShipEngine: within each (carrier_group, service_tier) pair,
   // a non-signature standard rate becomes the visible row and gains a `signature_sibling`
