@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
+import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import Icon from "@modules/common/components/icon"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
@@ -13,7 +14,6 @@ import {
 } from "@lib/data/notifications"
 
 import { filterNewAlertNotifications } from "@lib/util/notification-toast"
-import NotificationDetailModal from "@modules/layout/components/notification-detail-modal"
 
 const SEEN_KEY = "hg_shown_notifs"
 
@@ -22,7 +22,7 @@ export default function NotificationDropdown() {
   const [open, setOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [markingAll, setMarkingAll] = useState(false)
-  const [selected, setSelected] = useState<NotificationItem | null>(null)
+  const router = useRouter()
   const ref = useRef<HTMLDivElement>(null)
   const shownRef = useRef<Set<string>>(new Set())
 
@@ -83,7 +83,7 @@ export default function NotificationDropdown() {
 
   const handleItemClick = async (n: NotificationItem) => {
     setOpen(false)
-    setSelected({ ...n, read: true })
+    router.push(`/account/notifications?id=${encodeURIComponent(n.id)}`)
     if (n.read) return
     setNotifications((prev) =>
       prev.map((item) => (item.id === n.id ? { ...item, read: true } : item)),
@@ -247,10 +247,6 @@ export default function NotificationDropdown() {
           </div>
         </div>
       )}
-      <NotificationDetailModal
-        notification={selected}
-        onClose={() => setSelected(null)}
-      />
     </div>
   )
 }

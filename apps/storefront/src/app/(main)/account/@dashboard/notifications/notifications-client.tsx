@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 
 import {
   deleteNotification,
@@ -80,6 +81,35 @@ export default function NotificationsClient({
   const handleOpen = (item: NotificationItem) => {
     setSelected({ ...item, read: true })
     void handleMarkRead(item)
+  }
+
+  const router = useRouter()
+  const pathname = usePathname()
+  const targetId = useSearchParams().get("id")
+
+  useEffect(() => {
+    if (!targetId) return
+    const local = notifications.find((entry) => entry.id === targetId)
+    if (local) {
+      handleOpen(local)
+      return
+    }
+    let cancelled = false
+    getMyNotifications({ limit: 50 })
+      .then((data) => {
+        const found = data.notifications.find((entry) => entry.id === targetId)
+        if (!cancelled && found) handleOpen(found)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetId])
+
+  const handleClose = () => {
+    setSelected(null)
+    if (targetId) router.replace(pathname, { scroll: false })
   }
 
   const loadNotifications = async (
@@ -428,10 +458,7 @@ export default function NotificationsClient({
         </div>
       ) : null}
 
-      <NotificationDetailModal
-        notification={selected}
-        onClose={() => setSelected(null)}
-      />
+      <NotificationDetailModal notification={selected} onClose={handleClose} />
     </div>
   )
 }
