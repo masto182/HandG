@@ -12,20 +12,22 @@ overrides:
   "@opentelemetry/sdk-node": ">=0.217.0"
   "@opentelemetry/exporter-prometheus": ">=0.217.0"
   "fast-xml-builder": ">=1.1.7"
-  axios: ">=1.18.0"
-  brace-expansion@<2: "1.1.18"
-  brace-expansion@>=3: "5.0.9"
+  axios: ">=1.20.0"
+  brace-expansion@<2: "1.1.21"
+  brace-expansion@>=3: "5.0.12"
   "@opentelemetry/propagator-jaeger": ">=2.9.0"
   immutable: ">=5.1.8"
   postcss: ">=8.5.18"
-  fast-uri: ">=3.1.5"
-  sharp: ">=0.35.0"
-  "@grpc/grpc-js": ">=1.14.4"
+  fast-uri: ">=4.2.1"
+  sharp: ">=0.35.5"
+  "@grpc/grpc-js": ">=1.14.5"
   "form-data": ">=4.0.6"
   protobufjs: ">=7.6.1 <8"
   vite: ">=6.4.3 <7"
-  multer: ">=2.2.0 <3"
+  multer: ">=2.4.0 <3"
   nanoid: ">=3.3.18"
+  figlet: ">=1.12.0"
+  browserslist: ">=4.29.3"
   # Jest 30.4.2 broke jest-mock/jest-runtime API compatibility; pin the whole
   # jest family at 30.4.1 until a cohesive patch is published.
   jest: "30.4.1"
@@ -41,6 +43,10 @@ overrides:
 auditConfig:
   ignoreGhsas:
     - GHSA-gv7w-rqvm-qjhr
+    # braces: advisory names >=3.0.4 as patched but no such release exists on
+    # npm (latest 3.0.3). Build-time only, via Medusa CLI / mikro-orm globbing.
+    # Remove once braces publishes a fix.
+    - GHSA-vfj7-8cjw-p6xm
 
 allowBuilds:
   "@google/genai": true
