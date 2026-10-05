@@ -13,6 +13,7 @@ import {
 } from "@lib/data/notifications"
 
 import { filterNewAlertNotifications } from "@lib/util/notification-toast"
+import NotificationDetailModal from "@modules/layout/components/notification-detail-modal"
 
 const SEEN_KEY = "hg_shown_notifs"
 
@@ -21,6 +22,7 @@ export default function NotificationDropdown() {
   const [open, setOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [markingAll, setMarkingAll] = useState(false)
+  const [selected, setSelected] = useState<NotificationItem | null>(null)
   const ref = useRef<HTMLDivElement>(null)
   const shownRef = useRef<Set<string>>(new Set())
 
@@ -80,6 +82,8 @@ export default function NotificationDropdown() {
   }
 
   const handleItemClick = async (n: NotificationItem) => {
+    setOpen(false)
+    setSelected({ ...n, read: true })
     if (n.read) return
     setNotifications((prev) =>
       prev.map((item) => (item.id === n.id ? { ...item, read: true } : item)),
@@ -163,7 +167,14 @@ export default function NotificationDropdown() {
                 <div
                   key={n.id}
                   onClick={() => handleItemClick(n)}
-                  role={n.read ? undefined : "button"}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault()
+                      handleItemClick(n)
+                    }
+                  }}
                   className={[
                     "px-4 py-3 border-b border-outline-variant/50 last:border-b-0 hover:bg-surface-container transition-colors cursor-pointer",
                     n.read ? "" : "bg-primary/5",
@@ -206,12 +217,15 @@ export default function NotificationDropdown() {
                             {link.label}
                           </a>
                         ) : (
-                          <LocalizedClientLink
-                            href={link.href}
-                            className="text-body-sm text-primary font-medium hover:underline"
-                          >
-                            {link.label}
-                          </LocalizedClientLink>
+                          <span onClick={(e) => e.stopPropagation()}>
+                            <LocalizedClientLink
+                              href={link.href}
+                              onClick={() => setOpen(false)}
+                              className="text-body-sm text-primary font-medium hover:underline"
+                            >
+                              {link.label}
+                            </LocalizedClientLink>
+                          </span>
                         )
                       })()}
                       <p className="text-[11px] text-on-surface-variant/60 mt-1">
@@ -233,6 +247,10 @@ export default function NotificationDropdown() {
           </div>
         </div>
       )}
+      <NotificationDetailModal
+        notification={selected}
+        onClose={() => setSelected(null)}
+      />
     </div>
   )
 }

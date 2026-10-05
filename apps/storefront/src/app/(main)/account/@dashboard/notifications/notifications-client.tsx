@@ -13,6 +13,7 @@ import {
 import Icon from "@modules/common/components/icon"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import { getNotificationLink } from "@lib/util/notification-link"
+import NotificationDetailModal from "@modules/layout/components/notification-detail-modal"
 
 type Filter = "all" | "unread"
 
@@ -74,6 +75,12 @@ export default function NotificationsClient({
   const [busyId, setBusyId] = useState<string | null>(null)
   const [isMarkingAllRead, setIsMarkingAllRead] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [selected, setSelected] = useState<NotificationItem | null>(null)
+
+  const handleOpen = (item: NotificationItem) => {
+    setSelected({ ...item, read: true })
+    void handleMarkRead(item)
+  }
 
   const loadNotifications = async (
     nextFilter: Filter,
@@ -321,19 +328,19 @@ export default function NotificationsClient({
               return (
                 <li key={item.id}>
                   <div
-                    onClick={() => void handleMarkRead(item)}
+                    onClick={() => handleOpen(item)}
                     onKeyDown={(event) => {
                       if (
-                        (event.key === "Enter" || event.key === " ") &&
-                        !item.read
+                        event.target === event.currentTarget &&
+                        (event.key === "Enter" || event.key === " ")
                       ) {
                         event.preventDefault()
-                        void handleMarkRead(item)
+                        handleOpen(item)
                       }
                     }}
-                    role={item.read ? undefined : "button"}
-                    tabIndex={item.read ? -1 : 0}
-                    className="flex items-start gap-3 px-5 py-4 transition-colors hover:bg-surface-container"
+                    role="button"
+                    tabIndex={0}
+                    className="flex cursor-pointer items-start gap-3 px-5 py-4 transition-colors hover:bg-surface-container"
                   >
                     <span
                       className={
@@ -375,12 +382,15 @@ export default function NotificationsClient({
                               {link.label}
                             </a>
                           ) : (
-                            <LocalizedClientLink
-                              href={link.href}
-                              className="text-xs font-medium text-hl-primary hover:underline"
-                            >
-                              {link.label}
-                            </LocalizedClientLink>
+                            <span onClick={(event) => event.stopPropagation()}>
+                              <LocalizedClientLink
+                                href={link.href}
+                                onClick={() => void handleMarkRead(item)}
+                                className="text-xs font-medium text-hl-primary hover:underline"
+                              >
+                                {link.label}
+                              </LocalizedClientLink>
+                            </span>
                           )
                         })()}
                       </div>
@@ -417,6 +427,11 @@ export default function NotificationsClient({
           </button>
         </div>
       ) : null}
+
+      <NotificationDetailModal
+        notification={selected}
+        onClose={() => setSelected(null)}
+      />
     </div>
   )
 }
