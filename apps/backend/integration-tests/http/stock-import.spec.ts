@@ -391,6 +391,11 @@ medusaIntegrationTestRunner({
       it("release time: default upload+20min for new, Sydney for offset-less, restock from zero re-releases, in-stock untouched", async () => {
         const container = getContainer()
         const productModule = container.resolve("product") as any
+        const stockLocationModule = container.resolve("stock_location") as any
+        const locations = await stockLocationModule.listStockLocations({})
+        if (!locations.length) {
+          await stockLocationModule.createStockLocations({ name: "Hops & Glory Warehouse IT" })
+        }
         const post = (csv: string) =>
           api.post("/admin/stock-import", { csv, options: { dry_run: false } }, adminAuth)
         const read = async (title: string) => (await productModule.listProducts({ title }))[0]

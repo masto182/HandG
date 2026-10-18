@@ -20,6 +20,8 @@ const config: Config = {
   moduleNameMapper: {
     "^@lib/(.*)$": "<rootDir>/src/lib/$1",
     "^@modules/(.*)$": "<rootDir>/src/modules/$1",
+    "^@retail-example/shared-types$":
+      "<rootDir>/../../packages/shared-types/src/index.ts",
     "^server-only$": "<rootDir>/src/lib/__mocks__/server-only.ts",
     "\\.(css|scss|sass)$": "<rootDir>/src/lib/__mocks__/style-mock.ts",
   },
