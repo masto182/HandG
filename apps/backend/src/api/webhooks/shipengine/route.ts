@@ -69,7 +69,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     const result = await query.graph({
       entity: "fulfillment",
       fields: ["id", "data", "shipment.order_id"],
-      filters: { provider_id: "shipengine" },
+      filters: { provider_id: "shipengine_shipengine" },
     })
     const match = (result.data ?? []).find(
       (f) =>
@@ -82,7 +82,15 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     }
   } catch (err) {
     logger.warn(`[shipengine-webhook] fulfillment lookup failed: ${(err as Error).message}`)
+    res.status(500).json({ message: "lookup failed" })
+    return
   }
+
+  if (!fulfillmentId) {
+    logger.warn(`[shipengine-webhook] no fulfillment matches tracking ${update.tracking_number}`)
+  }
+
+  let alreadyDelivered = false
 
   // Append the event to fulfillment.metadata.tracking_events[].
   if (fulfillmentId) {
@@ -95,6 +103,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         ) => Promise<unknown>
       }
       const existing = await fulfillmentModule.retrieveFulfillment(fulfillmentId)
+      alreadyDelivered = existing.metadata?.last_tracking_status === "delivered"
       const events = Array.isArray(existing.metadata?.tracking_events)
         ? (existing.metadata?.tracking_events as unknown[])
         : []
@@ -117,6 +126,8 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       await fulfillmentModule.updateFulfillment(fulfillmentId, fulfillmentUpdate) // workflow-exempt: external webhook updates fulfillment status
     } catch (err) {
       logger.warn(`[shipengine-webhook] persist failed: ${(err as Error).message}`)
+      res.status(500).json({ message: "persist failed" })
+      return
     }
   }
 
@@ -126,7 +137,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       emit(events: { name: string; data: Record<string, unknown> }[]): Promise<void>
     }
     try {
-      if (update.status === "delivered") {
+      if (update.status === "delivered" && !alreadyDelivered) {
         await eventBus.emit([
           {
             name: "order.delivered",
