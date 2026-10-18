@@ -87,6 +87,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
   try {
     const emailLogService = req.scope.resolve(EMAIL_LOG_MODULE) as EmailLogModuleService
     const applied = await emailLogService.applyWebhookEvent(emailId, {
+      // workflow-exempt: external webhook updates email log status
       status: mapping.status as any,
       timestampField: mapping.timestampField,
       incrementOpen: mapping.incrementOpen,
