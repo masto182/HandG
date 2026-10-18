@@ -8,6 +8,7 @@ import { VIP_SCORE_MODULE } from "../../../../../modules/vip-score"
 import { REFERRAL_MODULE } from "../../../../../modules/referral"
 import { SITE_CONFIG_MODULE } from "../../../../../modules/site-config"
 import type SiteConfigModuleService from "../../../../../modules/site-config/service"
+import { HOURS_BEFORE_PUBLIC_BY_TIER } from "../../../../../lib/access/early-access"
 
 type VipEarlyAccessOffsets = {
   vip1: number
@@ -17,34 +18,18 @@ type VipEarlyAccessOffsets = {
   vip5: number
 }
 
-// Visibility offsets used by storefront countdown / listing logic. Same
-// site-config key as VipEarlyAccessOffsets above (extra `approved` key); the
-// storefront uses these to compute per-tier purchase windows. Defaults match
-// HOURS_BEFORE_PUBLIC_BY_TIER in @retail-example/shared-types.
-type EarlyAccessVisibilityOffsets = {
-  approved: number
-  vip1: number
-  vip2: number
-  vip3: number
-  vip4: number
-  vip5: number
-}
+// The early-access ladder is fixed in shared-types and enforced server-side;
+// the response mirrors it so storefront copy always matches enforcement.
+type EarlyAccessVisibilityOffsets = typeof HOURS_BEFORE_PUBLIC_BY_TIER
 
-const DEFAULT_VISIBILITY_OFFSETS: EarlyAccessVisibilityOffsets = {
-  approved: 1,
-  vip1: 3,
-  vip2: 6,
-  vip3: 12,
-  vip4: 24,
-  vip5: 24,
-}
+const DEFAULT_VISIBILITY_OFFSETS: EarlyAccessVisibilityOffsets = HOURS_BEFORE_PUBLIC_BY_TIER
 
 const DEFAULT_OFFSETS: VipEarlyAccessOffsets = {
-  vip1: 0,
-  vip2: 6,
-  vip3: 12,
-  vip4: 24,
-  vip5: 48,
+  vip1: HOURS_BEFORE_PUBLIC_BY_TIER.vip1,
+  vip2: HOURS_BEFORE_PUBLIC_BY_TIER.vip2,
+  vip3: HOURS_BEFORE_PUBLIC_BY_TIER.vip3,
+  vip4: HOURS_BEFORE_PUBLIC_BY_TIER.vip4,
+  vip5: HOURS_BEFORE_PUBLIC_BY_TIER.vip5,
 }
 
 export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
@@ -55,19 +40,12 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
 
   // Resolve dynamic config once per request (DB > env > default).
   let graceDays = VIP_DEMOTION_GRACE_DAYS
-  let offsets: VipEarlyAccessOffsets = DEFAULT_OFFSETS
-  let visibilityOffsets: EarlyAccessVisibilityOffsets = DEFAULT_VISIBILITY_OFFSETS
+  const offsets: VipEarlyAccessOffsets = DEFAULT_OFFSETS
+  const visibilityOffsets: EarlyAccessVisibilityOffsets = DEFAULT_VISIBILITY_OFFSETS
   try {
     const siteConfig = req.scope.resolve(SITE_CONFIG_MODULE) as SiteConfigModuleService
-    const [g, o] = await Promise.all([
-      siteConfig.get<number>("vip_demotion_grace_days"),
-      siteConfig.get<Partial<EarlyAccessVisibilityOffsets>>("vip_early_access_offsets_hours"),
-    ])
+    const g = await siteConfig.get<number>("vip_demotion_grace_days")
     if (typeof g === "number") graceDays = g
-    if (o && typeof o === "object") {
-      offsets = { ...DEFAULT_OFFSETS, ...(o as Partial<VipEarlyAccessOffsets>) }
-      visibilityOffsets = { ...DEFAULT_VISIBILITY_OFFSETS, ...o }
-    }
   } catch {}
 
   const [scoreRecord] = await vipScoreService.listVipScores({

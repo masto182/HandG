@@ -10,7 +10,7 @@ import SpecialCountdown from "@modules/products/components/special-countdown"
 import EarlyAccessOverlay from "@modules/products/components/early-access-overlay"
 import type { ActiveSpecial } from "@lib/data/specials"
 import {
-  canCustomerAccessProduct,
+  viewerCanBuy,
   HOURS_BEFORE_PUBLIC_BY_TIER,
   type Tier,
 } from "@retail-example/shared-types"
@@ -99,19 +99,7 @@ export default async function ProductPreview({
   const earlyAccessUntil =
     (meta?.early_access_until as string | undefined) ?? null
 
-  const hasEarlyAccess = (() => {
-    if (!canSeePricing) return false
-    if (!releaseAt && !earlyAccessUntil) return true
-    const release = releaseAt
-      ? new Date(releaseAt)
-      : earlyAccessUntil
-        ? new Date(new Date(earlyAccessUntil).getTime() - 24 * 3600 * 1000)
-        : null
-    if (!release || isNaN(release.getTime())) return true
-    const publicAccess = new Date(release.getTime() + 24 * 3600 * 1000)
-    if (!viewerTier) return false
-    return canCustomerAccessProduct(viewerTier, publicAccess, new Date())
-  })()
+  const hasEarlyAccess = viewerCanBuy(meta, canSeePricing, viewerTier)
 
   return (
     <article className="flex flex-col gap-3">

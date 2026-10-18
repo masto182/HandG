@@ -6,6 +6,9 @@ import {
 import { retrieveCustomer } from "@lib/data/customer"
 import { getVariantInventory } from "@lib/data/inventory"
 import CartTemplate from "@modules/cart/templates"
+import EarlyAccessCartGate from "@modules/cart/components/early-access-cart-gate"
+import { getEarlyAccessConfig } from "@lib/data/early-access"
+import { toGateItems } from "@lib/util/early-access-cart"
 import { Metadata } from "next"
 import { notFound } from "next/navigation"
 
@@ -35,13 +38,26 @@ export default async function Cart() {
     cart = autoDiscounted
   }
 
-  const customer = await retrieveCustomer()
+  const [customer, earlyAccess] = await Promise.all([
+    retrieveCustomer(),
+    getEarlyAccessConfig(),
+  ])
 
   const variantIds =
     (cart?.items?.map((i) => i.variant_id).filter(Boolean) as string[]) || []
   const inventoryMap = await getVariantInventory(variantIds)
 
   return (
-    <CartTemplate cart={cart} customer={customer} inventoryMap={inventoryMap} />
+    <>
+      <EarlyAccessCartGate
+        items={toGateItems(cart)}
+        viewerTier={earlyAccess.viewerTier}
+      />
+      <CartTemplate
+        cart={cart}
+        customer={customer}
+        inventoryMap={inventoryMap}
+      />
+    </>
   )
 }

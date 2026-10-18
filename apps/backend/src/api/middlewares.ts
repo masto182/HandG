@@ -3,7 +3,10 @@ import { validateBody } from "../lib/validate-body"
 import { RegisterCustomerSchema } from "./store/customers/register/validators"
 import { resolveCustomerTier } from "./store/middlewares/resolve-customer-tier"
 import { publicProductRedactor } from "./store/middlewares/public-product-redactor"
-import { enforceAccessOnCartAdd } from "./store/middlewares/enforce-access-on-cart-add"
+import {
+  enforceAccessOnCartAdd,
+  enforceAccessOnCartComplete,
+} from "./store/middlewares/enforce-access-on-cart-add"
 import { rateLimit } from "./store/middlewares/rate-limit"
 import { normalizeAuthEmail } from "./store/middlewares/normalize-auth-email"
 import { normalizeAdminProductResponse } from "./admin/middlewares/normalize-product-response"
@@ -92,6 +95,16 @@ export default defineMiddlewares({
         authenticate("customer", ["bearer", "session"], { allowUnauthenticated: true }),
         resolveCustomerTier,
         enforceAccessOnCartAdd,
+      ],
+    },
+    {
+      // Checkout backstop: every line is re-checked against the viewer's tier.
+      matcher: "/store/carts/*/complete",
+      method: "POST",
+      middlewares: [
+        authenticate("customer", ["bearer", "session"], { allowUnauthenticated: true }),
+        resolveCustomerTier,
+        enforceAccessOnCartComplete,
       ],
     },
     {

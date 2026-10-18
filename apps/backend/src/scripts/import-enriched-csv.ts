@@ -13,6 +13,7 @@ import { HOP_MODULE } from "../modules/hop"
 import { BEER_STYLE_MODULE } from "../modules/beer-style"
 import { parseStockImportCsv, slugify } from "../api/admin/stock-import/parser"
 import { createProductsWorkflow } from "@medusajs/medusa/core-flows"
+import { resolveReleaseAt, releaseMetadata } from "../lib/access/early-access"
 
 export default async function importEnrichedCsv({ container }: ExecArgs) {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER) as any
@@ -26,6 +27,7 @@ export default async function importEnrichedCsv({ container }: ExecArgs) {
   const stockLocationModule = container.resolve(Modules.STOCK_LOCATION) as any
 
   const dryRun = process.env.DRY_RUN !== "false"
+  const uploadedAt = new Date()
 
   const csvPath = path.join(process.cwd(), "data", "enriched-catalogue.csv")
   if (!fs.existsSync(csvPath)) {
@@ -171,6 +173,9 @@ export default async function importEnrichedCsv({ container }: ExecArgs) {
       )
       const stockQty = row.stock ? parseInt(row.stock, 10) : NaN
 
+      if (!existing || row.release_at) {
+        Object.assign(metaPatch, releaseMetadata(resolveReleaseAt(row.release_at, uploadedAt)))
+      }
       if (dryRun) {
         const action = existing ? "update" : "create"
         console.log(

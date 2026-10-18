@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react"
 import {
-  canCustomerAccessProduct,
-  computeTierVisibleFrom,
   currentLowestTierWithAccess,
+  productAccessForTier,
+  readProductRelease,
   HOURS_BEFORE_PUBLIC_BY_TIER,
   type Tier,
 } from "@lib/access/early-access"
@@ -38,27 +38,17 @@ function formatHHMMSS(ms: number): string {
 export default function EarlyAccessOverlay({
   releaseAt,
   earlyAccessUntil,
-  offsets,
   viewerTier,
 }: Props) {
-  const tierOffsets = offsets ?? HOURS_BEFORE_PUBLIC_BY_TIER
-
-  const release = useMemo(() => {
-    if (releaseAt) {
-      const d = new Date(releaseAt)
-      return isNaN(d.getTime()) ? null : d
-    }
-    if (earlyAccessUntil) {
-      const d = new Date(earlyAccessUntil)
-      if (isNaN(d.getTime())) return null
-      return new Date(d.getTime() - 24 * 3600 * 1000)
-    }
-    return null
-  }, [releaseAt, earlyAccessUntil])
-
-  const publicAccess = useMemo(() => {
-    return release ? new Date(release.getTime() + 24 * 3600 * 1000) : null
-  }, [release])
+  const metadata = useMemo(
+    () => ({
+      release_at: releaseAt ?? undefined,
+      early_access_until: earlyAccessUntil ?? undefined,
+    }),
+    [releaseAt, earlyAccessUntil],
+  )
+  const parsed = useMemo(() => readProductRelease(metadata), [metadata])
+  const release = parsed.status === "scheduled" ? parsed.releaseAt : null
 
   const [now, setNow] = useState<Date>(() => new Date())
 
@@ -68,15 +58,14 @@ export default function EarlyAccessOverlay({
     return () => clearInterval(interval)
   }, [release])
 
-  if (!release || !publicAccess) return null
-  if (!viewerTier) return null
-  if (canCustomerAccessProduct(viewerTier, publicAccess, now)) return null
+  if (!release || !viewerTier) return null
+  const access = productAccessForTier(metadata, viewerTier, now)
+  if (!access.locked || !access.unlockAt) return null
 
-  const visibleFrom = computeTierVisibleFrom(publicAccess, viewerTier)
-  const remainingMs = visibleFrom.getTime() - now.getTime()
+  const remainingMs = access.unlockAt.getTime() - now.getTime()
   if (remainingMs <= 0) return null
 
-  const lowest = currentLowestTierWithAccess(release, tierOffsets, now)
+  const lowest = currentLowestTierWithAccess(release, undefined, now)
   const lowestLabel = lowest ? TIER_LABEL[lowest] : TIER_LABEL.vip5
 
   return (

@@ -24,6 +24,9 @@ import StepPayment from "@modules/checkout/components/step-payment"
 import StepReview from "@modules/checkout/components/step-review"
 import { Metadata } from "next"
 import { redirect } from "next/navigation"
+import { getEarlyAccessConfig } from "@lib/data/early-access"
+import EarlyAccessCartGate from "@modules/cart/components/early-access-cart-gate"
+import { toGateItems } from "@lib/util/early-access-cart"
 
 export const metadata: Metadata = {
   title: "Checkout",
@@ -64,9 +67,10 @@ export default async function Checkout({
 
   // customer + shipping methods are both always needed and independent — fetch
   // in parallel rather than waterfalling.
-  const [customer, shippingMethods] = await Promise.all([
+  const [customer, shippingMethods, earlyAccess] = await Promise.all([
     retrieveCustomer(),
     listCartShippingMethods(cart.id),
+    getEarlyAccessConfig(),
   ])
   const pickupOptionsList = getPickupOptions(shippingMethods)
   const currentShippingOptionId =
@@ -150,6 +154,10 @@ export default async function Checkout({
 
   return (
     <main className="min-h-screen flex max-w-[1440px] mx-auto px-4 sm:px-8">
+      <EarlyAccessCartGate
+        items={toGateItems(cart)}
+        viewerTier={earlyAccess.viewerTier}
+      />
       <section className={`flex-1 ${isConfirm ? "" : "lg:pr-[420px]"} py-12`}>
         <div className="max-w-[720px] mx-auto">
           {!isConfirm && (

@@ -6,7 +6,7 @@ import EarlyAccessOverlay from "@modules/products/components/early-access-overla
 import ProductPill from "@modules/products/components/product-pill"
 import { getProductPrice } from "@lib/util/get-product-price"
 import {
-  canCustomerAccessProduct,
+  viewerCanBuy,
   HOURS_BEFORE_PUBLIC_BY_TIER,
   type Tier,
 } from "@retail-example/shared-types"
@@ -81,25 +81,7 @@ const NewArrivals = ({
           const releaseAt = (meta?.release_at as string | undefined) ?? null
           const earlyAccessUntil =
             (meta?.early_access_until as string | undefined) ?? null
-          const hasEarlyAccess = (() => {
-            if (!canSeePricing) return false
-            if (!releaseAt && !earlyAccessUntil) return true
-            const release = releaseAt
-              ? new Date(releaseAt)
-              : earlyAccessUntil
-                ? new Date(
-                    new Date(earlyAccessUntil).getTime() - 24 * 3600 * 1000,
-                  )
-                : null
-            if (!release || isNaN(release.getTime())) return true
-            const publicAccess = new Date(release.getTime() + 24 * 3600 * 1000)
-            if (!viewerTier) return false
-            return canCustomerAccessProduct(
-              viewerTier,
-              publicAccess,
-              new Date(),
-            )
-          })()
+          const hasEarlyAccess = viewerCanBuy(meta, canSeePricing, viewerTier)
 
           return (
             <li key={product.id}>

@@ -1,10 +1,11 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
 import {
-  canCustomerAccessProduct,
-  computeTierVisibleFrom,
   currentLowestTierWithAccess,
+  productAccessForTier,
+  readProductRelease,
   HOURS_BEFORE_PUBLIC_BY_TIER,
   type Tier,
 } from "@lib/access/early-access"
@@ -12,12 +13,9 @@ import {
 type Props = {
   /** ISO string or Date when the product first becomes purchasable (VIP4/VIP5 unlock). */
   releaseAt?: string | Date | null
-  /**
-   * Legacy field; if no releaseAt is supplied we derive releaseAt = earlyAccessUntil − 24h
-   * so existing callers that only pass earlyAccessUntil keep working.
-   */
+  /** Legacy public-release field; used only when releaseAt is absent. */
   earlyAccessUntil?: string | Date | null
-  /** Per-tier "hours before public" offsets resolved at request time. Falls back to static defaults. */
+  /** Retained for callers; the ladder is fixed in shared-types. */
   offsets?: typeof HOURS_BEFORE_PUBLIC_BY_TIER
   /** Viewer's current tier. Anonymous viewers must pass null. */
   viewerTier: Tier | null
@@ -33,83 +31,111 @@ const TIER_LABEL: Record<Tier, string> = {
   approved: "members",
 }
 
-function formatCountdown(ms: number): string {
+function toRaw(v: string | Date | null | undefined): string | undefined {
+  if (!v) return undefined
+  if (v instanceof Date) return isNaN(v.getTime()) ? "invalid" : v.toISOString()
+  return v
+}
+
+export function formatCountdown(ms: number): string {
   if (ms <= 0) return "now"
   const totalSeconds = Math.floor(ms / 1000)
   const days = Math.floor(totalSeconds / 86400)
   const hours = Math.floor((totalSeconds % 86400) / 3600)
   const minutes = Math.floor((totalSeconds % 3600) / 60)
-  if (days > 0) return `${days}d ${hours}h`
+  const seconds = totalSeconds % 60
+  if (days > 0) return `${days}d ${hours}h ${minutes}m`
   if (hours > 0) return `${hours}h ${minutes}m`
-  return `${minutes}m`
+  if (minutes > 0) return `${minutes}m ${seconds}s`
+  return `${seconds}s`
 }
 
 /**
- * Live countdown shown on product card / PDP when the logged-in viewer cannot
- * yet purchase the product (their tier window has not opened). Anonymous
- * viewers (viewerTier === null) get nothing — they see the existing redacted
- * card UX like every other product.
- *
- * Backend cart-add is the authoritative gate; this is UI advisory only.
+ * Live "available to you in X" countdown, shown in place of the buy button
+ * while the viewer's tier is still locked. Refreshes the page at unlock so the
+ * buy button appears without a manual reload. The backend gate is
+ * authoritative.
  */
 export default function EarlyAccessCountdown({
   releaseAt,
   earlyAccessUntil,
-  offsets,
   viewerTier,
   className,
 }: Props) {
-  const tierOffsets = offsets ?? HOURS_BEFORE_PUBLIC_BY_TIER
-
-  const release = useMemo(() => {
-    if (releaseAt) {
-      const d = new Date(releaseAt)
-      return isNaN(d.getTime()) ? null : d
-    }
-    if (earlyAccessUntil) {
-      const d = new Date(earlyAccessUntil)
-      if (isNaN(d.getTime())) return null
-      // Legacy: derive release_at from the public-access window.
-      return new Date(d.getTime() - 24 * 3600 * 1000)
-    }
-    return null
-  }, [releaseAt, earlyAccessUntil])
-
-  const publicAccess = useMemo(() => {
-    return release ? new Date(release.getTime() + 24 * 3600 * 1000) : null
-  }, [release])
+  const router = useRouter()
+  const metadata = useMemo(
+    () => ({
+      release_at: toRaw(releaseAt),
+      early_access_until: toRaw(earlyAccessUntil),
+    }),
+    [releaseAt, earlyAccessUntil],
+  )
+  const release = useMemo(() => readProductRelease(metadata), [metadata])
 
   const [now, setNow] = useState<Date>(() => new Date())
+  const access = productAccessForTier(metadata, viewerTier, now)
 
   useEffect(() => {
-    if (!release) return
-    const interval = setInterval(() => setNow(new Date()), 30_000)
+    if (release.status !== "scheduled") return
+    const interval = setInterval(() => setNow(new Date()), 1000)
     return () => clearInterval(interval)
-  }, [release])
+  }, [release.status])
 
-  if (!release || !publicAccess) return null
-  if (!viewerTier) return null
-  if (canCustomerAccessProduct(viewerTier, publicAccess, now)) return null
+  const unlockMs = access.unlockAt?.getTime() ?? null
+  useEffect(() => {
+    if (unlockMs === null) return
+    const wait = unlockMs - Date.now()
+    if (wait <= 0) return
+    const t = setTimeout(() => router.refresh(), wait + 500)
+    return () => clearTimeout(t)
+  }, [unlockMs, router])
 
-  const visibleFrom = computeTierVisibleFrom(publicAccess, viewerTier)
-  const remainingMs = visibleFrom.getTime() - now.getTime()
-  if (remainingMs <= 0) return null
+  if (release.status === "none" || !access.locked) return null
 
-  const lowest = currentLowestTierWithAccess(release, tierOffsets, now)
-  const lowestLabel = lowest ? TIER_LABEL[lowest] : TIER_LABEL.vip5
+  if (release.status === "invalid" || !access.unlockAt) {
+    return (
+      <div
+        className={
+          className || "text-xs text-hg-text-secondary leading-relaxed"
+        }
+      >
+        This release isn't available yet.
+      </div>
+    )
+  }
+
+  const remainingMs = access.unlockAt.getTime() - now.getTime()
+  const lowest = currentLowestTierWithAccess(release.releaseAt, undefined, now)
 
   return (
     <div
       className={className || "text-xs text-hg-text-secondary leading-relaxed"}
     >
+      {lowest && (
+        <div>
+          Currently available to{" "}
+          <span className="font-semibold text-hg-gold">
+            {TIER_LABEL[lowest]}
+          </span>{" "}
+          and above.
+        </div>
+      )}
       <div>
-        Currently available to{" "}
-        <span className="font-semibold text-hg-gold">{lowestLabel}</span> and
-        above.
-      </div>
-      <div>
-        You'll be able to purchase in{" "}
-        <span className="font-semibold">{formatCountdown(remainingMs)}</span>.
+        Available to you in{" "}
+        <span className="font-semibold font-mono">
+          {formatCountdown(remainingMs)}
+        </span>{" "}
+        <span className="text-hg-text-secondary">
+          (
+          {access.unlockAt.toLocaleString("en-AU", {
+            timeZone: "Australia/Sydney",
+            weekday: "short",
+            hour: "numeric",
+            minute: "2-digit",
+          })}
+          )
+        </span>
+        .
       </div>
     </div>
   )

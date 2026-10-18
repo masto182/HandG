@@ -1,43 +1,51 @@
-import { enforceAccessOnCartAdd } from "../../api/store/middlewares/enforce-access-on-cart-add"
+import {
+  enforceAccessOnCartAdd,
+  enforceAccessOnCartComplete,
+} from "../../api/store/middlewares/enforce-access-on-cart-add"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 const HOUR_MS = 60 * 60 * 1000
 
-// Fixed reference point: T = earlyAccessUntil
-// now = T − 1.5h → approved (T−1h) is still locked, VIP5 (T−24h) is open
-const T = new Date("2026-06-10T12:00:00.000Z")
-const NOW_LOCKED = new Date(T.getTime() - 1.5 * HOUR_MS) // 10:30Z — approved locked
+// Release (VIP5/VIP4 unlock) at R; VIP3 R+12h; VIP2 R+18h; VIP1 R+21h; approved R+24h.
+const R = new Date("2026-06-10T08:00:00.000Z")
+const at = (h: number) => new Date(R.getTime() + h * HOUR_MS)
 
 type ReqOptions = {
   tier?: string | null
-  variantId?: string | null
-  quantity?: number
-  earlyAccessUntil?: string | null
+  body?: Record<string, any>
+  url?: string
+  releaseAt?: string | null
+  lines?: Array<{ id: string; variant_id: string; quantity: number }>
   queryThrows?: boolean
 }
 
 function makeReq(opts: ReqOptions = {}) {
   const {
     tier = "approved",
-    variantId = "var_test_1",
-    quantity = 1,
-    earlyAccessUntil = null,
+    body = { variant_id: "var_1", quantity: 1 },
+    url = "/store/carts/cart_1/line-items",
+    releaseAt = R.toISOString(),
+    lines = [{ id: "line_1", variant_id: "var_1", quantity: 1 }],
     queryThrows = false,
   } = opts
-
-  const metadata = earlyAccessUntil !== null ? { early_access_until: earlyAccessUntil } : {}
+  const metadata = releaseAt !== null ? { release_at: releaseAt } : {}
 
   return {
     customer_tier: tier,
-    body: variantId !== null ? { variant_id: variantId, quantity } : {},
+    body,
+    originalUrl: url,
+    params: {},
     scope: {
       resolve(key: string) {
         if (key === ContainerRegistrationKeys.QUERY) {
           if (queryThrows) throw new Error("query lookup failed")
           return {
-            graph: async () => ({
-              data: [{ product: { id: "prod_test_1", metadata } }],
-            }),
+            graph: async ({ entity }: { entity: string }) =>
+              entity === "cart"
+                ? { data: [{ id: "cart_1", items: lines }] }
+                : {
+                    data: [{ id: "var_1", product: { id: "prod_1", title: "Hazy One", metadata } }],
+                  },
           }
         }
         throw new Error(`unknown key: ${key}`)
@@ -46,96 +54,111 @@ function makeReq(opts: ReqOptions = {}) {
   }
 }
 
-describe("enforceAccessOnCartAdd", () => {
+describe("early-access cart enforcement", () => {
   let next: jest.Mock
   let res: { status: jest.Mock; json: jest.Mock }
 
   beforeEach(() => {
     next = jest.fn()
-    res = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn(),
-    }
+    res = { status: jest.fn().mockReturnThis(), json: jest.fn() }
   })
 
-  afterEach(() => {
-    jest.useRealTimers()
-  })
+  afterEach(() => jest.useRealTimers())
 
-  it("calls next immediately when no variant_id in body", async () => {
-    const req = makeReq({ variantId: null })
-    await enforceAccessOnCartAdd(req as any, res as any, next)
-    expect(next).toHaveBeenCalledTimes(1)
-    expect(res.status).not.toHaveBeenCalled()
-  })
-
-  it("calls next when quantity = 0 (removal, not an add)", async () => {
-    const req = makeReq({ quantity: 0 })
-    await enforceAccessOnCartAdd(req as any, res as any, next)
-    expect(next).toHaveBeenCalledTimes(1)
-    expect(res.status).not.toHaveBeenCalled()
-  })
-
-  it("calls next when product has no early_access_until", async () => {
+  const setNow = (d: Date) => {
     jest.useFakeTimers()
-    jest.setSystemTime(NOW_LOCKED)
-    const req = makeReq({ tier: "approved", earlyAccessUntil: null })
-    await enforceAccessOnCartAdd(req as any, res as any, next)
-    expect(next).toHaveBeenCalledTimes(1)
-    expect(res.status).not.toHaveBeenCalled()
-  })
+    jest.setSystemTime(d)
+  }
 
-  it("returns 409 when approved customer is before their 1h window", async () => {
-    // NOW_LOCKED = T−1.5h; approved window opens at T−1h → still locked
-    jest.useFakeTimers()
-    jest.setSystemTime(NOW_LOCKED)
-    const req = makeReq({ tier: "approved", earlyAccessUntil: T.toISOString() })
-    await enforceAccessOnCartAdd(req as any, res as any, next)
+  const ladder: Array<[string | null, number]> = [
+    ["vip5", 0],
+    ["vip4", 0],
+    ["vip3", 12],
+    ["vip2", 18],
+    ["vip1", 21],
+    ["approved", 24],
+    [null, 24],
+  ]
+
+  it.each(ladder)("add: %s blocked just before release+%ih, allowed at it", async (tier, h) => {
+    setNow(new Date(at(h).getTime() - 1000))
+    await enforceAccessOnCartAdd(makeReq({ tier }) as any, res as any, next)
     expect(res.status).toHaveBeenCalledWith(409)
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
-        error: "access_not_yet_available",
-        your_tier: "approved",
-        available_at: T.toISOString(),
+        code: "access_not_yet_available",
+        unlock_at: at(h).toISOString(),
+        items: [expect.objectContaining({ title: "Hazy One" })],
       })
     )
     expect(next).not.toHaveBeenCalled()
+
+    next.mockClear()
+    res.status.mockClear()
+    setNow(at(h))
+    await enforceAccessOnCartAdd(makeReq({ tier }) as any, res as any, next)
+    expect(next).toHaveBeenCalledTimes(1)
+    expect(res.status).not.toHaveBeenCalled()
   })
 
-  it("returns 409 for anonymous customer (null tier) before public time", async () => {
-    jest.useFakeTimers()
-    jest.setSystemTime(NOW_LOCKED)
-    const req = makeReq({ tier: null, earlyAccessUntil: T.toISOString() })
-    await enforceAccessOnCartAdd(req as any, res as any, next)
+  it("add: no release metadata -> allowed", async () => {
+    await enforceAccessOnCartAdd(makeReq({ releaseAt: null }) as any, res as any, next)
+    expect(next).toHaveBeenCalledTimes(1)
+  })
+
+  it("add: unparseable release -> blocked (fails closed)", async () => {
+    await enforceAccessOnCartAdd(
+      makeReq({ releaseAt: "nope", tier: "vip5" }) as any,
+      res as any,
+      next
+    )
+    expect(res.status).toHaveBeenCalledWith(409)
+  })
+
+  it("add: lookup failure -> blocked (fails closed)", async () => {
+    await enforceAccessOnCartAdd(makeReq({ queryThrows: true }) as any, res as any, next)
     expect(res.status).toHaveBeenCalledWith(409)
     expect(next).not.toHaveBeenCalled()
   })
 
-  it("calls next for vip5 at the same time approved is blocked (24h window)", async () => {
-    // VIP5 window: T−24h = 2026-06-09T12:00Z. NOW_LOCKED = T−1.5h → well past vip5 open
-    jest.useFakeTimers()
-    jest.setSystemTime(NOW_LOCKED)
-    const req = makeReq({ tier: "vip5", earlyAccessUntil: T.toISOString() })
+  it("quantity increase on a locked line -> blocked", async () => {
+    setNow(at(1))
+    const req = makeReq({
+      tier: "vip3",
+      url: "/store/carts/cart_1/line-items/line_1",
+      body: { quantity: 3 },
+    })
     await enforceAccessOnCartAdd(req as any, res as any, next)
-    expect(next).toHaveBeenCalledTimes(1)
-    expect(res.status).not.toHaveBeenCalled()
+    expect(res.status).toHaveBeenCalledWith(409)
   })
 
-  it("calls next when now >= earlyAccessUntil (product is public)", async () => {
-    const nowPublic = new Date(T.getTime() + 1000) // 1s after public
-    jest.useFakeTimers()
-    jest.setSystemTime(nowPublic)
-    const req = makeReq({ tier: null, earlyAccessUntil: T.toISOString() })
-    await enforceAccessOnCartAdd(req as any, res as any, next)
-    expect(next).toHaveBeenCalledTimes(1)
-    expect(res.status).not.toHaveBeenCalled()
+  it("quantity decrease or removal on a locked line -> allowed", async () => {
+    setNow(at(1))
+    for (const quantity of [1, 0]) {
+      next.mockClear()
+      const req = makeReq({
+        tier: "vip3",
+        url: "/store/carts/cart_1/line-items/line_1",
+        body: { quantity },
+        lines: [{ id: "line_1", variant_id: "var_1", quantity: 2 }],
+      })
+      await enforceAccessOnCartAdd(req as any, res as any, next)
+      expect(next).toHaveBeenCalledTimes(1)
+    }
   })
 
-  it("calls next when query.graph throws (fail-open behaviour)", async () => {
-    // Gate should never block when the lookup fails — Medusa's normal validation still runs
-    const req = makeReq({ queryThrows: true, earlyAccessUntil: "2099-01-01T00:00:00Z" })
-    await enforceAccessOnCartAdd(req as any, res as any, next)
+  it("complete: locked item in cart -> checkout blocked until it unlocks", async () => {
+    setNow(at(23))
+    const req = makeReq({ tier: "approved", url: "/store/carts/cart_1/complete", body: {} })
+    await enforceAccessOnCartComplete(req as any, res as any, next)
+    expect(res.status).toHaveBeenCalledWith(409)
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ unlock_at: at(24).toISOString() })
+    )
+
+    next.mockClear()
+    setNow(at(24))
+    await enforceAccessOnCartComplete(req as any, res as any, next)
     expect(next).toHaveBeenCalledTimes(1)
-    expect(res.status).not.toHaveBeenCalled()
   })
 })

@@ -94,8 +94,11 @@ medusaIntegrationTestRunner({
         expect(product.metadata.abv).toBe("8.0")
         expect(product.metadata.is_anniversary).toBe(true)
         expect(product.tags.map((t: any) => t.value)).toContain("anniversary")
-        expect(product.metadata.early_access_until).toBe(
+        expect(product.metadata.release_at).toBe(
           new Date("2030-06-01T18:00:00+10:00").toISOString()
+        )
+        expect(product.metadata.early_access_until).toBe(
+          new Date(new Date("2030-06-01T18:00:00+10:00").getTime() + 24 * 3600 * 1000).toISOString()
         )
         expect(product.metadata.hops).toEqual(expect.arrayContaining(["Citra IT", "Mosaic IT"]))
         expect(product.thumbnail).toBe("https://example.com/a.jpg")
@@ -383,6 +386,60 @@ medusaIntegrationTestRunner({
         // Look up by ID (not title) to avoid ambiguity if a duplicate was accidentally created
         const [updated] = await productModule.listProducts({ id: product.id })
         expect(updated.metadata.hops).toEqual(["Nelson MT"])
+      })
+
+      it("release time: default upload+20min for new, Sydney for offset-less, restock from zero re-releases, in-stock untouched", async () => {
+        const container = getContainer()
+        const productModule = container.resolve("product") as any
+        const post = (csv: string) =>
+          api.post("/admin/stock-import", { csv, options: { dry_run: false } }, adminAuth)
+        const read = async (title: string) => (await productModule.listProducts({ title }))[0]
+
+        const before = Date.now()
+        const header = "name,brewery,style,abv,price,stock,container,release_at\n"
+        let res = await post(
+          header +
+            "Release Default IT,Mountain Culture IT,IPA,6.0,10,0,Can 440ml,\n" +
+            "Release Sydney IT,Mountain Culture IT,IPA,6.0,10,12,Can 440ml,2030-01-10 18:00\n"
+        )
+        expect(res.status).toBe(200)
+        expect(res.data.errors).toEqual([])
+
+        const def = await read("Release Default IT")
+        const defRelease = new Date(def.metadata.release_at).getTime()
+        expect(defRelease).toBeGreaterThanOrEqual(before + 20 * 60 * 1000 - 1000)
+        expect(defRelease).toBeLessThanOrEqual(Date.now() + 20 * 60 * 1000 + 1000)
+        expect(new Date(def.metadata.early_access_until).getTime()).toBe(
+          defRelease + 24 * 3600 * 1000
+        )
+
+        const syd = await read("Release Sydney IT")
+        expect(syd.metadata.release_at).toBe("2030-01-10T07:00:00.000Z")
+
+        // Already in stock, no release supplied: release unchanged.
+        res = await post(
+          header + "Release Sydney IT,Mountain Culture IT,IPA,6.0,10,20,Can 440ml,\n"
+        )
+        expect(res.data.errors).toEqual([])
+        expect((await read("Release Sydney IT")).metadata.release_at).toBe(
+          "2030-01-10T07:00:00.000Z"
+        )
+
+        // Was zero stock, now restocked: gets a fresh release.
+        const firstRelease = def.metadata.release_at
+        await new Promise((r) => setTimeout(r, 1100))
+        res = await post(
+          header + "Release Default IT,Mountain Culture IT,IPA,6.0,10,6,Can 440ml,\n"
+        )
+        expect(res.data.errors).toEqual([])
+        expect((await read("Release Default IT")).metadata.release_at).not.toBe(firstRelease)
+
+        // Unparseable release time: row rejected, nothing silently released.
+        res = await post(
+          header + "Release Bad IT,Mountain Culture IT,IPA,6.0,10,6,Can 440ml,soon\n"
+        )
+        expect(res.data.errors.join(" ")).toMatch(/invalid release_at/)
+        expect(await read("Release Bad IT")).toBeUndefined()
       })
     })
   },

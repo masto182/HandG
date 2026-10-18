@@ -14,6 +14,7 @@ import { HOP_MODULE } from "../modules/hop"
 import { BEER_STYLE_MODULE } from "../modules/beer-style"
 import type { ExecArgs } from "@medusajs/framework/types"
 import { createProductsWorkflow, createPriceListsWorkflow } from "@medusajs/medusa/core-flows"
+import { resolveReleaseAt, releaseMetadata } from "../lib/access/early-access"
 import { resolveSalePricing } from "../lib/sale-pricing"
 import * as fs from "fs"
 import * as path from "path"
@@ -290,6 +291,17 @@ export default async function importProducts({ container }: ExecArgs) {
 
   const dryRun = process.env.DRY_RUN !== "false"
 
+  // Release time for this load: RELEASE_AT (offset-less = Sydney), else
+  // upload + 20 min. New products and restocks from zero get it so the VIP
+  // early-access ladder applies. An invalid value aborts the load.
+  const uploadedAt = new Date()
+  const loadRelease = resolveReleaseAt(process.env.RELEASE_AT, uploadedAt)
+  const rowRelease = (row: Record<string, string>): Date =>
+    row["Release At"]?.trim() ? resolveReleaseAt(row["Release At"]) : loadRelease
+  logger.info(
+    `VIP5/VIP4 release for this load: ${loadRelease.toLocaleString("en-AU", { timeZone: "Australia/Sydney" })} Sydney (approved +24h)`
+  )
+
   logger.info(`Starting US beer import (${dryRun ? "DRY RUN" : "COMMIT"})...`)
 
   const csvPath = process.env.IMPORT_CSV
@@ -376,6 +388,22 @@ export default async function importProducts({ container }: ExecArgs) {
     })
     breweryMap[breweryName.toLowerCase()] = b
     logger.info(`Created brewery: ${breweryName}`)
+  }
+
+  async function currentStock(sku: string): Promise<number | null> {
+    if (!warehouse) return null
+    try {
+      const items = await inventoryModule.listInventoryItems({ sku })
+      const item = items?.[0]
+      if (!item) return 0
+      const levels = await inventoryModule.listInventoryLevels({
+        inventory_item_id: item.id,
+        location_id: warehouse.id,
+      })
+      return Number(levels?.[0]?.stocked_quantity ?? 0)
+    } catch {
+      return null
+    }
   }
 
   // Helper: update or create inventory level
@@ -510,8 +538,15 @@ export default async function importProducts({ container }: ExecArgs) {
     if (existing) {
       const variant = existing.variants?.[0]
       const saleLabel = salePrice !== null ? ` (was $${was})` : ""
+      const before = stock > 0 ? await currentStock(sku) : null
+      const explicit = Boolean(row["Release At"]?.trim())
+      if (explicit || (before !== null && before <= 0 && stock > 0)) {
+        Object.assign(metadata, releaseMetadata(rowRelease(row)))
+      }
       if (dryRun) {
-        logger.info(`[update] ${breweryName} — ${title} @ $${rawPrice}${saleLabel}, stock=${stock}`)
+        logger.info(
+          `[update] ${breweryName} — ${title} @ $${rawPrice}${saleLabel}, stock=${stock}${metadata.release_at ? `, release=${metadata.release_at}` : ""}`
+        )
         continue
       }
 
@@ -638,6 +673,7 @@ export default async function importProducts({ container }: ExecArgs) {
         if (dateAddedISO) metadata.date_added = dateAddedISO
         if (hops) metadata.hop_names = hops
         if (colab) metadata.collab_partner = colab
+        Object.assign(metadata, releaseMetadata(rowRelease(row)))
 
         return {
           title,

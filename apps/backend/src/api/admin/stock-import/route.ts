@@ -11,6 +11,7 @@ import { createBreweryWorkflow } from "../../../workflows/manage-brewery"
 import { createHopWorkflow } from "../../../workflows/manage-hop"
 import { updateImportedProductWorkflow } from "../../../workflows/update-imported-product"
 import { parseStockImportCsv, slugify, type ParsedRow } from "./parser"
+import { resolveReleaseAt, releaseMetadata } from "../../../lib/access/early-access"
 
 type ImportOptions = {
   auto_create_breweries?: boolean
@@ -330,6 +331,24 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
   // the inventory level for the default warehouse, then sets stocked_quantity.
   // Note: listInventoryItems({ variant_id }) throws in Medusa v2 because
   // InventoryItem has no variant_id property — SKU lookup is the reliable path.
+  async function currentStock(variantId: string): Promise<number | null> {
+    if (!defaultWarehouse) return null
+    try {
+      const variant = await productModule.retrieveProductVariant(variantId)
+      if (!variant?.sku) return null
+      const items = await inventoryModule.listInventoryItems({ sku: variant.sku })
+      const item = items?.[0]
+      if (!item) return 0
+      const levels = await inventoryModule.listInventoryLevels({
+        inventory_item_id: item.id,
+        location_id: defaultWarehouse.id,
+      })
+      return Number(levels?.[0]?.stocked_quantity ?? 0)
+    } catch {
+      return null
+    }
+  }
+
   async function applyStock(variantId: string, qty: number): Promise<void> {
     if (!defaultWarehouse) return
     try {
@@ -484,6 +503,7 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
   }
   const dryRunRows: DryRunRow[] = []
   let rowNum = 0
+  const uploadedAt = new Date()
 
   for (const row of rows) {
     rowNum++
@@ -495,18 +515,18 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
       continue
     }
     try {
-      // Validate release_at if provided
-      let releaseAtIso: string | undefined
+      // Validate an explicit release time (offset-less = Sydney wall clock)
+      let explicitRelease: Date | undefined
       if (row.release_at) {
-        const ts = Date.parse(row.release_at)
-        if (isNaN(ts)) {
+        try {
+          explicitRelease = resolveReleaseAt(row.release_at)
+        } catch {
           const m = `invalid release_at "${row.release_at}"`
           errors.push(`Row "${row.name}": ${m}`)
           if (dryRun)
             dryRunRows.push({ row: rowNum, name: row.name, action: "error", messages: [m] })
           continue
         }
-        releaseAtIso = new Date(ts).toISOString()
       }
 
       // Resolve primary brewery
@@ -613,10 +633,30 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
         if (!isNaN(ml)) metaPatch.volume_ml = ml
       }
 
-      // release_at: write both keys for full compatibility
-      if (releaseAtIso) {
-        metaPatch.release_at = releaseAtIso
-        metaPatch.early_access_until = releaseAtIso // back-compat
+      // Parse stock quantity (shared by both create and update paths)
+      const stockQty = row.stock ? parseInt(row.stock, 10) : NaN
+
+      // Release schedule: new products and restocks from zero always get a
+      // release (explicit, else upload + 20 min) so the VIP ladder applies.
+      // In-stock products are never re-locked unless a release is supplied.
+      let release: Date | undefined = explicitRelease
+      if (!release) {
+        if (!existing) {
+          release = resolveReleaseAt(undefined, uploadedAt)
+        } else if (!isNaN(stockQty) && stockQty > 0) {
+          const variantId = existing.variants?.[0]?.id
+          const before = variantId ? await currentStock(variantId) : null
+          if (before !== null && before <= 0) {
+            release = resolveReleaseAt(undefined, uploadedAt)
+            rowMsgs.push("restock from zero — new release time")
+          }
+        }
+      }
+      if (release) {
+        Object.assign(metaPatch, releaseMetadata(release))
+        rowMsgs.push(
+          `VIP5/VIP4 release ${release.toLocaleString("en-AU", { timeZone: "Australia/Sydney" })} Sydney`
+        )
       }
       if (row.is_anniversary !== undefined) {
         metaPatch.is_anniversary = row.is_anniversary
@@ -624,9 +664,6 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
       if (Object.keys(row.extras).length > 0) {
         metaPatch.import_extras = row.extras
       }
-
-      // Parse stock quantity (shared by both create and update paths)
-      const stockQty = row.stock ? parseInt(row.stock, 10) : NaN
 
       // Build images patch
       const images = row.images.map((url) => ({ url }))
@@ -648,6 +685,7 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
               brewery: brewery.name,
               stock: !isNaN(stockQty) ? stockQty : undefined,
               container: containerValue,
+              release_at: metaPatch.release_at,
             },
           })
           continue
@@ -795,6 +833,7 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
               brewery: brewery.name,
               stock: !isNaN(stockQty) ? stockQty : undefined,
               container: containerValue,
+              release_at: metaPatch.release_at,
             },
           })
           continue

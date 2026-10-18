@@ -18,7 +18,7 @@ import EarlyAccessCountdown from "@modules/store/components/early-access-countdo
 import { notFound } from "next/navigation"
 import { HttpTypes } from "@medusajs/types"
 import {
-  canCustomerAccessProduct,
+  viewerCanBuy,
   HOURS_BEFORE_PUBLIC_BY_TIER,
   type Tier,
 } from "@retail-example/shared-types"
@@ -82,19 +82,7 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
   const earlyAccessUntil =
     (metadata?.early_access_until as string | undefined) ?? null
 
-  const hasEarlyAccess = (() => {
-    if (!canSeePricing) return false
-    if (!releaseAt && !earlyAccessUntil) return true
-    const release = releaseAt
-      ? new Date(releaseAt)
-      : earlyAccessUntil
-        ? new Date(new Date(earlyAccessUntil).getTime() - 24 * 3600 * 1000)
-        : null
-    if (!release || isNaN(release.getTime())) return true
-    const publicAccess = new Date(release.getTime() + 24 * 3600 * 1000)
-    if (!viewerTier) return false
-    return canCustomerAccessProduct(viewerTier, publicAccess, new Date())
-  })()
+  const hasEarlyAccess = viewerCanBuy(metadata, canSeePricing, viewerTier)
 
   return (
     <>
