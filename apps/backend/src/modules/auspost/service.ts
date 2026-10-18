@@ -23,6 +23,7 @@ import {
 import {
   CONTAINER_WEIGHTS,
   packItems,
+  packableItemsFromFulfillmentItems,
   resolveContainerType,
   type PackableItem,
   type PackedBox,
@@ -333,10 +334,12 @@ class AusPostProviderService extends AbstractFulfillmentProviderService {
     // order-detail card can prompt the operator to lodge in MyPost Business.
     const serviceCode = (data?.service_code as PacServiceCode) ?? "AUS_PARCEL_REGULAR"
     const defaultWeightG = await this.siteConfigGet<number>("shipping_default_item_weight_g", 750)
-    const packedBoxes = this.buildPackedBoxes(
-      items as unknown as CalculateShippingOptionPriceDTO["context"]["items"],
+    const packable = await packableItemsFromFulfillmentItems(
+      items as Array<{ sku?: string | null; quantity?: number | string | null }>,
       defaultWeightG
     )
+    const packedBoxes = packItems(packable)
+    const sodRequested = data?.force_sod === true
 
     return {
       data: {
@@ -345,6 +348,7 @@ class AusPostProviderService extends AbstractFulfillmentProviderService {
         provider: "auspost",
         service_code: serviceCode,
         service_name: serviceDisplayName(serviceCode),
+        sod_requested: sodRequested,
         per_box_breakdown: packedBoxes.map((b, i) => ({
           index: i,
           weight_g: b.weightG,

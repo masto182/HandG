@@ -144,3 +144,90 @@ export function packableItemsFromLineItems(
     return { quantity, weightG, containerType }
   })
 }
+
+// ---------------------------------------------------------------------------
+// SKU-based variant weight resolver
+// ---------------------------------------------------------------------------
+
+export type VariantWeightInfo = {
+  weightG: number
+  containerType: ContainerType
+}
+
+/**
+ * Resolve variant weights by SKU via direct Postgres query.
+ *
+ * FulfillmentItemDTO has `sku` but no `variant.weight` or `variant.options`,
+ * so the standard fallback chain defaults everything to 550g (can). This
+ * function queries the real variant weight and Format option by SKU.
+ *
+ * Returns a Map keyed by SKU.  On any error returns an empty map so the
+ * caller falls back to container-type defaults (degraded but non-fatal).
+ */
+export async function resolveWeightsBySku(skus: string[]): Promise<Map<string, VariantWeightInfo>> {
+  const map = new Map<string, VariantWeightInfo>()
+  if (!skus.length) return map
+
+  const { Pool } = await import("pg")
+  const url = process.env.DATABASE_URL
+  if (!url || process.env.NODE_ENV === "test") return map
+
+  let pool: import("pg").Pool | null = null
+  try {
+    pool = new Pool({ connectionString: url, max: 2, connectionTimeoutMillis: 3000 })
+    pool.on("error", () => {})
+
+    const placeholders = skus.map((_, i) => `$${i + 1}`).join(", ")
+    const { rows } = await pool.query<{
+      sku: string
+      weight: number | null
+      format_value: string | null
+    }>(
+      `SELECT pv.sku,
+              pv.weight,
+              pov.value AS format_value
+       FROM product_variant pv
+       LEFT JOIN product_option_value pov
+         ON pov.variant_id = pv.id
+       LEFT JOIN product_option po
+         ON po.id = pov.option_id
+         AND lower(po.title) = 'format'
+       WHERE pv.sku IN (${placeholders})
+         AND pv.deleted_at IS NULL`,
+      skus
+    )
+
+    for (const row of rows) {
+      const containerType = resolveContainerType(row.format_value)
+      const weightG = row.weight ?? CONTAINER_WEIGHTS[containerType] ?? CONTAINER_WEIGHTS.can
+      map.set(row.sku, { weightG, containerType })
+    }
+  } catch {
+    // non-fatal — callers fall back to container-type defaults
+  } finally {
+    if (pool) await pool.end().catch(() => {})
+  }
+
+  return map
+}
+
+/**
+ * Build PackableItem[] from FulfillmentItemDTO-shaped items (which only have
+ * sku + quantity, not variant weight/options) by looking up real weights via
+ * resolveWeightsBySku.
+ */
+export async function packableItemsFromFulfillmentItems(
+  items: Array<{ sku?: string | null; quantity?: number | string | null }>,
+  defaultWeightG: number
+): Promise<PackableItem[]> {
+  const skus = items.map((i) => i.sku).filter((s): s is string => !!s)
+  const weightMap = await resolveWeightsBySku(skus)
+
+  return items.map((it) => {
+    const info = weightMap.get(it.sku ?? "")
+    const containerType = info?.containerType ?? resolveContainerType(null)
+    const weightG = info?.weightG ?? CONTAINER_WEIGHTS[containerType] ?? defaultWeightG
+    const quantity = typeof it.quantity === "number" ? it.quantity : Number(it.quantity ?? 1)
+    return { quantity, weightG, containerType }
+  })
+}

@@ -13,7 +13,11 @@ import type {
 } from "@medusajs/framework/types"
 
 import { getShipEngineClient } from "./factory"
-import { packableItemsFromLineItems, packItems } from "../shipping-common/packing"
+import {
+  packableItemsFromLineItems,
+  packableItemsFromFulfillmentItems,
+  packItems,
+} from "../shipping-common/packing"
 import {
   CurrencyMismatchError,
   cartToShipEngineShipment,
@@ -446,8 +450,10 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
         "no_validation" | "validate_only" | "validate_and_clean"
       >("shipping_validate_address_mode", "no_validation")
       const defaultWeightG = await this.siteConfigGet<number>("shipping_default_item_weight_g", 750)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const packableItems = packableItemsFromLineItems(items as any, defaultWeightG)
+      const packableItems = await packableItemsFromFulfillmentItems(
+        items as Array<{ sku?: string | null; quantity?: number | string | null }>,
+        defaultWeightG
+      )
       const packages = packItems(packableItems)
       const ship = cartToShipEngineShipment({
         shippingAddress: shippingAddress ?? { country_code: "AU" },

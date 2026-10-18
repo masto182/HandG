@@ -38,16 +38,17 @@ const OrderAusPostLodgementWidget = ({ data }: { data: Order }) => {
     sdk.client
       .fetch<{ order: Order }>(
         `/admin/orders/${orderId}?fields=fulfillments.id,fulfillments.shipped_at,fulfillments.data,fulfillments.labels.*`,
-        { method: "GET" },
+        { method: "GET" }
       )
       .then((res) => {
         const fs = (res.order?.fulfillments ?? []).filter(
-          (f) => (f.data ?? {})["manual_lodgement"] === true,
+          (f) => (f.data ?? {})["manual_lodgement"] === true
         )
         setFulfillments(fs)
         const drafts: Record<string, string[]> = {}
         for (const f of fs) {
-          const breakdown = ((f.data ?? {})["per_box_breakdown"] as BoxBreakdown[] | undefined) ?? []
+          const breakdown =
+            ((f.data ?? {})["per_box_breakdown"] as BoxBreakdown[] | undefined) ?? []
           drafts[f.id] = breakdown.map(() => "")
         }
         setTrackingDrafts(drafts)
@@ -82,13 +83,17 @@ const OrderAusPostLodgementWidget = ({ data }: { data: Order }) => {
           tracking_numbers: tracking,
         },
       })
-      toast.success(`Tracking saved (${tracking.length} parcel${tracking.length > 1 ? "s" : ""}). Customer notified.`)
+      toast.success(
+        `Tracking saved (${tracking.length} parcel${tracking.length > 1 ? "s" : ""}). Customer notified.`
+      )
       // Refresh
       const res = await sdk.client.fetch<{ order: Order }>(
         `/admin/orders/${orderId}?fields=fulfillments.id,fulfillments.shipped_at,fulfillments.data,fulfillments.labels.*`,
-        { method: "GET" },
+        { method: "GET" }
       )
-      setFulfillments((res.order?.fulfillments ?? []).filter((f) => (f.data ?? {})["manual_lodgement"] === true))
+      setFulfillments(
+        (res.order?.fulfillments ?? []).filter((f) => (f.data ?? {})["manual_lodgement"] === true)
+      )
     } catch (err) {
       toast.error(`Save failed: ${(err as Error).message}`)
     } finally {
@@ -121,6 +126,7 @@ const OrderAusPostLodgementWidget = ({ data }: { data: Order }) => {
       {fulfillments.map((f) => {
         const breakdown = ((f.data ?? {})["per_box_breakdown"] as BoxBreakdown[] | undefined) ?? []
         const serviceName = (f.data ?? {})["service_name"] as string | undefined
+        const sodRequested = (f.data ?? {})["sod_requested"] === true
         const lodgedAt = (f.data ?? {})["lodged_at"] as string | undefined
         const drafts = trackingDrafts[f.id] ?? breakdown.map(() => "")
         const existingTracking = ((f.data ?? {})["tracking_numbers"] as string[] | undefined) ?? []
@@ -131,7 +137,8 @@ const OrderAusPostLodgementWidget = ({ data }: { data: Order }) => {
             <div className="flex items-center justify-between">
               <div>
                 <Text size="small">
-                  <strong>{serviceName ?? "Australia Post"}</strong> - fulfillment{" "}
+                  <strong>{serviceName ?? "Australia Post"}</strong>
+                  {sodRequested && " + Signature on Delivery"} - fulfillment{" "}
                   <code className="text-xs">{f.id.slice(0, 12)}...</code>
                 </Text>
                 {lodgedAt && (
@@ -151,11 +158,10 @@ const OrderAusPostLodgementWidget = ({ data }: { data: Order }) => {
                   key={idx}
                   className="flex items-center gap-3 bg-ui-bg-subtle rounded p-3 text-sm"
                 >
-                  <div className="w-32 text-ui-fg-subtle font-mono">
-                    Parcel {idx + 1}
-                  </div>
+                  <div className="w-32 text-ui-fg-subtle font-mono">Parcel {idx + 1}</div>
                   <div className="w-48 text-ui-fg-subtle font-mono">
-                    {(box.weight_g / 1000).toFixed(2)}kg, {box.length_cm}x{box.width_cm}x{box.height_cm}cm
+                    {(box.weight_g / 1000).toFixed(2)}kg, {box.length_cm}x{box.width_cm}x
+                    {box.height_cm}cm
                   </div>
                   <div className="flex-1">
                     <Input
