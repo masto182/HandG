@@ -68,12 +68,19 @@ export default async function inventorySearchSync({
 
   let productIds: string[] = []
   try {
-    const { data: variants } = await query.graph({
-      entity: "product_variant",
-      fields: ["id", "product_id"],
-      filters: { "inventory_items.inventory_item_id": inventoryItemIds } as any,
+    const { data: items } = await query.graph({
+      entity: "inventory_item",
+      fields: ["id", "variants.id", "variants.product_id"],
+      filters: { id: inventoryItemIds },
     })
-    productIds = [...new Set((variants as any[]).map((v) => v.product_id).filter(Boolean))]
+    productIds = [
+      ...new Set(
+        (items as any[])
+          .flatMap((i) => i.variants ?? [])
+          .map((v: any) => v?.product_id)
+          .filter(Boolean)
+      ),
+    ]
   } catch (err) {
     logger.warn(
       `[inventory-search-sync] Could not resolve product(s) for inventory item(s) ${inventoryItemIds.join(",")}: ${err instanceof Error ? err.message : String(err)}`
