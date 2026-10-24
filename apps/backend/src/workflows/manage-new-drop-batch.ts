@@ -226,6 +226,7 @@ export async function sendNewDropBatch(
   input: {
     product_ids: string[]
     label?: string | null
+    intro_message?: string | null
     created_by?: string | null
     excluded_customer_ids?: string[]
   }
@@ -246,6 +247,7 @@ export async function sendNewDropBatch(
 
   const batch = await batchService.createNewDropBatches({
     label: input.label ?? null,
+    intro_message: input.intro_message ?? null,
     status: "sending",
     product_count: productIds.length,
     created_by: input.created_by ?? null,
@@ -475,7 +477,8 @@ function toDigestProduct(
 export async function renderNewDropPreview(
   container: any,
   productIds: string[],
-  customerId: string | null
+  customerId: string | null,
+  introMessage: string | null = null
 ): Promise<{ html: string; subject: string; leadCategory: AlertCategory | null }> {
   const productModule = container.resolve(Modules.PRODUCT) as any
   const products = await productModule.listProducts(
@@ -504,6 +507,7 @@ export async function renderNewDropPreview(
       hopSection: null,
       generalSection: { products: generalProducts },
       storeUrl: getStoreUrl(),
+      introMessage,
       vipNudge: generalProducts.some((p) => !!p.availableFrom),
     }
     const rendered = await renderEmail(NewDropDigestTpl as any, props)
@@ -563,6 +567,7 @@ export async function renderNewDropPreview(
       ? { products: narrative.generalSection.items.map(dp) }
       : null,
     storeUrl: getStoreUrl(),
+    introMessage,
     vipNudge: hasEarlierTier(tier) && allItems.some((i) => !!dp(i).availableFrom),
   }
   const rendered = await renderEmail(NewDropDigestTpl as any, props)

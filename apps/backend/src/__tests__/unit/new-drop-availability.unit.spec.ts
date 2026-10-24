@@ -71,4 +71,27 @@ describe("new-drop availability", () => {
     expect(html).toContain("Available to you from Sun 25 Oct, 7:00pm")
     expect(html).toContain("VIP members get earlier access")
   })
+
+  it("renders the operator update message as paragraphs", async () => {
+    const { html } = await renderEmail(NewDropDigest as any, {
+      name: "Sam",
+      brewerySection: null,
+      hopSection: null,
+      generalSection: {
+        products: [
+          {
+            beerName: "Jasper",
+            breweryName: "Fidens",
+            image: null,
+            handle: "fidens-jasper",
+            dispatchId: null,
+          },
+        ],
+      },
+      storeUrl: "https://hopsandglory.au",
+      introMessage: "Big week for us.\n\nNext shipment lands Friday.",
+    })
+    expect(html).toContain("Big week for us.")
+    expect(html).toContain("Next shipment lands Friday.")
+  })
 })

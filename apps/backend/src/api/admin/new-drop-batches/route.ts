@@ -10,6 +10,7 @@ import {
 const SendSchema = z.object({
   product_ids: z.array(z.string().min(1)).min(1),
   label: z.string().trim().max(200).nullable().optional(),
+  intro_message: z.string().trim().max(2000).nullable().optional(),
   excluded_customer_ids: z.array(z.string().min(1)).optional(),
 })
 
@@ -35,6 +36,7 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
     const { batch } = await sendNewDropBatch(req.scope, {
       product_ids: productIds,
       label: parsed.data.label ?? null,
+      intro_message: parsed.data.intro_message || null,
       created_by: actor,
       excluded_customer_ids: parsed.data.excluded_customer_ids ?? [],
     })

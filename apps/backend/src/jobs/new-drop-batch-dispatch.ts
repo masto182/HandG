@@ -282,6 +282,7 @@ async function runDispatch(container: MedusaContainer) {
                       }
                     : null,
                   storeUrl,
+                  introMessage: batch.intro_message ?? null,
                   vipNudge,
                 },
                 container,

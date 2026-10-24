@@ -143,6 +143,7 @@ function ReviewSendModal({
   const [previewError, setPreviewError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [label, setLabel] = useState("")
+  const [introMessage, setIntroMessage] = useState("")
   const [sending, setSending] = useState(false)
   const [conflictBlockers, setConflictBlockers] = useState<Record<
     string,
@@ -182,6 +183,7 @@ function ReviewSendModal({
   useEffect(() => {
     if (open) {
       setLabel("")
+      setIntroMessage("")
       setSelectedPreviewKey(null)
       setRenderCache({})
       setExcludedCustomerIds(new Set())
@@ -201,9 +203,9 @@ function ReviewSendModal({
     })
   }
 
-  const selectPreviewRecipient = async (key: string) => {
+  const selectPreviewRecipient = async (key: string, force = false) => {
     setSelectedPreviewKey(key)
-    if (renderCache[key]) return
+    if (renderCache[key] && !force) return
     setRenderLoading(true)
     setRenderError(null)
     try {
@@ -214,10 +216,11 @@ function ReviewSendModal({
           body: {
             product_ids: selectedIds,
             customer_id: key === GENERIC_PREVIEW_KEY ? null : key,
+            intro_message: introMessage.trim() || null,
           },
         }
       )
-      setRenderCache((prev) => ({ ...prev, [key]: result }))
+      setRenderCache((prev) => (force ? { [key]: result } : { ...prev, [key]: result }))
     } catch {
       setRenderError("Could not render this email - try again.")
     } finally {
@@ -267,6 +270,7 @@ function ReviewSendModal({
         body: {
           product_ids: selectedIds,
           label: label.trim() || null,
+          intro_message: introMessage.trim() || null,
           excluded_customer_ids: [...excludedCustomerIds],
         },
       })
@@ -312,6 +316,23 @@ function ReviewSendModal({
               onChange={(e) => setLabel(e.target.value)}
               placeholder="e.g. Tree House - August shipment"
             />
+          </div>
+
+          <div className="flex flex-col gap-y-2">
+            <Label size="small">Update message (optional)</Label>
+            <Textarea
+              value={introMessage}
+              onChange={(e) => setIntroMessage(e.target.value)}
+              onBlur={() => {
+                if (selectedPreviewKey) selectPreviewRecipient(selectedPreviewKey, true)
+              }}
+              rows={5}
+              maxLength={2000}
+              placeholder="Shown to every recipient under 'Hi {name},'. Blank line = new paragraph."
+            />
+            <Text size="xsmall" className="text-ui-fg-subtle">
+              The preview updates when you click out of this box.
+            </Text>
           </div>
 
           {loading ? (

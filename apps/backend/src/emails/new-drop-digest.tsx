@@ -31,6 +31,8 @@ export type NewDropDigestProps = {
   storeUrl: string
   /** Show the "VIP members get earlier access" line (recipient isn't top tier). */
   vipNudge?: boolean
+  /** Optional operator-written update shown under the greeting. */
+  introMessage?: string | null
 }
 
 type OrderedSection = {
@@ -124,6 +126,7 @@ export default function NewDropDigestEmail({
   generalSection = null,
   storeUrl = "https://hopsandglory.au",
   vipNudge = false,
+  introMessage = null,
 }: NewDropDigestProps) {
   const all = orderedSections({ name, brewerySection, hopSection, generalSection, storeUrl })
   const { sections, remaining } = capSections(all)
@@ -144,6 +147,17 @@ export default function NewDropDigestEmail({
     <Layout preview={preview} storeUrl={storeUrl} isMarketing>
       <Heading>{heading}</Heading>
       <Text style={body}>Hi {name},</Text>
+      {introMessage
+        ? introMessage
+            .split(/\n\s*\n/)
+            .map((para) => para.trim())
+            .filter(Boolean)
+            .map((para, idx) => (
+              <Text key={idx} style={{ ...body, whiteSpace: "pre-line" }}>
+                {para}
+              </Text>
+            ))
+        : null}
 
       {sections.map((section, sectionIdx) => {
         const isLead = sectionIdx === 0

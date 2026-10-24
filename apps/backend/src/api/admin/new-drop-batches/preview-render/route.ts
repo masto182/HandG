@@ -5,6 +5,7 @@ import { renderNewDropPreview } from "../../../../workflows/manage-new-drop-batc
 const Schema = z.object({
   product_ids: z.array(z.string().min(1)).min(1),
   customer_id: z.string().min(1).nullable().optional(),
+  intro_message: z.string().trim().max(2000).nullable().optional(),
 })
 
 /**
@@ -20,6 +21,11 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
   }
 
   const productIds = [...new Set(parsed.data.product_ids)]
-  const result = await renderNewDropPreview(req.scope, productIds, parsed.data.customer_id ?? null)
+  const result = await renderNewDropPreview(
+    req.scope,
+    productIds,
+    parsed.data.customer_id ?? null,
+    parsed.data.intro_message || null
+  )
   res.json(result)
 }
