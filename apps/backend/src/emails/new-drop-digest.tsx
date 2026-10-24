@@ -29,6 +29,8 @@ export type NewDropDigestProps = {
   /** Beers matched only via the blanket "new drops" opt-in - lowest priority. */
   generalSection: { products: NewDropDigestProduct[] } | null
   storeUrl: string
+  /** Show the "VIP members get earlier access" line (recipient isn't top tier). */
+  vipNudge?: boolean
 }
 
 type OrderedSection = {
@@ -121,6 +123,7 @@ export default function NewDropDigestEmail({
   hopSection = null,
   generalSection = null,
   storeUrl = "https://hopsandglory.au",
+  vipNudge = false,
 }: NewDropDigestProps) {
   const all = orderedSections({ name, brewerySection, hopSection, generalSection, storeUrl })
   const { sections, remaining } = capSections(all)
@@ -159,6 +162,15 @@ export default function NewDropDigestEmail({
           Plus {remaining} more release{remaining === 1 ? "" : "s"} -{" "}
           <Link href={`${storeUrl}/store?sortBy=created_at`} style={productLinkStyle}>
             see them all
+          </Link>
+        </Text>
+      ) : null}
+
+      {vipNudge ? (
+        <Text style={moreText}>
+          VIP members get earlier access to every drop -{" "}
+          <Link href={`${storeUrl}/account/vip`} style={productLinkStyle}>
+            see how to level up
           </Link>
         </Text>
       ) : null}

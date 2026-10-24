@@ -8,6 +8,9 @@ import { renderEmail } from "../lib/render-email"
 import { getStoreUrl } from "../lib/email"
 import * as NewDropDigestTpl from "../emails/new-drop-digest"
 import type { NewDropDigestProduct } from "../emails/new-drop-digest"
+import { VIP_SCORE_MODULE } from "../modules/vip-score"
+import { describeAvailability, hasEarlierTier, toTier } from "../lib/new-drop-availability"
+import type { Tier } from "../lib/access/early-access"
 
 /**
  * Section-placement priority for picking a recipient's SINGLE lead category
@@ -446,7 +449,9 @@ export async function retryFailedNewDropBatch(container: any, batchId: string) {
 
 function toDigestProduct(
   item: NarrativeItem & { hopTag?: string | null },
-  productMap: Map<string, any>
+  productMap: Map<string, any>,
+  tier: Tier | null = null,
+  now: Date = new Date()
 ): NewDropDigestProduct {
   const p = productMap.get(item.product_id)
   return {
@@ -456,6 +461,7 @@ function toDigestProduct(
     handle: p?.handle || "",
     dispatchId: null,
     hopTag: item.hopTag ?? null,
+    availableFrom: describeAvailability(p?.metadata, tier, now),
   }
 }
 
@@ -481,25 +487,24 @@ export async function renderNewDropPreview(
   if (!customerId) {
     // Generic variant: a customer with only the blanket new-drops opt-in
     // sees every product in the batch, no brewery/hop reasoning attached.
-    const generalSection = {
-      products: productIds.map((id) =>
-        toDigestProduct(
-          {
-            product_id: id,
-            category: "new_drops",
-            matched_brewery_names: [],
-            matched_hop_names: [],
-          },
-          productMap
-        )
-      ),
-    }
+    const generalProducts = productIds.map((id) =>
+      toDigestProduct(
+        {
+          product_id: id,
+          category: "new_drops",
+          matched_brewery_names: [],
+          matched_hop_names: [],
+        },
+        productMap
+      )
+    )
     const props = {
       name: "Collector",
       brewerySection: null,
       hopSection: null,
-      generalSection,
+      generalSection: { products: generalProducts },
       storeUrl: getStoreUrl(),
+      vipNudge: generalProducts.some((p) => !!p.availableFrom),
     }
     const rendered = await renderEmail(NewDropDigestTpl as any, props)
     return { html: rendered.html, subject: rendered.subject, leadCategory: "new_drops" }
@@ -529,25 +534,36 @@ export async function renderNewDropPreview(
   const narrative = buildNewDropNarrative(items, optedInCategories)
   const customerModule = container.resolve(Modules.CUSTOMER) as any
   const [customer] = await customerModule.listCustomers({ id: customerId })
+  const vipScoreService = container.resolve(VIP_SCORE_MODULE) as any
+  const [score] = await vipScoreService.listVipScores({ customer_id: customerId })
+  const tier = toTier(score?.current_tier)
+  const now = new Date()
+  const dp = (i: NarrativeItem) => toDigestProduct(i, productMap, tier, now)
+  const allItems = [
+    ...(narrative.brewerySection?.items ?? []),
+    ...(narrative.hopSection?.items ?? []),
+    ...(narrative.generalSection?.items ?? []),
+  ]
 
   const props = {
     name: customer?.first_name || "Collector",
     brewerySection: narrative.brewerySection
       ? {
           label: narrative.brewerySection.label,
-          products: narrative.brewerySection.items.map((i) => toDigestProduct(i, productMap)),
+          products: narrative.brewerySection.items.map(dp),
         }
       : null,
     hopSection: narrative.hopSection
       ? {
           label: narrative.hopSection.label,
-          products: narrative.hopSection.items.map((i) => toDigestProduct(i, productMap)),
+          products: narrative.hopSection.items.map(dp),
         }
       : null,
     generalSection: narrative.generalSection
-      ? { products: narrative.generalSection.items.map((i) => toDigestProduct(i, productMap)) }
+      ? { products: narrative.generalSection.items.map(dp) }
       : null,
     storeUrl: getStoreUrl(),
+    vipNudge: hasEarlierTier(tier) && allItems.some((i) => !!dp(i).availableFrom),
   }
   const rendered = await renderEmail(NewDropDigestTpl as any, props)
   return { html: rendered.html, subject: rendered.subject, leadCategory: narrative.leadCategory }

@@ -11,6 +11,9 @@ import * as NewDropDigestTpl from "../emails/new-drop-digest"
 import type { NewDropDigestProduct } from "../emails/new-drop-digest"
 import { buildNewDropNarrative, type NarrativeItem } from "../lib/build-new-drop-narrative"
 import type { AlertCategory } from "../lib/resolve-new-drop-recipients"
+import { VIP_SCORE_MODULE } from "../modules/vip-score"
+import { describeAvailability, hasEarlierTier, toTier } from "../lib/new-drop-availability"
+import type { Tier } from "../lib/access/early-access"
 
 /** Recipients whose email fails this many times are terminally failed. */
 export const EMAIL_ATTEMPT_CAP = 3
@@ -34,7 +37,9 @@ type RecipientItem = {
 
 function toDigestProduct(
   item: NarrativeItem & { alert_dispatch_id?: string | null; hopTag?: string | null },
-  productMap: Map<string, any>
+  productMap: Map<string, any>,
+  tier: Tier | null,
+  now: Date
 ): NewDropDigestProduct {
   const p = productMap.get(item.product_id)
   return {
@@ -44,6 +49,7 @@ function toDigestProduct(
     handle: p?.handle || "",
     dispatchId: item.alert_dispatch_id ?? null,
     hopTag: item.hopTag ?? null,
+    availableFrom: describeAvailability(p?.metadata, tier, now),
   }
 }
 
@@ -56,6 +62,7 @@ async function runDispatch(container: MedusaContainer) {
   const customerModule = container.resolve(Modules.CUSTOMER)
   const productModule = container.resolve(Modules.PRODUCT)
   const siteConfig = container.resolve("siteConfig") as any
+  const vipScoreService = container.resolve(VIP_SCORE_MODULE) as any
 
   const batches = await batchService.listNewDropBatches({ status: "sending" })
   if (!batches.length) return
@@ -108,6 +115,14 @@ async function runDispatch(container: MedusaContainer) {
           )
         : []
       const productMap = new Map(products.map((p: any) => [p.id, p]))
+
+      const customerIds = [...new Set(recipientBatch.map((r: any) => r.customer_id))]
+      const vipScores = customerIds.length
+        ? await vipScoreService.listVipScores({ customer_id: customerIds })
+        : []
+      const tierByCustomer = new Map<string, Tier | null>(
+        vipScores.map((s: any) => [s.customer_id, toTier(s.current_tier)])
+      )
 
       const deliveries = recipientIds.length
         ? await batchService.listNewDropEmailDeliveries({ recipient_id: recipientIds })
@@ -237,6 +252,11 @@ async function runDispatch(container: MedusaContainer) {
                 ...(narrative.generalSection?.items ?? []),
               ]
 
+              const tier = tierByCustomer.get(customer.id) ?? null
+              const digestProduct = (i: any) => toDigestProduct(i, productMap, tier, now)
+              const vipNudge =
+                hasEarlierTier(tier) && includedItems.some((i) => !!digestProduct(i).availableFrom)
+
               const result = await sendTemplate({
                 to: customer.email,
                 customerId: customer.id,
@@ -247,27 +267,22 @@ async function runDispatch(container: MedusaContainer) {
                   brewerySection: narrative.brewerySection
                     ? {
                         label: narrative.brewerySection.label,
-                        products: narrative.brewerySection.items.map((i) =>
-                          toDigestProduct(i, productMap)
-                        ),
+                        products: narrative.brewerySection.items.map(digestProduct),
                       }
                     : null,
                   hopSection: narrative.hopSection
                     ? {
                         label: narrative.hopSection.label,
-                        products: narrative.hopSection.items.map((i) =>
-                          toDigestProduct(i, productMap)
-                        ),
+                        products: narrative.hopSection.items.map(digestProduct),
                       }
                     : null,
                   generalSection: narrative.generalSection
                     ? {
-                        products: narrative.generalSection.items.map((i) =>
-                          toDigestProduct(i, productMap)
-                        ),
+                        products: narrative.generalSection.items.map(digestProduct),
                       }
                     : null,
                   storeUrl,
+                  vipNudge,
                 },
                 container,
               })

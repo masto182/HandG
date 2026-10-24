@@ -11,6 +11,8 @@ export type NewDropDigestProduct = {
   dispatchId: string | null
   /** Matched followed-hop name(s) for this beer, shown as a small tag - null if none. */
   hopTag?: string | null
+  /** Recipient-specific access line, e.g. "Available to you from Sat 25 Oct, 6:00am". */
+  availableFrom?: string | null
 }
 
 export function isAbsoluteUrl(url: string | null): url is string {
@@ -44,6 +46,9 @@ function BeerCell({ product, storeUrl }: { product: NewDropDigestProduct; storeU
       </Text>
       {product.breweryName ? <Text style={productBrewery}>{product.breweryName}</Text> : null}
       {product.hopTag ? <Text style={hopTagStyle}>Featuring {product.hopTag}</Text> : null}
+      {product.availableFrom ? (
+        <Text style={availableFromStyle}>{product.availableFrom}</Text>
+      ) : null}
     </>
   )
 }
@@ -172,6 +177,13 @@ const productBrewery = {
 
 const hopTagStyle = {
   color: "#3F7C62",
+  fontSize: "12px",
+  fontWeight: 600,
+  margin: "0 0 4px",
+}
+
+const availableFromStyle = {
+  color: "#1E2421",
   fontSize: "12px",
   fontWeight: 600,
   margin: "0 0 4px",
