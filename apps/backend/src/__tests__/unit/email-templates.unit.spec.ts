@@ -5,6 +5,7 @@ import * as ApplicationRejected from "../../emails/application-rejected"
 import * as OrderPlaced from "../../emails/order-placed"
 import * as OrderPaymentCaptured from "../../emails/order-payment-captured"
 import * as OrderShipped from "../../emails/order-shipped"
+import * as OrderDelivered from "../../emails/order-delivered"
 import * as OrderReadyForPickup from "../../emails/order-ready-for-pickup"
 import * as RestockAvailable from "../../emails/restock-available"
 import * as VipTierUp from "../../emails/vip-tier-up"
@@ -85,6 +86,16 @@ describe("email templates render", () => {
     })
     expect(out.subject).toContain("1042")
     expect(out.subject).toMatch(/payment confirmed/i)
+  })
+
+  it("order_delivered", async () => {
+    const out = await renderEmail(OrderDelivered as any, {
+      name: "Cam",
+      orderDisplayId: "1042",
+      storeUrl: STORE_URL,
+    })
+    expect(out.subject).toMatch(/arrived/i)
+    expect(out.subject).toContain("1042")
   })
 
   it("order_shipped with tracking URL", async () => {

@@ -1,10 +1,12 @@
 import type { EmailTemplateModule } from "./render-email"
+import { getStoreUrl } from "./email"
 import * as ApplicationReceivedTpl from "../emails/application-received"
 import * as ApplicationApprovedTpl from "../emails/application-approved"
 import * as ApplicationRejectedTpl from "../emails/application-rejected"
 import * as OrderPlacedTpl from "../emails/order-placed"
 import * as OrderPaymentCapturedTpl from "../emails/order-payment-captured"
 import * as OrderShippedTpl from "../emails/order-shipped"
+import * as OrderDeliveredTpl from "../emails/order-delivered"
 import * as OrderReadyForPickupTpl from "../emails/order-ready-for-pickup"
 import * as VipTierUpTpl from "../emails/vip-tier-up"
 import * as VipDemotionWarningTpl from "../emails/vip-demotion-warning"
@@ -78,6 +80,14 @@ export const EMAIL_PREVIEW_REGISTRY: Record<string, EmailPreviewEntry> = {
     label: "Order shipped",
     module: OrderShippedTpl,
     getSampleProps: getOrderShippedSample,
+  },
+  "order-delivered": {
+    label: "Order delivered",
+    module: OrderDeliveredTpl,
+    getSampleProps: async () => ({
+      props: { name: "Alex", orderDisplayId: "1234", storeUrl: getStoreUrl() },
+      synthetic: ["name", "orderDisplayId"],
+    }),
   },
   "order-ready-for-pickup": {
     label: "Order ready for pickup",
