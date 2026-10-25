@@ -71,14 +71,27 @@ describe("shipengine packing", () => {
       expect(boxes[0].weightG).toBe(5000 + 200)
     })
 
-    it("packs 20 cans into 2 boxes (Large 16 + Small 4)", () => {
+    it("packs 20 cans into one XL box", () => {
       const items: PackableItem[] = [{ quantity: 20, weightG: 500, containerType: "can" }]
       const boxes = packItems(items)
+      expect(boxes).toHaveLength(1)
+      expect(boxes[0].lengthCm).toBe(31)
+      expect(boxes[0].weightG).toBe(10000 + 500)
+    })
+
+    it("packs 28 x 550g cans into one XL box at ~35lb (order 39)", () => {
+      const boxes = packItems([{ quantity: 28, weightG: 550, containerType: "can" }])
+      expect(boxes).toHaveLength(1)
+      expect(boxes[0]).toEqual({ weightG: 15900, lengthCm: 31, widthCm: 31, heightCm: 31 })
+    })
+
+    it("splits 40 cans into XL 32 + Large 8", () => {
+      const boxes = packItems([{ quantity: 40, weightG: 550, containerType: "can" }])
       expect(boxes).toHaveLength(2)
-      expect(boxes[0].lengthCm).toBe(39)
-      expect(boxes[0].weightG).toBe(8000 + 200)
-      expect(boxes[1].lengthCm).toBe(24)
-      expect(boxes[1].weightG).toBe(2000 + 200)
+      expect(boxes[0].lengthCm).toBe(31)
+      expect(boxes[0].weightG).toBe(32 * 550 + 500)
+      expect(boxes[1].lengthCm).toBe(39)
+      expect(boxes[1].weightG).toBe(8 * 550 + 200)
     })
 
     it("forces Large box when bottle present", () => {

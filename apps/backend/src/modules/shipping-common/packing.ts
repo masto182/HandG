@@ -10,8 +10,8 @@
  * Rules:
  *   - Any bottle or crowler in the order forces all boxes to Large.
  *   - Cans-only: pick smallest box that fits the count.
- *   - Overflow (> 16 units) splits into multiple boxes.
- *   - Each box has a 200g tare weight added on top of contents.
+ *   - 17-32 cans go in one XL box (12in cube); overflow (> 32 cans) splits into multiple XL boxes.
+ *   - Each box has a tare weight (box + packing) added on top of contents: 200g, or 500g for XL.
  */
 
 export type ContainerType = "can" | "bottle" | "crowler"
@@ -34,6 +34,7 @@ export const BOX_TARE_G = 200
 export const SMALL_BOX = { lengthCm: 22, widthCm: 16, heightCm: 7, maxUnits: 2 }
 export const MEDIUM_BOX = { lengthCm: 24, widthCm: 19, heightCm: 12, maxUnits: 6 }
 export const LARGE_BOX = { lengthCm: 39, widthCm: 28, heightCm: 14, maxUnits: 16 }
+export const XL_BOX = { lengthCm: 31, widthCm: 31, heightCm: 31, maxUnits: 32, tareG: 500 }
 
 export const CONTAINER_WEIGHTS: Record<ContainerType, number> = {
   can: 550,
@@ -52,7 +53,8 @@ export function resolveContainerType(formatOption?: string | null): ContainerTyp
 function pickBoxForCans(count: number) {
   if (count <= SMALL_BOX.maxUnits) return SMALL_BOX
   if (count <= MEDIUM_BOX.maxUnits) return MEDIUM_BOX
-  return LARGE_BOX
+  if (count <= LARGE_BOX.maxUnits) return LARGE_BOX
+  return XL_BOX
 }
 
 export function packItems(items: PackableItem[]): PackedBox[] {
@@ -92,7 +94,8 @@ export function packItems(items: PackableItem[]): PackedBox[] {
       const box = pickBoxForCans(remaining.length)
       const batch = remaining.slice(0, box.maxUnits)
       remaining = remaining.slice(box.maxUnits)
-      const totalWeight = batch.reduce((sum, u) => sum + u.weightG, 0) + BOX_TARE_G
+      const tare = box === XL_BOX ? XL_BOX.tareG : BOX_TARE_G
+      const totalWeight = batch.reduce((sum, u) => sum + u.weightG, 0) + tare
       boxes.push({
         weightG: totalWeight,
         lengthCm: box.lengthCm,

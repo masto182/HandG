@@ -77,7 +77,74 @@ describe("ShipEngineProviderService heat hold", () => {
     const order = { metadata: { heat_hold_override: true }, shipping_address: sampleAddress }
     const res = await provider.createFulfillment(data, [], order as any, {} as any)
     expect(res.data.label_id).toMatch(/^stub-label-/)
-    expect(res.data.bought_via).toBe("rate_id")
+    expect(res.data.bought_via).toBe("direct")
+  })
+
+  it("buys the customer's carrier/service with current items instead of reusing the checkout rate_id", async () => {
+    const provider = makeProvider({ heat_hold_enabled: false, auto_pick_cheapest_label: false })
+    const client = (provider as any).client_
+    const fromRate = jest.spyOn(client, "buyLabelFromRate")
+    const direct = jest.spyOn(client, "buyLabel")
+    const data = {
+      rate_id: "stub-auspost-parcel",
+      carrier_id: "se-stub-auspost",
+      carrier_code: "australia_post",
+      service_code: "australia_post_parcel_post",
+    }
+    const res = await provider.createFulfillment(
+      data,
+      [],
+      { shipping_address: sampleAddress } as any,
+      {} as any
+    )
+    expect(fromRate).not.toHaveBeenCalled()
+    expect(direct).toHaveBeenCalledWith(
+      expect.objectContaining({
+        shipment: expect.objectContaining({
+          carrier_id: "se-stub-auspost",
+          service_code: "australia_post_parcel_post",
+        }),
+      })
+    )
+    expect(res.data.bought_via).toBe("direct")
+  })
+
+  it("falls back to the customer's original shipping method when the method has no carrier/service", async () => {
+    const provider = makeProvider({ heat_hold_enabled: false, auto_pick_cheapest_label: false })
+    const direct = jest.spyOn((provider as any).client_, "buyLabel")
+    const order = {
+      shipping_address: sampleAddress,
+      shipping_methods: [
+        {
+          data: {
+            rate_id: "old",
+            carrier_id: "se-stub-auspost",
+            carrier_code: "australia_post",
+            service_code: "australia_post_parcel_post",
+          },
+        },
+        { data: {} },
+      ],
+    }
+    const res = await provider.createFulfillment({}, [], order as any, {} as any)
+    expect(direct).toHaveBeenCalledWith(
+      expect.objectContaining({
+        shipment: expect.objectContaining({ service_code: "australia_post_parcel_post" }),
+      })
+    )
+    expect(res.data.label_id).toBeTruthy()
+  })
+
+  it("still errors when no shipping method carries a carrier/service", async () => {
+    const provider = makeProvider({ heat_hold_enabled: false, auto_pick_cheapest_label: false })
+    await expect(
+      provider.createFulfillment(
+        {},
+        [],
+        { shipping_address: sampleAddress, shipping_methods: [{ data: {} }] } as any,
+        {} as any
+      )
+    ).rejects.toThrow(/no carrier_id\/service_code/)
   })
 
   it("allows createFulfillment when heat hold disabled", async () => {

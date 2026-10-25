@@ -420,6 +420,12 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
     const orderReference = (order as any)?.display_id
       ? `Order #${(order as any).display_id}`
       : undefined
+    if (chosen.rate_id && !autoPickedFlag && chosen.carrier_id && chosen.service_code) {
+      this.logger_.info(
+        `[shipengine] not reusing checkout rate_id ${chosen.rate_id} (quoted ${data?.rate_quoted_at ?? "unknown"}); buying direct with current items`
+      )
+      chosen.rate_id = undefined
+    }
     if (chosen.rate_id) {
       try {
         label = await this.client_.buyLabelFromRate(chosen.rate_id, {
@@ -435,6 +441,26 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
         } else {
           throw err
         }
+      }
+    }
+    if (!label && (!chosen.carrier_id || !chosen.service_code)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const methods = ((order as any)?.shipping_methods ?? []) as Array<{
+        data?: Record<string, unknown>
+      }>
+      const customerMethod = methods.find(
+        (m) => typeof m?.data?.carrier_id === "string" && typeof m?.data?.service_code === "string"
+      )
+      if (customerMethod?.data) {
+        chosen = {
+          rate_id: undefined,
+          carrier_id: customerMethod.data.carrier_id as string,
+          carrier_code: customerMethod.data.carrier_code as string | undefined,
+          service_code: customerMethod.data.service_code as string,
+        }
+        this.logger_.info(
+          `[shipengine] shipping method had no carrier/service; using customer's choice ${chosen.carrier_code}/${chosen.service_code}`
+        )
       }
     }
     if (!label) {
