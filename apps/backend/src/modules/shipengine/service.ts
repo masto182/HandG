@@ -506,6 +506,16 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
       })
     }
 
+    if (label.carrier_code && label.tracking_number) {
+      try {
+        await this.client_.startTracking(label.carrier_code, label.tracking_number)
+      } catch (err) {
+        this.logger_.warn(
+          `[shipengine] tracking/start failed for ${label.tracking_number}: ${(err as Error).message}`
+        )
+      }
+    }
+
     return {
       data: {
         ...((fulfillment as { data?: Record<string, unknown> }).data ?? {}),

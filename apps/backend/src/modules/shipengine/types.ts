@@ -226,6 +226,7 @@ export interface ShipEngineLikeClient {
   buyLabel(input: ShipEngineBuyLabelInput): Promise<ShipEngineLabel>
   voidLabel(labelId: string): Promise<{ approved: boolean; message?: string }>
   trackByLabel(labelId: string): Promise<ShipEngineTrackingInfo>
+  startTracking(carrierCode: string, trackingNumber: string): Promise<void>
   listCarriers(): Promise<ShipEngineCarrier[]>
   requestPickup(input: ShipEngineRequestPickupInput): Promise<ShipEnginePickup>
   getPickupAvailability(

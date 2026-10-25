@@ -135,6 +135,40 @@ describe("ShipEngineProviderService heat hold", () => {
     expect(res.data.label_id).toBeTruthy()
   })
 
+  it("subscribes the new label to tracking so delivery webhooks fire", async () => {
+    const provider = makeProvider({ heat_hold_enabled: false, auto_pick_cheapest_label: false })
+    const start = jest.spyOn((provider as any).client_, "startTracking")
+    const data = {
+      carrier_id: "se-stub-auspost",
+      carrier_code: "australia_post",
+      service_code: "australia_post_parcel_post",
+    }
+    const res = await provider.createFulfillment(
+      data,
+      [],
+      { shipping_address: sampleAddress } as any,
+      {} as any
+    )
+    expect(start).toHaveBeenCalledWith(res.data.carrier_code, res.data.tracking_number)
+  })
+
+  it("keeps the label when tracking/start fails", async () => {
+    const provider = makeProvider({ heat_hold_enabled: false, auto_pick_cheapest_label: false })
+    jest.spyOn((provider as any).client_, "startTracking").mockRejectedValue(new Error("boom"))
+    const data = {
+      carrier_id: "se-stub-auspost",
+      carrier_code: "australia_post",
+      service_code: "australia_post_parcel_post",
+    }
+    const res = await provider.createFulfillment(
+      data,
+      [],
+      { shipping_address: sampleAddress } as any,
+      {} as any
+    )
+    expect(res.data.label_id).toMatch(/^stub-label-/)
+  })
+
   it("still errors when no shipping method carries a carrier/service", async () => {
     const provider = makeProvider({ heat_hold_enabled: false, auto_pick_cheapest_label: false })
     await expect(

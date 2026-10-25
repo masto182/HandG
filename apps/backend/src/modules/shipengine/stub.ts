@@ -181,6 +181,8 @@ export class StubShipEngineClient implements ShipEngineLikeClient {
     }
   }
 
+  async startTracking(_carrierCode: string, _trackingNumber: string): Promise<void> {}
+
   async listCarriers(): Promise<ShipEngineCarrier[]> {
     return [STUB_CARRIER_AUSPOST, STUB_CARRIER_COURIERSPLEASE]
   }

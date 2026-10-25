@@ -109,6 +109,13 @@ export class ShipEngineClient implements ShipEngineLikeClient {
     )
   }
 
+  async startTracking(carrierCode: string, trackingNumber: string): Promise<void> {
+    await this.request<unknown>(
+      "POST",
+      `/tracking/start?carrier_code=${encodeURIComponent(carrierCode)}&tracking_number=${encodeURIComponent(trackingNumber)}`
+    )
+  }
+
   async listCarriers(): Promise<ShipEngineCarrier[]> {
     const res = await this.request<{ carriers: ShipEngineCarrier[] }>("GET", "/carriers")
     return res?.carriers ?? []
