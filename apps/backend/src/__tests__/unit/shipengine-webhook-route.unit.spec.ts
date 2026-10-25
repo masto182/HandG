@@ -1,5 +1,10 @@
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { POST } from "../../api/webhooks/shipengine/route"
+import { syncNativeFulfillmentStatus } from "../../modules/shipengine/native-status"
+
+jest.mock("../../modules/shipengine/native-status", () => ({
+  syncNativeFulfillmentStatus: jest.fn().mockResolvedValue({ shipped: false, delivered: false }),
+}))
 
 function makeRes() {
   const res: any = {}
@@ -110,6 +115,31 @@ describe("shipengine webhook route", () => {
     const res = makeRes()
     await POST(req as any, res)
     expect(req._eventBus.emit).not.toHaveBeenCalled()
+    expect(res.status).toHaveBeenCalledWith(200)
+  })
+
+  it("syncs Medusa's native shipped/delivered status for a matched fulfillment", async () => {
+    const req = makeReq(delivered, [
+      { id: "ful_1", data: { tracking_number: "TRK1" }, shipment: { order_id: "order_1" } },
+    ])
+    const res = makeRes()
+    await POST(req as any, res)
+    expect(syncNativeFulfillmentStatus).toHaveBeenCalledWith(req.scope, {
+      orderId: "order_1",
+      fulfillmentId: "ful_1",
+      status: "delivered",
+    })
+    expect(res.status).toHaveBeenCalledWith(200)
+  })
+
+  it("still returns 200 when native status sync fails", async () => {
+    ;(syncNativeFulfillmentStatus as jest.Mock).mockRejectedValueOnce(new Error("workflow failed"))
+    const req = makeReq(delivered, [
+      { id: "ful_1", data: { tracking_number: "TRK1" }, shipment: { order_id: "order_1" } },
+    ])
+    const res = makeRes()
+    await POST(req as any, res)
+    expect(req.scope.resolve(ContainerRegistrationKeys.LOGGER).warn).toHaveBeenCalled()
     expect(res.status).toHaveBeenCalledWith(200)
   })
 

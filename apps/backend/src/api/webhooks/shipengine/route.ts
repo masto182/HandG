@@ -5,6 +5,7 @@ import {
   verifyShipEngineWebhook,
   type ShipEngineWebhookPayload,
 } from "../../../modules/shipengine/webhook"
+import { syncNativeFulfillmentStatus } from "../../../modules/shipengine/native-status"
 
 /**
  * POST /webhooks/shipengine
@@ -128,6 +129,23 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       logger.warn(`[shipengine-webhook] persist failed: ${(err as Error).message}`)
       res.status(500).json({ message: "persist failed" })
       return
+    }
+  }
+
+  if (orderId && fulfillmentId) {
+    try {
+      const synced = await syncNativeFulfillmentStatus(req.scope, {
+        orderId,
+        fulfillmentId,
+        status: update.status,
+      })
+      if (synced.shipped || synced.delivered) {
+        logger.info(
+          `[shipengine-webhook] ${update.tracking_number}: marked${synced.shipped ? " shipped" : ""}${synced.delivered ? " delivered" : ""}`
+        )
+      }
+    } catch (err) {
+      logger.warn(`[shipengine-webhook] native status sync failed: ${(err as Error).message}`)
     }
   }
 
