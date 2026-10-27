@@ -32,6 +32,7 @@ function reject(res: MedusaResponse, tier: Tier | null, items: LockedItem[]) {
       "This product hasn't unlocked for your tier yet. It can't be added or checked out until your access opens.",
     your_tier: tier,
     unlock_at: unlockTimes[unlockTimes.length - 1] ?? null,
+    available_at: unlockTimes[unlockTimes.length - 1] ?? null,
     your_available_at: unlockTimes[unlockTimes.length - 1] ?? null,
     items,
   })
