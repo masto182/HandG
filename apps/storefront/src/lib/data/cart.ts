@@ -2,6 +2,7 @@
 
 import { sdk } from "@lib/config"
 import medusaError, { isStaleCartError } from "@lib/util/medusa-error"
+import { isSameAddress } from "@lib/util/saved-addresses"
 import { HttpTypes } from "@medusajs/types"
 import { revalidateTag as _revalidateTag } from "next/cache"
 // Next.js 16 made the profile arg required in types but the single-arg form
@@ -559,28 +560,34 @@ export async function setAddresses(
       const headers = { ...(await getAuthHeaders()) }
       if ((headers as Record<string, string>).authorization) {
         const addr = input.shipping_address
-        await sdk.store.customer
-          .createAddress(
-            {
-              first_name: addr.first_name || "",
-              last_name: addr.last_name || "",
-              address_1: addr.address_1 || "",
-              address_2: addr.address_2 || "",
-              company: addr.company || "",
-              city: addr.city || "",
-              province: addr.province || "",
-              postal_code: addr.postal_code || "",
-              country_code: addr.country_code || "",
-              phone: addr.phone || "",
-            },
-            {},
-            headers,
-          )
-          .then(async () => {
-            const customerCacheTag = await getCacheTag("customers")
-            revalidateTag(customerCacheTag)
-          })
-          .catch(() => {})
+        const existing = await sdk.store.customer
+          .retrieve({ fields: "*addresses" }, headers)
+          .then(({ customer }) => customer.addresses ?? [])
+          .catch(() => [])
+        const alreadySaved = existing.some((a) => isSameAddress(a, addr))
+        if (!alreadySaved)
+          await sdk.store.customer
+            .createAddress(
+              {
+                first_name: addr.first_name || "",
+                last_name: addr.last_name || "",
+                address_1: addr.address_1 || "",
+                address_2: addr.address_2 || "",
+                company: addr.company || "",
+                city: addr.city || "",
+                province: addr.province || "",
+                postal_code: addr.postal_code || "",
+                country_code: addr.country_code || "",
+                phone: addr.phone || "",
+              },
+              {},
+              headers,
+            )
+            .then(async () => {
+              const customerCacheTag = await getCacheTag("customers")
+              revalidateTag(customerCacheTag)
+            })
+            .catch(() => {})
       }
     }
   } catch (e: any) {

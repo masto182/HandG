@@ -10,6 +10,10 @@ import ErrorMessage from "@modules/checkout/components/error-message"
 import AddressAutocomplete from "@modules/common/components/address-autocomplete"
 import { useActionState, useEffect, useMemo, useRef, useState } from "react"
 import { useTrack } from "@lib/hooks/use-track"
+import {
+  formatAddressSummary,
+  sortSavedAddresses,
+} from "@lib/util/saved-addresses"
 
 type Props = {
   cart: HttpTypes.StoreCart
@@ -24,9 +28,11 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
 
   const savedAddresses = useMemo(
     () =>
-      customer?.addresses?.filter(
-        (a) => a.country_code && countriesInRegion.includes(a.country_code),
-      ) || [],
+      sortSavedAddresses(
+        customer?.addresses?.filter(
+          (a) => a.country_code && countriesInRegion.includes(a.country_code),
+        ) || [],
+      ),
     [customer?.addresses, countriesInRegion],
   )
 
@@ -222,14 +228,7 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
                       {(addr.metadata as any)?.label || "Address"}
                     </p>
                     <p className="text-xs text-hg-text-secondary leading-tight mt-1">
-                      {[
-                        addr.address_1,
-                        addr.city,
-                        addr.province,
-                        addr.postal_code,
-                      ]
-                        .filter(Boolean)
-                        .join(", ")}
+                      {formatAddressSummary(addr)}
                     </p>
                   </button>
                 )
