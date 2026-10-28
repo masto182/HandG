@@ -2,8 +2,7 @@
 
 import { useEffect, useRef } from "react"
 import { usePathname } from "next/navigation"
-import { sdk } from "@lib/config"
-import { getOrCreateSessionId } from "@lib/hooks/use-track"
+import { getOrCreateSessionId, postTrack } from "@lib/hooks/use-track"
 
 const HEARTBEAT_INTERVAL_MS = 30_000
 
@@ -12,36 +11,24 @@ function sendHeartbeat(path: string) {
   if (!session_id) return
   const referrer =
     typeof document !== "undefined" ? document.referrer || undefined : undefined
-  const sent = sdk.client.fetch("/store/sessions/heartbeat", {
-    method: "POST",
-    credentials: "include",
-    keepalive: true,
-    body: { session_id, path, referrer },
-  })
-  void sent.catch(() => {})
+  postTrack("/api/track/heartbeat", { session_id, path, referrer })
 }
 
 function sendPageView(path: string) {
   const session_id = getOrCreateSessionId()
   if (!session_id) return
-  const sent = sdk.client.fetch("/store/events", {
-    method: "POST",
-    credentials: "include",
-    keepalive: true,
-    body: {
-      event_type: "page.viewed",
-      session_id,
-      payload: {
-        path,
-        referrer:
-          typeof document !== "undefined"
-            ? document.referrer || undefined
-            : undefined,
-      },
-      event_id: crypto.randomUUID(),
+  postTrack("/api/track/event", {
+    event_type: "page.viewed",
+    session_id,
+    payload: {
+      path,
+      referrer:
+        typeof document !== "undefined"
+          ? document.referrer || undefined
+          : undefined,
     },
+    event_id: crypto.randomUUID(),
   })
-  void sent.catch(() => {})
 }
 
 /**

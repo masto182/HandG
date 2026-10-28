@@ -1,7 +1,18 @@
 "use client"
 
 import { useCallback } from "react"
-import { sdk } from "@lib/config"
+
+export function postTrack(url: string, body: unknown): void {
+  try {
+    void fetch(url, {
+      method: "POST",
+      keepalive: true,
+      credentials: "same-origin",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    }).catch(() => {})
+  } catch {}
+}
 
 export function getOrCreateSessionId(): string {
   if (typeof document === "undefined") return ""
@@ -20,13 +31,12 @@ export function useTrack() {
       // event_id lets the backend dedupe retries/keepalive re-sends so a single
       // user action can't double-count in funnels/rates.
       const event_id = crypto.randomUUID()
-      const sent = sdk.client.fetch("/store/events", {
-        method: "POST",
-        credentials: "include",
-        keepalive: true,
-        body: { event_type, session_id, payload, event_id },
+      postTrack("/api/track/event", {
+        event_type,
+        session_id,
+        payload,
+        event_id,
       })
-      void sent.catch(() => {})
     },
     [],
   )
