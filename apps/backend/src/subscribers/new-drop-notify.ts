@@ -39,11 +39,7 @@ export default async function newDropNotify({ event, container }: SubscriberArgs
     (product as any).metadata?.brewery_name || (product as any).metadata?.brewery || null
   const metaBrewerySlug = (product as any).metadata?.brewery_slug || null
 
-  if (!row) {
-    if (eventName !== "product.created") return
-
-    let breweryId: string | null = null
-    let breweryName: string | null = metaBreweryName
+  const lookupLinkedBrewery = async (): Promise<{ id: string; name: string | null } | null> => {
     try {
       const query = container.resolve(ContainerRegistrationKeys.QUERY)
       const { data } = await query.graph({
@@ -52,13 +48,19 @@ export default async function newDropNotify({ event, container }: SubscriberArgs
         filters: { id: productId },
       })
       const breweries = ((data?.[0] as any)?.breweries || []).filter((b: any) => b?.id)
-      if (breweries[0]) {
-        breweryId = breweries[0].id
-        breweryName = breweries[0].name || breweryName
-      }
+      return breweries[0] ? { id: breweries[0].id, name: breweries[0].name || null } : null
     } catch (err) {
       logger.warn(`[NewDrop] linked lookup failed for ${productId}: ${err}`)
+      return null
     }
+  }
+
+  if (!row) {
+    if (eventName !== "product.created") return
+
+    const linked = await lookupLinkedBrewery()
+    const breweryId: string | null = linked?.id ?? null
+    const breweryName: string | null = linked?.name || metaBreweryName
 
     try {
       await queueService.createNewDropQueues({
@@ -84,9 +86,11 @@ export default async function newDropNotify({ event, container }: SubscriberArgs
 
   const nextBreweryName = metaBreweryName || row.brewery_name
   const nextBrewerySlug = metaBrewerySlug || row.brewery_slug
-  if (nextBreweryName !== row.brewery_name || nextBrewerySlug !== row.brewery_slug) {
+  const linked = row.brewery_id ? null : await lookupLinkedBrewery()
+  if (linked || nextBreweryName !== row.brewery_name || nextBrewerySlug !== row.brewery_slug) {
     await queueService.updateNewDropQueues({
       id: row.id,
+      ...(linked ? { brewery_id: linked.id } : {}),
       brewery_name: nextBreweryName,
       brewery_slug: nextBrewerySlug,
     })
