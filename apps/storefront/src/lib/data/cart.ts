@@ -2,7 +2,11 @@
 
 import { sdk } from "@lib/config"
 import medusaError, { isStaleCartError } from "@lib/util/medusa-error"
-import { isSameAddress } from "@lib/util/saved-addresses"
+import {
+  isSameAddress,
+  normaliseCourierNote,
+  withCourierNote,
+} from "@lib/util/saved-addresses"
 import { HttpTypes } from "@medusajs/types"
 import { revalidateTag as _revalidateTag } from "next/cache"
 // Next.js 16 made the profile arg required in types but the single-arg form
@@ -524,6 +528,8 @@ export type SetAddressesInput = {
   billing_address?: SetAddressesAddress
   email: string
   same_as_billing?: boolean
+  courier_note?: string
+  saved_address_id?: string
 }
 
 export async function setAddresses(
@@ -543,8 +549,12 @@ export async function setAddresses(
       )
     }
 
+    const courierNote = normaliseCourierNote(input.courier_note)
     const data: Record<string, unknown> = {
-      shipping_address: input.shipping_address,
+      shipping_address: {
+        ...input.shipping_address,
+        metadata: { courier_note: courierNote },
+      },
       email: input.email,
     }
 
@@ -555,6 +565,33 @@ export async function setAddresses(
     }
 
     await updateCart(data)
+
+    if (input.saved_address_id) {
+      const headers = { ...(await getAuthHeaders()) }
+      if ((headers as Record<string, string>).authorization) {
+        const saved = await sdk.store.customer
+          .retrieve({ fields: "*addresses" }, headers)
+          .then(({ customer }) =>
+            (customer.addresses ?? []).find(
+              (a) => a.id === input.saved_address_id,
+            ),
+          )
+          .catch(() => undefined)
+        const savedNote = normaliseCourierNote(saved?.metadata?.courier_note)
+        if (saved && savedNote !== courierNote)
+          await sdk.store.customer
+            .updateAddress(
+              saved.id,
+              { metadata: withCourierNote(saved.metadata, courierNote) },
+              {},
+              headers,
+            )
+            .then(async () => {
+              revalidateTag(await getCacheTag("customers"))
+            })
+            .catch(() => {})
+      }
+    }
 
     if (saveAddress && input.shipping_address) {
       const headers = { ...(await getAuthHeaders()) }
@@ -579,6 +616,9 @@ export async function setAddresses(
                 postal_code: addr.postal_code || "",
                 country_code: addr.country_code || "",
                 phone: addr.phone || "",
+                ...(courierNote
+                  ? { metadata: { courier_note: courierNote } }
+                  : {}),
               },
               {},
               headers,

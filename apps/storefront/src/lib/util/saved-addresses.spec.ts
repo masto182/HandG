@@ -1,7 +1,9 @@
 import {
+  courierNoteOf,
   formatAddressSummary,
   isSameAddress,
   sortSavedAddresses,
+  withCourierNote,
 } from "./saved-addresses"
 
 const base = {
@@ -92,5 +94,27 @@ describe("formatAddressSummary", () => {
     expect(formatAddressSummary({ ...base, address_2: " " })).toBe(
       "42 Greenup Street, Redcliffe, QLD, 4020",
     )
+  })
+})
+
+describe("courier note", () => {
+  it("reads and normalises the note from metadata", () => {
+    expect(
+      courierNoteOf({ metadata: { courier_note: "  side\n gate " } }),
+    ).toBe("side gate")
+    expect(courierNoteOf({ metadata: null })).toBe("")
+    expect(
+      courierNoteOf({ metadata: { courier_note: "x".repeat(90) } }),
+    ).toHaveLength(60)
+  })
+
+  it("keeps other metadata when setting or clearing the note", () => {
+    expect(withCourierNote({ label: "Home" }, "Side gate")).toEqual({
+      label: "Home",
+      courier_note: "Side gate",
+    })
+    expect(
+      withCourierNote({ label: "Home", courier_note: "old" }, "  "),
+    ).toEqual({ label: "Home", courier_note: "" })
   })
 })

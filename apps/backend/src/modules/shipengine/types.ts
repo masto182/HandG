@@ -35,6 +35,7 @@ export type ShipEnginePackage = {
   package_code?: string
   weight: ShipEngineWeight
   dimensions?: ShipEngineDimensions
+  label_messages?: { reference1?: string | null }
 }
 
 export type ShipEngineMoney = {

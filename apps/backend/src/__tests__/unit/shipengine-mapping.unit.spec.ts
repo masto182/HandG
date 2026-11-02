@@ -1,6 +1,7 @@
 import {
   CurrencyMismatchError,
   cartToShipEngineShipment,
+  courierNoteFromAddress,
   rateToShippingOption,
 } from "../../modules/shipengine/mapping"
 import type { ShipEngineRate } from "../../modules/shipengine/types"
@@ -85,6 +86,45 @@ describe("cartToShipEngineShipment", () => {
     expect(body.shipment.ship_to.state_province).toBe("VIC")
     expect(body.shipment.ship_from.country_code).toBe("AU")
     expect(body.shipment.ship_from.state_province).toBe("NSW")
+  })
+
+  it("puts the courier note on every package label message", () => {
+    const body = cartToShipEngineShipment({
+      shippingAddress: { country_code: "au", address_1: "1 Test St" },
+      packages: [
+        { weightG: 1000, lengthCm: 22, widthCm: 16, heightCm: 7 },
+        { weightG: 500, lengthCm: 22, widthCm: 16, heightCm: 7 },
+      ],
+      fromAddress,
+      carrierIds: ["se-1"],
+      validateMode: "no_validation",
+      courierNote: "Side gate, blue door",
+    })
+    expect(body.shipment.packages.map((p) => p.label_messages?.reference1)).toEqual([
+      "Side gate, blue door",
+      "Side gate, blue door",
+    ])
+  })
+
+  it("omits label messages when there is no courier note", () => {
+    const body = cartToShipEngineShipment({
+      shippingAddress: { country_code: "au", address_1: "1 Test St" },
+      packages: [{ weightG: 1000, lengthCm: 22, widthCm: 16, heightCm: 7 }],
+      fromAddress,
+      carrierIds: ["se-1"],
+      validateMode: "no_validation",
+    })
+    expect(body.shipment.packages[0].label_messages).toBeUndefined()
+  })
+
+  it("normalises the courier note from address metadata", () => {
+    expect(courierNoteFromAddress({ metadata: { courier_note: "  side\n gate  " } })).toBe(
+      "side gate"
+    )
+    expect(courierNoteFromAddress({ metadata: { courier_note: "   " } })).toBeUndefined()
+    expect(courierNoteFromAddress({ metadata: null })).toBeUndefined()
+    expect(courierNoteFromAddress(undefined)).toBeUndefined()
+    expect(courierNoteFromAddress({ metadata: { courier_note: "x".repeat(80) } })).toHaveLength(60)
   })
 
   it("maps PackedBox[] to shipment packages", () => {

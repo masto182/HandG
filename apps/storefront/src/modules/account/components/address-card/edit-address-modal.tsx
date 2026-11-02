@@ -1,4 +1,5 @@
 "use client"
+import { COURIER_NOTE_MAX, courierNoteOf } from "@lib/util/saved-addresses"
 
 import {
   deleteCustomerAddress,
@@ -166,6 +167,13 @@ const EditAddress: React.FC<EditAddressProps> = ({
               autoComplete="address-line2"
               defaultValue={address.address_2 || undefined}
               data-testid="address-2-input"
+            />
+            <Input
+              label="Note for the courier (optional)"
+              name="courier_note"
+              maxLength={COURIER_NOTE_MAX}
+              defaultValue={courierNoteOf(address) || undefined}
+              data-testid="courier-note-input"
             />
             <div className="grid grid-cols-[144px_1fr] gap-x-2">
               <Input

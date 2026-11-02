@@ -128,6 +128,19 @@ export function rateToShippingOption(
   }
 }
 
+export const COURIER_NOTE_MAX = 60
+
+export function courierNoteFromAddress(
+  address?: {
+    metadata?: Record<string, unknown> | null
+  } | null
+): string | undefined {
+  const raw = address?.metadata?.courier_note
+  if (typeof raw !== "string") return undefined
+  const note = raw.replace(/\s+/g, " ").trim()
+  return note ? note.slice(0, COURIER_NOTE_MAX) : undefined
+}
+
 /**
  * Build the ShipEngine /v1/rates request body from a Medusa cart.
  */
@@ -149,6 +162,7 @@ export function cartToShipEngineShipment(args: {
   fromAddress: FromAddressConfig
   carrierIds: string[]
   validateMode: "no_validation" | "validate_only" | "validate_and_clean"
+  courierNote?: string
 }): ShipEngineGetRatesInput {
   const shipTo: ShipEngineAddress = {
     name:
@@ -194,6 +208,7 @@ export function cartToShipEngineShipment(args: {
           width: box.widthCm,
           height: box.heightCm,
         },
+        ...(args.courierNote ? { label_messages: { reference1: args.courierNote } } : {}),
       })),
     },
   }

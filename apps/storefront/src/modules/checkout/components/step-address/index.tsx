@@ -11,6 +11,8 @@ import AddressAutocomplete from "@modules/common/components/address-autocomplete
 import { useActionState, useEffect, useMemo, useRef, useState } from "react"
 import { useTrack } from "@lib/hooks/use-track"
 import {
+  COURIER_NOTE_MAX,
+  courierNoteOf,
   formatAddressSummary,
   sortSavedAddresses,
 } from "@lib/util/saved-addresses"
@@ -60,6 +62,7 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
     "shipping_address.province": cart?.shipping_address?.province || "",
     "shipping_address.phone":
       cart?.shipping_address?.phone || customer?.phone || "",
+    "shipping_address.courier_note": courierNoteOf(cart?.shipping_address),
     email: cart?.email || customer?.email || "",
   })
 
@@ -81,6 +84,7 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
           "shipping_address.country_code": addr.country_code || "au",
           "shipping_address.province": addr.province || "",
           "shipping_address.phone": addr.phone || customer?.phone || "",
+          "shipping_address.courier_note": courierNoteOf(addr),
         }))
       }
       setShowForm(false)
@@ -90,7 +94,9 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
   }, [selectedOption, savedAddresses, customer])
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >,
   ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
@@ -254,6 +260,11 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
 
         {selectedOption !== "new" && (
           <>
+            <input
+              type="hidden"
+              name="saved_address_id"
+              value={selectedOption}
+            />
             <input
               type="hidden"
               name="shipping_address.first_name"
@@ -500,6 +511,28 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
             )}
           </div>
         )}
+
+        <div className="space-y-2">
+          <label
+            htmlFor="courier-note"
+            className="font-semibold text-[12px] text-hg-text-secondary uppercase tracking-widest"
+          >
+            Note for the courier (Optional)
+          </label>
+          <input
+            id="courier-note"
+            name="shipping_address.courier_note"
+            value={formData["shipping_address.courier_note"]}
+            onChange={handleChange}
+            maxLength={COURIER_NOTE_MAX}
+            placeholder="Side gate, blue door"
+            className="w-full bg-hg-surface border-0 ring-1 ring-hg-border focus:ring-2 focus:ring-hg-gold rounded-xl px-4 py-4 text-hg-text placeholder:text-hg-text-muted transition-all outline-none"
+          />
+          <p className="text-xs text-hg-text-secondary">
+            Printed on the shipping label to help the courier find you. Up to{" "}
+            {COURIER_NOTE_MAX} characters.
+          </p>
+        </div>
 
         <ErrorMessage error={message} />
 

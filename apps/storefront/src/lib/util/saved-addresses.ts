@@ -60,3 +60,25 @@ export function formatAddressSummary(addr: AddressLike): string {
     .filter(Boolean)
     .join(", ")
 }
+
+export const COURIER_NOTE_MAX = 60
+
+export function normaliseCourierNote(v: unknown): string {
+  if (typeof v !== "string") return ""
+  return v.replace(/\s+/g, " ").trim().slice(0, COURIER_NOTE_MAX)
+}
+
+export function courierNoteOf(
+  addr?: { metadata?: Record<string, unknown> | null } | null,
+): string {
+  return normaliseCourierNote(addr?.metadata?.courier_note)
+}
+
+export function withCourierNote(
+  metadata: Record<string, unknown> | null | undefined,
+  note: string,
+): Record<string, unknown> {
+  const next = { ...(metadata ?? {}) }
+  next.courier_note = normaliseCourierNote(note)
+  return next
+}

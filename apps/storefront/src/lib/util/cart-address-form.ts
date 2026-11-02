@@ -36,5 +36,7 @@ export function setAddressesInputFromFormData(
     billing_address,
     email: get("email"),
     same_as_billing,
+    courier_note: get("shipping_address.courier_note"),
+    saved_address_id: get("saved_address_id") || undefined,
   }
 }

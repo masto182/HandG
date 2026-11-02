@@ -2,6 +2,10 @@
 
 import { sdk } from "@lib/config"
 import medusaError from "@lib/util/medusa-error"
+import {
+  normaliseCourierNote,
+  withCourierNote,
+} from "@lib/util/saved-addresses"
 import { HttpTypes } from "@medusajs/types"
 import { revalidateTag as _revalidateTag } from "next/cache"
 // Next.js 16 made the profile arg required in types but the single-arg form
@@ -211,6 +215,13 @@ export const addCustomerAddress = async (
     phone: formData.get("phone") as string,
     is_default_billing: isDefaultBilling,
     is_default_shipping: isDefaultShipping,
+    ...(normaliseCourierNote(formData.get("courier_note"))
+      ? {
+          metadata: {
+            courier_note: normaliseCourierNote(formData.get("courier_note")),
+          },
+        }
+      : {}),
   }
 
   const headers = {
@@ -279,6 +290,19 @@ export const updateCustomerAddress = async (
 
   const headers = {
     ...(await getAuthHeaders()),
+  }
+
+  if (formData.has("courier_note")) {
+    const existing = await sdk.store.customer
+      .retrieve({ fields: "*addresses" }, headers)
+      .then(({ customer }) =>
+        (customer.addresses ?? []).find((a) => a.id === addressId),
+      )
+      .catch(() => undefined)
+    address.metadata = withCourierNote(
+      existing?.metadata,
+      formData.get("courier_note") as string,
+    )
   }
 
   return sdk.store.customer

@@ -21,6 +21,7 @@ import {
 import {
   CurrencyMismatchError,
   cartToShipEngineShipment,
+  courierNoteFromAddress,
   rateToShippingOption,
   type FromAddressConfig,
 } from "./mapping"
@@ -426,6 +427,14 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
       )
       chosen.rate_id = undefined
     }
+    if (
+      chosen.rate_id &&
+      courierNoteFromAddress(
+        shippingAddress as { metadata?: Record<string, unknown> | null } | undefined
+      )
+    ) {
+      chosen.rate_id = undefined
+    }
     if (chosen.rate_id) {
       try {
         label = await this.client_.buyLabelFromRate(chosen.rate_id, {
@@ -490,6 +499,9 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
         fromAddress,
         carrierIds: [chosen.carrier_id],
         validateMode,
+        courierNote: courierNoteFromAddress(
+          shippingAddress as { metadata?: Record<string, unknown> | null } | undefined
+        ),
       })
       label = await this.client_.buyLabel({
         shipment: {
