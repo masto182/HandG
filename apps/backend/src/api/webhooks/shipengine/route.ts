@@ -69,17 +69,20 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
   try {
     const result = await query.graph({
       entity: "fulfillment",
-      fields: ["id", "data", "shipment.order_id"],
+      fields: ["id", "data", "order.id"],
       filters: { provider_id: "shipengine_shipengine" },
     })
     const match = (result.data ?? []).find(
       (f) =>
         (f.data as Record<string, unknown> | null | undefined)?.tracking_number ===
         update.tracking_number
-    ) as { id?: string; shipment?: { order_id?: string } } | undefined
+    ) as { id?: string; order?: { id?: string } | null } | undefined
     if (match?.id) {
       fulfillmentId = match.id
-      orderId = match.shipment?.order_id ?? null
+      orderId = match.order?.id ?? null
+      if (!orderId) {
+        logger.warn(`[shipengine-webhook] fulfillment ${match.id} has no linked order`)
+      }
     }
   } catch (err) {
     logger.warn(`[shipengine-webhook] fulfillment lookup failed: ${(err as Error).message}`)

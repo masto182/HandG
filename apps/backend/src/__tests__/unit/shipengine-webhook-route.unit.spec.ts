@@ -71,7 +71,7 @@ describe("shipengine webhook route", () => {
 
   it("persists the tracking event and emits order.delivered for a matched fulfillment", async () => {
     const req = makeReq(delivered, [
-      { id: "ful_1", data: { tracking_number: "TRK1" }, shipment: { order_id: "order_1" } },
+      { id: "ful_1", data: { tracking_number: "TRK1" }, order: { id: "order_1" } },
     ])
     const res = makeRes()
     await POST(req as any, res)
@@ -96,7 +96,7 @@ describe("shipengine webhook route", () => {
 
   it("returns 500 so ShipEngine retries when persisting fails", async () => {
     const req = makeReq(delivered, [
-      { id: "ful_1", data: { tracking_number: "TRK1" }, shipment: { order_id: "order_1" } },
+      { id: "ful_1", data: { tracking_number: "TRK1" }, order: { id: "order_1" } },
     ])
     req._fulfillmentModule.updateFulfillment.mockRejectedValueOnce(new Error("db down"))
     const res = makeRes()
@@ -107,7 +107,7 @@ describe("shipengine webhook route", () => {
 
   it("does not emit order.delivered again for a repeated delivered event", async () => {
     const req = makeReq(delivered, [
-      { id: "ful_1", data: { tracking_number: "TRK1" }, shipment: { order_id: "order_1" } },
+      { id: "ful_1", data: { tracking_number: "TRK1" }, order: { id: "order_1" } },
     ])
     req._fulfillmentModule.retrieveFulfillment.mockResolvedValueOnce({
       metadata: { last_tracking_status: "delivered" },
@@ -120,7 +120,7 @@ describe("shipengine webhook route", () => {
 
   it("syncs Medusa's native shipped/delivered status for a matched fulfillment", async () => {
     const req = makeReq(delivered, [
-      { id: "ful_1", data: { tracking_number: "TRK1" }, shipment: { order_id: "order_1" } },
+      { id: "ful_1", data: { tracking_number: "TRK1" }, order: { id: "order_1" } },
     ])
     const res = makeRes()
     await POST(req as any, res)
@@ -135,7 +135,7 @@ describe("shipengine webhook route", () => {
   it("still returns 200 when native status sync fails", async () => {
     ;(syncNativeFulfillmentStatus as jest.Mock).mockRejectedValueOnce(new Error("workflow failed"))
     const req = makeReq(delivered, [
-      { id: "ful_1", data: { tracking_number: "TRK1" }, shipment: { order_id: "order_1" } },
+      { id: "ful_1", data: { tracking_number: "TRK1" }, order: { id: "order_1" } },
     ])
     const res = makeRes()
     await POST(req as any, res)
