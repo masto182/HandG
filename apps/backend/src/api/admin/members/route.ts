@@ -3,6 +3,7 @@ import { Modules } from "@medusajs/framework/utils"
 import { VIP_SCORE_MODULE } from "../../../modules/vip-score"
 import { REFERRAL_MODULE } from "../../../modules/referral"
 import { ANALYTICS_MODULE } from "../../../modules/analytics"
+import { parseMemberSort, sortByKey, tierRank, SortKey } from "./sort"
 
 export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) {
   const customerModule = req.scope.resolve(Modules.CUSTOMER) as any
@@ -16,12 +17,14 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
     id,
     limit: rawLimit,
     offset: rawOffset,
+    order,
   } = req.query as {
     group?: string
     q?: string
     id?: string
     limit?: string
     offset?: string
+    order?: string
   }
   const limit = Math.min(parseInt(rawLimit || "50", 10) || 50, 200)
   const offset = parseInt(rawOffset || "0", 10) || 0
@@ -48,6 +51,69 @@ export async function GET(req: AuthenticatedMedusaRequest, res: MedusaResponse) 
     filtered = filtered.filter(isVipGroup)
   } else if (group && group !== "all") {
     filtered = filtered.filter((c: any) => c.groups?.some((g: any) => g.name === group))
+  }
+
+  const sort = parseMemberSort(order)
+  if (sort && filtered.length > 1) {
+    const ids = filtered.map((c: any) => c.id)
+    const toTime = (v: unknown): number | null => {
+      if (!v) return null
+      const t = new Date(v as string).getTime()
+      return Number.isNaN(t) ? null : t
+    }
+    let keyOf: (c: any) => SortKey
+    switch (sort.field) {
+      case "name":
+        keyOf = (c) => `${c.first_name || ""} ${c.last_name || ""}`.trim() || null
+        break
+      case "email":
+        keyOf = (c) => c.email || null
+        break
+      case "why_join":
+        keyOf = (c) => (c.metadata?.why_join as string)?.trim() || null
+        break
+      case "tier":
+        keyOf = (c) => tierRank(c.groups?.map((g: any) => g.name) || [])
+        break
+      case "created_at":
+        keyOf = (c) => toTime(c.created_at)
+        break
+      case "vip_score": {
+        const scores = await vipScoreService.listVipScores({ customer_id: ids })
+        const m = new Map<string, number>(
+          scores.map((s: any) => [s.customer_id, Number(s.vip_score) || 0])
+        )
+        keyOf = (c) => m.get(c.id) ?? 0
+        break
+      }
+      case "last_active": {
+        const m: Map<string, string> = await analyticsService.getLastActiveByCustomerIds(ids)
+        keyOf = (c) => toTime(m.get(c.id))
+        break
+      }
+      case "referred_by": {
+        const refs = await referralService.listReferrals({ referred_customer_id: ids })
+        const referrerIds = [...new Set(refs.map((r: any) => r.referrer_customer_id))]
+        const referrers = referrerIds.length
+          ? await customerModule.listCustomers({ id: referrerIds }, {})
+          : []
+        const nameOf = new Map(
+          referrers.map((r: any) => [
+            r.id,
+            `${r.first_name || ""} ${r.last_name || ""}`.trim() || r.email,
+          ])
+        )
+        const m = new Map(
+          refs.map((r: any) => [
+            r.referred_customer_id,
+            nameOf.get(r.referrer_customer_id) || "Unknown",
+          ])
+        )
+        keyOf = (c) => (m.get(c.id) as string) ?? null
+        break
+      }
+    }
+    filtered = sortByKey(filtered, keyOf, sort.desc, (c: any) => c.id)
   }
 
   const total = filtered.length

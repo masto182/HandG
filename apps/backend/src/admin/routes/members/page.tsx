@@ -177,8 +177,44 @@ const ReferredByCell = ({ referrer }: { referrer: ReferredBy | null }) => {
   )
 }
 
+const SortHeader = ({
+  label,
+  field,
+  sort,
+  onSort,
+  className,
+}: {
+  label: string
+  field: string
+  sort: string
+  onSort: (field: string) => void
+  className?: string
+}) => {
+  const active = sort === field || sort === `-${field}`
+  const desc = sort === `-${field}`
+  return (
+    <Table.HeaderCell className={className}>
+      <button
+        type="button"
+        onClick={() => onSort(field)}
+        className={`inline-flex items-center gap-1 hover:text-ui-fg-base ${
+          active ? "text-ui-fg-base" : ""
+        }`}
+      >
+        {label}
+        <span className={active ? "text-ui-fg-base" : "text-ui-fg-disabled"}>
+          {active ? (desc ? "↓" : "↑") : "↕"}
+        </span>
+      </button>
+    </Table.HeaderCell>
+  )
+}
+
+const DESC_FIRST = new Set(["vip_score", "tier", "created_at", "last_active"])
+
 const MembersPage = () => {
   const [members, setMembers] = useState<Member[]>([])
+  const [sort, setSort] = useState("")
   const [counts, setCounts] = useState<Counts | null>(null)
   const [activeTab, setActiveTab] = useState("pending")
   const [search, setSearch] = useState("")
@@ -195,7 +231,7 @@ const MembersPage = () => {
 
   const isPending = activeTab === "pending"
 
-  const load = (tab: string, q: string, off: number) => {
+  const load = (tab: string, q: string, off: number, ord: string = sort) => {
     setLoading(true)
     const params = new URLSearchParams({
       group: tab,
@@ -203,6 +239,7 @@ const MembersPage = () => {
       offset: String(off),
     })
     if (q.trim()) params.set("q", q.trim())
+    if (ord) params.set("order", ord)
     sdk.client
       .fetch<{ members: Member[]; count: number; counts: Counts }>(
         `/admin/members?${params.toString()}`
@@ -283,6 +320,16 @@ const MembersPage = () => {
   const doSearch = () => {
     setOffset(0)
     load(activeTab, search, 0)
+  }
+
+  const onSort = (field: string) => {
+    let next: string
+    if (sort === field) next = `-${field}`
+    else if (sort === `-${field}`) next = field
+    else next = DESC_FIRST.has(field) ? `-${field}` : field
+    setSort(next)
+    setOffset(0)
+    load(activeTab, search, 0, next)
   }
 
   const prevPage = () => {
@@ -490,22 +537,36 @@ const MembersPage = () => {
                       <Checkbox checked={allOnPageSelected} onCheckedChange={toggleAll} />
                     </Table.HeaderCell>
                   )}
-                  <Table.HeaderCell>Name</Table.HeaderCell>
-                  <Table.HeaderCell>Email</Table.HeaderCell>
+                  <SortHeader label="Name" field="name" sort={sort} onSort={onSort} />
+                  <SortHeader label="Email" field="email" sort={sort} onSort={onSort} />
                   {isPending ? (
                     <>
-                      <Table.HeaderCell>Waiting</Table.HeaderCell>
-                      <Table.HeaderCell>Why join</Table.HeaderCell>
+                      <SortHeader label="Waiting" field="created_at" sort={sort} onSort={onSort} />
+                      <SortHeader label="Why join" field="why_join" sort={sort} onSort={onSort} />
                     </>
                   ) : (
                     <>
-                      <Table.HeaderCell>Tier</Table.HeaderCell>
-                      <Table.HeaderCell>VIP score (AUD)</Table.HeaderCell>
+                      <SortHeader label="Tier" field="tier" sort={sort} onSort={onSort} />
+                      <SortHeader
+                        label="VIP score (AUD)"
+                        field="vip_score"
+                        sort={sort}
+                        onSort={onSort}
+                      />
                     </>
                   )}
-                  <Table.HeaderCell>Referred by</Table.HeaderCell>
-                  {!isPending && <Table.HeaderCell>Joined</Table.HeaderCell>}
-                  {!isPending && <Table.HeaderCell>Last active</Table.HeaderCell>}
+                  <SortHeader label="Referred by" field="referred_by" sort={sort} onSort={onSort} />
+                  {!isPending && (
+                    <SortHeader label="Joined" field="created_at" sort={sort} onSort={onSort} />
+                  )}
+                  {!isPending && (
+                    <SortHeader
+                      label="Last active"
+                      field="last_active"
+                      sort={sort}
+                      onSort={onSort}
+                    />
+                  )}
                 </Table.Row>
               </Table.Header>
               <Table.Body>
