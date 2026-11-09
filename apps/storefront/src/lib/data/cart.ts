@@ -29,7 +29,7 @@ import { getCustomerOffers } from "./wishlist-offers"
 // Shared field selection for fetching a cart with everything the cart/checkout
 // templates need to render (items, variants, totals, promotions).
 const CART_QUERY_FIELDS =
-  "*items, *region, *items.product, +items.product.metadata, *items.variant, *items.variant.options, *items.variant.options.option, *items.variant.product, +items.variant.product.metadata, +items.variant.inventory_quantity, *items.thumbnail, *items.metadata, +items.total, +items.product_subtitle, +items.product_collection, *promotions, +shipping_methods.name, +shipping_methods.data"
+  "*items, *region, *items.product, +items.product.metadata, *items.variant, *items.variant.options, *items.variant.options.option, *items.variant.product, +items.variant.product.metadata, +items.variant.inventory_quantity, *items.thumbnail, *items.metadata, +items.total, +items.product_subtitle, +items.product_collection, *promotions, +shipping_methods.name, +shipping_methods.data, +shipping_address.metadata"
 
 /**
  * Detects when an error came from Medusa's get-variants/region validation

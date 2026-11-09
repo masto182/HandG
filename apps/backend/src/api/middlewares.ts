@@ -1,4 +1,4 @@
-import { defineMiddlewares, authenticate } from "@medusajs/framework/http"
+import { defineMiddlewares, authenticate, allowFields } from "@medusajs/framework/http"
 import { validateBody } from "../lib/validate-body"
 import { RegisterCustomerSchema } from "./store/customers/register/validators"
 import { resolveCustomerTier } from "./store/middlewares/resolve-customer-tier"
@@ -17,6 +17,24 @@ import { SessionHeartbeatRequestSchema } from "./store/sessions/heartbeat/valida
 export default defineMiddlewares({
   routes: [
     ...productImageMiddlewares,
+    {
+      // Medusa 2.21+ strips any requested field missing from a Store route's
+      // allowed list. These are the cart fields the storefront relies on
+      // (CART_QUERY_FIELDS) that core does not allow. No method key: a
+      // method-scoped middleware runs after query validation and has no effect.
+      matcher: "/store/carts*",
+      middlewares: [
+        allowFields(
+          "items.product.metadata",
+          "items.variant.product",
+          "items.variant.product.metadata",
+          "items.variant.inventory_quantity",
+          "items.variant.options",
+          "items.variant.options.option",
+          "shipping_address.metadata"
+        ),
+      ],
+    },
     {
       // Defensive normaliser for admin product list/detail responses.
       // Coerces null `variants` (and similar) to [] so the admin UI's
