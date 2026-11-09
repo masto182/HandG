@@ -74,7 +74,11 @@ jobs:
             # Sync cross-module link tables (pivot tables between modules). Must
             # run after module migrations. Uses the binary directly (not npx) to
             # avoid the registry.npmjs.org lookup that hangs on restricted-egress hosts.
-            $COMPOSE run --rm --no-deps backend ./node_modules/.bin/medusa db:sync-links
+            # --execute-safe: CI has no TTY, so a link change Medusa flags as unsafe
+            # (column type change or table delete) would block on a prompt forever.
+            # Safe creates/updates still apply; unsafe ones are skipped and must be
+            # applied deliberately with `db:sync-links --execute-all` after review.
+            $COMPOSE run --rm --no-deps backend ./node_modules/.bin/medusa db:sync-links --execute-safe
             MEDUSA="./node_modules/.bin/medusa exec"
             $COMPOSE run --rm --no-deps backend $MEDUSA ./src/migration-scripts/initial-data-seed.ts
             $COMPOSE run --rm --no-deps backend $MEDUSA ./src/scripts/seed.ts

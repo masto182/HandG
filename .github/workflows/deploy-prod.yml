@@ -122,7 +122,10 @@ jobs:
             if [ "${{ github.event.inputs.skip_migrations }}" != "true" ]; then
               $COMPOSE run --rm --no-deps backend ./node_modules/.bin/medusa db:migrate --skip-scripts --skip-links
               # Sync cross-module link tables (pivot tables between modules).
-              $COMPOSE run --rm --no-deps backend ./node_modules/.bin/medusa db:sync-links
+              # --execute-safe: CI has no TTY, so an unsafe link change (column type
+              # change or table delete) would block on a prompt forever. Unsafe ones
+              # are skipped and must be applied deliberately with --execute-all.
+              $COMPOSE run --rm --no-deps backend ./node_modules/.bin/medusa db:sync-links --execute-safe
               # Idempotent seed chain (mirrors deploy-staging.yml). Bootstraps a fresh
               # DB; no-ops on an already-seeded prod DB via find-or-create / store-exists
               # guards. Test fixtures are intentionally excluded (seed-e2e-products,
