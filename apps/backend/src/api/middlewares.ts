@@ -13,6 +13,7 @@ import { normalizeAdminProductResponse } from "./admin/middlewares/normalize-pro
 import { productImageMiddlewares } from "./admin/product-images/validators"
 import { StoreEventRequestSchema } from "./store/events/validators"
 import { SessionHeartbeatRequestSchema } from "./store/sessions/heartbeat/validators"
+import { STORE_CART_EXTRA_ALLOWED_FIELDS } from "./store/cart-allowed-fields"
 
 export default defineMiddlewares({
   routes: [
@@ -23,17 +24,7 @@ export default defineMiddlewares({
       // (CART_QUERY_FIELDS) that core does not allow. No method key: a
       // method-scoped middleware runs after query validation and has no effect.
       matcher: "/store/carts*",
-      middlewares: [
-        allowFields(
-          "items.product.metadata",
-          "items.variant.product",
-          "items.variant.product.metadata",
-          "items.variant.inventory_quantity",
-          "items.variant.options",
-          "items.variant.options.option",
-          "shipping_address.metadata"
-        ),
-      ],
+      middlewares: [allowFields(STORE_CART_EXTRA_ALLOWED_FIELDS)],
     },
     {
       // Defensive normaliser for admin product list/detail responses.
