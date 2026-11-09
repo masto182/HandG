@@ -30,6 +30,17 @@ import {
 } from "../shipping-common/packing"
 import type { PacServiceCode } from "./types"
 import { readSiteConfigDirect } from "../site-config/direct-reader"
+import {
+  familiesForProvider,
+  familyFromOptionData,
+  familyIncludes,
+  familyOptionData,
+  type ServiceFamily,
+} from "../shipping-common/service-families"
+import {
+  readShippingOptionDirect,
+  type ShippingOptionReader,
+} from "../shipping-common/shipping-option-reader"
 
 const HEAT_HOLD_BLOCKED_CODE = "HEAT_HOLD_BLOCKED"
 
@@ -77,6 +88,7 @@ class AusPostProviderService extends AbstractFulfillmentProviderService {
   protected readonly options_: ProviderOptions
   protected readonly client_: ReturnType<typeof getAusPostClient>
   protected readonly container_: ContainerLike | null
+  shippingOptionReader_: ShippingOptionReader = readShippingOptionDirect
 
   constructor(deps: InjectedDependencies & Partial<ContainerLike>, options: ProviderOptions = {}) {
     super()
@@ -90,6 +102,25 @@ class AusPostProviderService extends AbstractFulfillmentProviderService {
   }
 
   // ---------- helpers ----------
+
+  private async resolveFulfillmentFamily(
+    fulfillment: Partial<Omit<FulfillmentDTO, "provider_id" | "data" | "items">> | undefined
+  ): Promise<ServiceFamily | null> {
+    const optionId = (fulfillment as { shipping_option_id?: string | null } | undefined)
+      ?.shipping_option_id
+    if (!optionId) return null
+    let record
+    try {
+      record = await this.shippingOptionReader_(optionId)
+    } catch (err) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        `Could not load shipping option ${optionId} to decide which service to lodge: ${(err as Error).message}`
+      )
+    }
+    const family = familyFromOptionData(record?.data)
+    return family && family.provider === "auspost" ? family : null
+  }
 
   private async siteConfigGet<T>(key: string, fallback: T): Promise<T> {
     // Resolution order (mirrors shipengine): provider options from
@@ -175,12 +206,13 @@ class AusPostProviderService extends AbstractFulfillmentProviderService {
   // eslint-disable-next-line @typescript-eslint/require-await
   async getFulfillmentOptions(): Promise<FulfillmentOption[]> {
     return [
+      ...familiesForProvider("auspost").map(familyOptionData),
       {
         id: "auspost-dynamic",
         name: "Australia Post (PAC)",
         is_return: false,
       },
-    ]
+    ] as FulfillmentOption[]
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await
@@ -200,8 +232,11 @@ class AusPostProviderService extends AbstractFulfillmentProviderService {
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await
-  async validateOption(_data: Record<string, unknown>): Promise<boolean> {
-    return true
+  async validateOption(data: Record<string, unknown>): Promise<boolean> {
+    const id = (data?.family ?? data?.id) as string | undefined
+    if (!id || id === "auspost-dynamic") return true
+    const family = familyFromOptionData(data)
+    return !!family && family.provider === "auspost"
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await
@@ -210,13 +245,16 @@ class AusPostProviderService extends AbstractFulfillmentProviderService {
   }
 
   async calculatePrice(
-    _optionData: CalculateShippingOptionPriceDTO["optionData"],
+    optionData: CalculateShippingOptionPriceDTO["optionData"],
     data: CalculateShippingOptionPriceDTO["data"],
     context: CalculateShippingOptionPriceDTO["context"]
   ): Promise<CalculatedShippingOptionPrice> {
     // Cents -> dollars at the Medusa boundary (storefront still sends/displays cents).
     const toMajor = (cents: number) => cents / 100
-    const cachedAmount = typeof data?.amount === "number" ? (data.amount as number) : undefined
+    const family = familyFromOptionData(optionData as Record<string, unknown>)
+    const dataInFamily = !family || familyIncludes(family, data?.service_code)
+    const cachedAmount =
+      dataInFamily && typeof data?.amount === "number" ? (data.amount as number) : undefined
 
     if (!context?.shipping_address) {
       return {
@@ -261,8 +299,9 @@ class AusPostProviderService extends AbstractFulfillmentProviderService {
     }
 
     const services = await this.resolveServicesEnabled()
-    const requestedService =
-      (data?.service_code as PacServiceCode | undefined) ?? services[0] ?? "AUS_PARCEL_REGULAR"
+    const requestedService = family
+      ? ((dataInFamily ? data?.service_code : family.base_service_code) as PacServiceCode)
+      : ((data?.service_code as PacServiceCode | undefined) ?? services[0] ?? "AUS_PARCEL_REGULAR")
     if (!services.includes(requestedService)) {
       return {
         calculated_amount: toMajor(cachedAmount ?? 0),
@@ -332,14 +371,29 @@ class AusPostProviderService extends AbstractFulfillmentProviderService {
 
     // No programmatic label - record manual_lodgement marker so the admin
     // order-detail card can prompt the operator to lodge in MyPost Business.
-    const serviceCode = (data?.service_code as PacServiceCode) ?? "AUS_PARCEL_REGULAR"
+    // An admin override (fulfil form picked another option) arrives with data={},
+    // so the option's own family decides the service.
+    const family = await this.resolveFulfillmentFamily(fulfillment)
+    const adminOverride = !!family && !familyIncludes(family, data?.service_code)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const orderMethods = ((order as any)?.shipping_methods ?? []) as Array<{
+      data?: Record<string, unknown>
+    }>
+    const originalData = adminOverride
+      ? (orderMethods.find((m) => typeof m?.data?.service_code === "string")?.data ?? {})
+      : (data ?? {})
+    const serviceCode = (
+      adminOverride
+        ? family!.base_service_code
+        : ((data?.service_code as string) ?? "AUS_PARCEL_REGULAR")
+    ) as PacServiceCode
     const defaultWeightG = await this.siteConfigGet<number>("shipping_default_item_weight_g", 750)
     const packable = await packableItemsFromFulfillmentItems(
       items as Array<{ sku?: string | null; quantity?: number | string | null }>,
       defaultWeightG
     )
     const packedBoxes = packItems(packable)
-    const sodRequested = data?.force_sod === true
+    const sodRequested = originalData?.force_sod === true
 
     return {
       data: {
@@ -349,6 +403,11 @@ class AusPostProviderService extends AbstractFulfillmentProviderService {
         service_code: serviceCode,
         service_name: serviceDisplayName(serviceCode),
         sod_requested: sodRequested,
+        service_family: family?.family ?? null,
+        admin_override: adminOverride,
+        customer_chosen_carrier_code: (originalData?.carrier_code as string | undefined) ?? null,
+        customer_chosen_service_code: (originalData?.service_code as string | undefined) ?? null,
+        bought_service_code: serviceCode,
         per_box_breakdown: packedBoxes.map((b, i) => ({
           index: i,
           weight_g: b.weightG,

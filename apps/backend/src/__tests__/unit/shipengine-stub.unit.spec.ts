@@ -7,14 +7,32 @@ describe("StubShipEngineClient", () => {
     const res = await client.getRates({
       rate_options: { carrier_ids: [] },
       shipment: {
-        ship_to: { address_line1: "1", city_locality: "x", state_province: "VIC", postal_code: "3000", country_code: "AU" },
-        ship_from: { address_line1: "1", city_locality: "x", state_province: "NSW", postal_code: "2000", country_code: "AU" },
+        ship_to: {
+          address_line1: "1",
+          city_locality: "x",
+          state_province: "VIC",
+          postal_code: "3000",
+          country_code: "AU",
+        },
+        ship_from: {
+          address_line1: "1",
+          city_locality: "x",
+          state_province: "NSW",
+          postal_code: "2000",
+          country_code: "AU",
+        },
         packages: [{ weight: { value: 1500, unit: "gram" } }],
       },
     })
-    expect(res.rate_response.rates).toHaveLength(3)
+    expect(res.rate_response.rates).toHaveLength(5)
     const codes = res.rate_response.rates.map((r) => r.carrier_code).sort()
-    expect(codes).toEqual(["australia_post", "australia_post", "couriers_please"])
+    expect(codes).toEqual([
+      "aramex_au_walleted",
+      "australia_post",
+      "australia_post",
+      "couriers_please",
+      "couriersplease_walleted",
+    ])
     for (const r of res.rate_response.rates) {
       expect(r.shipping_amount.currency).toBe("aud")
     }

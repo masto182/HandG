@@ -6,10 +6,7 @@ import { isStaleCartError } from "@lib/util/medusa-error"
 import { getAuthHeaders, getCacheOptions } from "./cookies"
 
 export type CarrierGroup =
-  | "australia_post"
-  | "couriers_please"
-  | "aramex"
-  | "other"
+  "australia_post" | "couriers_please" | "aramex" | "other"
 export type ServiceTier = "standard" | "express"
 export type DeliveryBehaviour = "attempted" | "leave_at_door" | "signature"
 
@@ -20,6 +17,9 @@ export type CarrierRate = {
   currency_code: string
   price_type: "calculated"
   provider_id: string
+  // Per-service Medusa shipping option this rate is saved against.
+  shipping_option_id?: string
+  service_family?: string
   // v2 enrichment fields
   carrier_group: CarrierGroup
   carrier_display_name: string

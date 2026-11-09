@@ -20,6 +20,10 @@ import {
   type DeliveryBehaviour,
   type ServiceTier,
 } from "../../../../modules/shipping-common/normalise"
+import {
+  familyForServiceCode,
+  familyFromOptionData,
+} from "../../../../modules/shipping-common/service-families"
 import { getAusPostClient } from "../../../../modules/auspost/factory"
 import {
   quoteService as auspostQuoteService,
@@ -35,6 +39,9 @@ type CarrierRate = {
   currency_code: string
   price_type: "calculated"
   provider_id: string
+  // Medusa shipping option this rate must be saved against (per service family).
+  shipping_option_id?: string
+  service_family?: string
   // v2 enrichment
   carrier_group: CarrierGroup
   carrier_display_name: string
@@ -231,6 +238,16 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 
   let allRates: CarrierRate[] = [...seRates, ...apResult.rates]
 
+  // ShipEngine signature variants (Aramex signature_required) are not offered:
+  // Aramex treats signature as best-effort only. AusPost SOD is unaffected.
+  allRates = allRates.filter(
+    (r) => !(r.provider_id !== "auspost" && r.delivery_behaviour === "signature")
+  )
+
+  // Each rate is saved against the per-service shipping option of its family
+  // (signature variants share their base service's option).
+  allRates = await attachShippingOptionIds(allRates, query, logger)
+
   // v3 sibling pairing for ShipEngine: within each (carrier_group, service_tier) pair,
   // a non-signature standard rate becomes the visible row and gains a `signature_sibling`
   // pointing at the cheapest signature variant of the same carrier+tier.
@@ -319,6 +336,52 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     ...(allRates.length === 0 ? { errors: debugInfo } : {}),
     ...(debug ? { debug: debugInfo } : {}),
   })
+}
+
+/**
+ * Attach shipping_option_id by service family and drop rates no option covers.
+ * If no per-service options exist yet (migration not run), return rates
+ * unchanged so checkout keeps working through the legacy catch-all option.
+ */
+export async function attachShippingOptionIds(
+  rates: CarrierRate[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  query: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  logger: any
+): Promise<CarrierRate[]> {
+  let options: Array<{ id: string; data?: Record<string, unknown> | null }> = []
+  try {
+    const { data } = await query.graph({
+      entity: "shipping_option",
+      fields: ["id", "data", "provider_id"],
+    })
+    options = data ?? []
+  } catch (err) {
+    logger.warn(`[shipping/rates] shipping option lookup failed: ${(err as Error).message}`)
+    return rates
+  }
+  const optionIdByFamily = new Map<string, string>()
+  for (const o of options) {
+    const family = familyFromOptionData(o.data ?? null)
+    if (family) optionIdByFamily.set(family.family, o.id)
+  }
+  if (!optionIdByFamily.size) return rates
+
+  const kept: CarrierRate[] = []
+  for (const r of rates) {
+    const provider = r.provider_id === "auspost" ? "auspost" : "shipengine"
+    const family = familyForServiceCode(r.data?.service_code, provider)
+    const optionId = family ? optionIdByFamily.get(family.family) : undefined
+    if (!family || !optionId) {
+      logger.warn(
+        `[shipping/rates] no shipping option for ${provider} service ${r.data?.service_code}; rate hidden`
+      )
+      continue
+    }
+    kept.push({ ...r, shipping_option_id: optionId, service_family: family.family })
+  }
+  return kept
 }
 
 /**

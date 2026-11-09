@@ -19,6 +19,17 @@ import {
   packItems,
 } from "../shipping-common/packing"
 import {
+  familiesForProvider,
+  familyFromOptionData,
+  familyIncludes,
+  familyOptionData,
+  type ServiceFamily,
+} from "../shipping-common/service-families"
+import {
+  readShippingOptionDirect,
+  type ShippingOptionReader,
+} from "../shipping-common/shipping-option-reader"
+import {
   CurrencyMismatchError,
   cartToShipEngineShipment,
   courierNoteFromAddress,
@@ -75,6 +86,7 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
   protected readonly options_: ProviderOptions
   protected readonly client_: ShipEngineLikeClient
   protected readonly siteConfigResolver_: ((name: string) => unknown) | null
+  shippingOptionReader_: ShippingOptionReader = readShippingOptionDirect
 
   constructor(deps: Record<string, unknown>, options: ProviderOptions = {}) {
     super()
@@ -144,6 +156,30 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
     }
   }
 
+  /**
+   * Family of the shipping option this fulfillment is being created against,
+   * or null for the legacy shipengine-dynamic option. A failed lookup throws:
+   * guessing here could silently buy the wrong service.
+   */
+  private async resolveFulfillmentFamily(
+    fulfillment: Partial<Omit<FulfillmentDTO, "provider_id" | "data" | "items">> | undefined
+  ): Promise<ServiceFamily | null> {
+    const optionId = (fulfillment as { shipping_option_id?: string | null } | undefined)
+      ?.shipping_option_id
+    if (!optionId) return null
+    let record
+    try {
+      record = await this.shippingOptionReader_(optionId)
+    } catch (err) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        `Could not load shipping option ${optionId} to decide which label to buy: ${(err as Error).message}`
+      )
+    }
+    const family = familyFromOptionData(record?.data)
+    return family && family.provider === "shipengine" ? family : null
+  }
+
   private isRateCacheFresh(quotedAtIso: string | undefined | null): boolean {
     if (!quotedAtIso) return false
     const t = Date.parse(quotedAtIso)
@@ -158,6 +194,29 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
         (a.shipping_amount?.amount ?? Number.POSITIVE_INFINITY) -
         (b.shipping_amount?.amount ?? Number.POSITIVE_INFINITY)
     )[0]
+  }
+
+  /**
+   * Match a live rate within a service family only, never another service:
+   * rate_id (if its service is in the family) -> the method's service_code ->
+   * the family's base service -> cheapest in family.
+   */
+  private matchRateInFamily(
+    rates: ShipEngineRate[],
+    family: ServiceFamily,
+    data: Record<string, unknown> | undefined
+  ): ShipEngineRate | undefined {
+    const inFamily = rates.filter((r) => familyIncludes(family, r.service_code))
+    if (!inFamily.length) return undefined
+    const rateId = data?.rate_id as string | undefined
+    const service = familyIncludes(family, data?.service_code)
+      ? (data?.service_code as string)
+      : family.base_service_code
+    return (
+      (rateId && inFamily.find((r) => r.rate_id === rateId)) ||
+      this.pickCheapestRate(inFamily.filter((r) => r.service_code === service)) ||
+      this.pickCheapestRate(inFamily)
+    )
   }
 
   private async fetchRates(args: {
@@ -206,12 +265,13 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
   // eslint-disable-next-line @typescript-eslint/require-await
   async getFulfillmentOptions(): Promise<FulfillmentOption[]> {
     return [
+      ...familiesForProvider("shipengine").map(familyOptionData),
       {
         id: "shipengine-dynamic",
         name: "Live carrier rates (ShipEngine)",
         is_return: false,
       },
-    ]
+    ] as FulfillmentOption[]
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await
@@ -236,8 +296,11 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await
-  async validateOption(_data: Record<string, unknown>): Promise<boolean> {
-    return true
+  async validateOption(data: Record<string, unknown>): Promise<boolean> {
+    const id = (data?.family ?? data?.id) as string | undefined
+    if (!id || id === "shipengine-dynamic") return true
+    const family = familyFromOptionData(data)
+    return !!family && family.provider === "shipengine"
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await
@@ -246,7 +309,7 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
   }
 
   async calculatePrice(
-    _optionData: CalculateShippingOptionPriceDTO["optionData"],
+    optionData: CalculateShippingOptionPriceDTO["optionData"],
     data: CalculateShippingOptionPriceDTO["data"],
     context: CalculateShippingOptionPriceDTO["context"]
   ): Promise<CalculatedShippingOptionPrice> {
@@ -257,8 +320,12 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
     const handlingFeeAud = await this.siteConfigGet<number>("shipping_handling_fee_aud", 0)
     const handlingFeeCents = Math.round(handlingFeeAud * 100)
     try {
+      const family = familyFromOptionData(optionData as Record<string, unknown>)
       // data.amount comes from /store/shipping/rates, which already includes the handling fee.
-      const cachedAmount = typeof data?.amount === "number" ? (data.amount as number) : undefined
+      // For a per-service option it is only trusted when it was quoted for a service in this family.
+      const dataInFamily = !family || familyIncludes(family, data?.service_code)
+      const cachedAmount =
+        dataInFamily && typeof data?.amount === "number" ? (data.amount as number) : undefined
       if (
         cachedAmount !== undefined &&
         this.isRateCacheFresh(data?.rate_quoted_at as string | undefined)
@@ -296,12 +363,15 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
       const targetRateId = data?.rate_id as string | undefined
       const targetCarrier = data?.carrier_id as string | undefined
       const targetService = data?.service_code as string | undefined
-      const matched =
-        (targetRateId && rates.find((r) => r.rate_id === targetRateId)) ||
-        (targetCarrier &&
-          targetService &&
-          rates.find((r) => r.carrier_id === targetCarrier && r.service_code === targetService)) ||
-        this.pickCheapestRate(rates)
+      const matched = family
+        ? this.matchRateInFamily(rates, family, data as Record<string, unknown> | undefined)
+        : (targetRateId && rates.find((r) => r.rate_id === targetRateId)) ||
+          (targetCarrier &&
+            targetService &&
+            rates.find(
+              (r) => r.carrier_id === targetCarrier && r.service_code === targetService
+            )) ||
+          this.pickCheapestRate(rates)
 
       if (!matched) {
         return {
@@ -373,22 +443,82 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
       )
     }
 
+    // ---------- Resolve which service this fulfillment is for ----------
+    // Medusa passes data={} when the admin picks a different option in the fulfil
+    // form, so the option's own data decides whether this is an override.
+    const family = await this.resolveFulfillmentFamily(fulfillment)
+    const methodData = (data ?? {}) as Record<string, unknown>
+    const adminOverride = !!family && !familyIncludes(family, methodData.service_code)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const orderMethods = ((order as any)?.shipping_methods ?? []) as Array<{
+      data?: Record<string, unknown>
+    }>
+    const originalMethodData = adminOverride
+      ? (orderMethods.find((m) => typeof m?.data?.service_code === "string")?.data ?? {})
+      : methodData
+
     // ---------- Auto-pick cheapest gate ----------
-    const autoPick = await this.siteConfigGet<boolean>("auto_pick_cheapest_label", false)
+    const autoPick =
+      !adminOverride && (await this.siteConfigGet<boolean>("auto_pick_cheapest_label", false))
     const customerChoice = {
-      rate_id: data?.rate_id as string | undefined,
-      carrier_id: data?.carrier_id as string | undefined,
-      carrier_code: data?.carrier_code as string | undefined,
-      service_code: data?.service_code as string | undefined,
+      rate_id: originalMethodData?.rate_id as string | undefined,
+      carrier_id: originalMethodData?.carrier_id as string | undefined,
+      carrier_code: originalMethodData?.carrier_code as string | undefined,
+      service_code: originalMethodData?.service_code as string | undefined,
     }
 
-    let chosen = { ...customerChoice }
+    let chosen = adminOverride
+      ? ({
+          rate_id: undefined,
+          carrier_id: undefined,
+          carrier_code: undefined,
+          service_code: undefined,
+        } as typeof customerChoice)
+      : { ...customerChoice }
     let autoPickedFlag = false
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const shippingAddress = ((order as any)?.shipping_address ??
       (fulfillment as any)?.shipping_address) as
       NonNullable<CalculateShippingOptionPriceDTO["context"]["shipping_address"]> | undefined
+
+    if (adminOverride && family) {
+      const wantsSignature =
+        originalMethodData.force_sod === true ||
+        (typeof originalMethodData.service_code === "string" &&
+          (originalMethodData.service_code as string).includes("signature"))
+      const signatureCode = family.service_codes.find((c) => c.includes("signature"))
+      const targetService =
+        wantsSignature && signatureCode ? signatureCode : family.base_service_code
+      if (!shippingAddress) {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          `Cannot buy ${family.name} label: order has no shipping address.`
+        )
+      }
+      const fresh = await this.fetchRates({
+        shippingAddress,
+        items: items as unknown as CalculateShippingOptionPriceDTO["context"]["items"],
+        currency: "aud",
+        email: (order as any)?.email,
+      })
+      const matched = this.matchRateInFamily(fresh, family, { service_code: targetService })
+      if (!matched) {
+        throw new MedusaError(
+          MedusaError.Types.NOT_ALLOWED,
+          `${family.name} is not available for this order's address/parcels right now. Pick another shipping method.`
+        )
+      }
+      chosen = {
+        rate_id: undefined,
+        carrier_id: matched.carrier_id,
+        carrier_code: matched.carrier_code,
+        service_code: matched.service_code,
+      }
+      this.logger_.info(
+        `[shipengine] admin override to ${family.name}: buying ${chosen.carrier_code}/${chosen.service_code} (customer chose ${customerChoice.service_code ?? "unknown"})`
+      )
+    }
 
     if (autoPick && shippingAddress) {
       try {
@@ -427,12 +557,11 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
       )
       chosen.rate_id = undefined
     }
-    if (
-      chosen.rate_id &&
-      courierNoteFromAddress(
-        shippingAddress as { metadata?: Record<string, unknown> | null } | undefined
-      )
-    ) {
+    const courierNote = courierNoteFromAddress(
+      shippingAddress as { metadata?: Record<string, unknown> | null } | undefined
+    )
+    const labelReference = [orderReference, courierNote].filter(Boolean).join(" - ") || undefined
+    if (chosen.rate_id && labelReference) {
       chosen.rate_id = undefined
     }
     if (chosen.rate_id) {
@@ -452,11 +581,8 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
         }
       }
     }
-    if (!label && (!chosen.carrier_id || !chosen.service_code)) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const methods = ((order as any)?.shipping_methods ?? []) as Array<{
-        data?: Record<string, unknown>
-      }>
+    if (!label && !family && (!chosen.carrier_id || !chosen.service_code)) {
+      const methods = orderMethods
       const customerMethod = methods.find(
         (m) => typeof m?.data?.carrier_id === "string" && typeof m?.data?.service_code === "string"
       )
@@ -499,9 +625,7 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
         fromAddress,
         carrierIds: [chosen.carrier_id],
         validateMode,
-        courierNote: courierNoteFromAddress(
-          shippingAddress as { metadata?: Record<string, unknown> | null } | undefined
-        ),
+        courierNote: labelReference,
       })
       label = await this.client_.buyLabel({
         shipment: {
@@ -541,6 +665,9 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
         bought_via,
         customer_chosen_carrier_code: customerChoice.carrier_code ?? null,
         customer_chosen_service_code: customerChoice.service_code ?? null,
+        bought_service_code: label.service_code ?? chosen.service_code ?? null,
+        service_family: family?.family ?? null,
+        admin_override: adminOverride,
         auto_picked: autoPickedFlag,
       },
       labels: [

@@ -92,6 +92,35 @@ function buildStubRates(currency: string): ShipEngineRate[] {
       trackable: true,
       rate_attributes: ["cheapest", "best_value"],
     },
+    // Real production service codes, so per-service shipping options (which
+    // only cover real codes) still have rates to show in CI/dev. Priced above
+    // the legacy stub rates so "cheapest" behaviour is unchanged.
+    {
+      rate_id: "stub-cp-parcel",
+      carrier_id: STUB_CARRIER_COURIERSPLEASE.carrier_id,
+      carrier_code: "couriersplease_walleted",
+      carrier_friendly_name: "CouriersPlease",
+      service_code: "couriersplease_walleted_parcel",
+      service_type: "Parcel",
+      shipping_amount: { currency, amount: 14.0 },
+      delivery_days: 3,
+      estimated_delivery_date: eta(3),
+      trackable: true,
+      rate_attributes: [],
+    },
+    {
+      rate_id: "stub-aramex-standard",
+      carrier_id: "se-stub-aramex",
+      carrier_code: "aramex_au_walleted",
+      carrier_friendly_name: "Aramex",
+      service_code: "aramex_au_walleted_standard",
+      service_type: "Road Express",
+      shipping_amount: { currency, amount: 16.0 },
+      delivery_days: 3,
+      estimated_delivery_date: eta(3),
+      trackable: true,
+      rate_attributes: [],
+    },
   ]
 }
 

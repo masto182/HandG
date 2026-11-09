@@ -1,6 +1,7 @@
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import type { ExecArgs } from "@medusajs/framework/types"
 import { createShippingOptionsWorkflow } from "@medusajs/medusa/core-flows"
+import { ensurePerServiceShippingOptions } from "../lib/shipping/per-service-options"
 import { PICKUP_LOCATION_MODULE } from "../modules/pickup-location"
 import type PickupLocationModuleService from "../modules/pickup-location/service"
 import { getShipEngineClient } from "../modules/shipengine/factory"
@@ -375,6 +376,15 @@ export default async function seed({ container }: ExecArgs) {
         rules: [],
       })
     }
+
+    // 5a-iii. One calculated option per carrier service family; hides the two
+    // legacy catch-all options above from the storefront (kept for old orders).
+    await ensurePerServiceShippingOptions({
+      container,
+      logger,
+      serviceZoneId: shippingZone.id,
+      shippingProfileId: profileId,
+    })
 
     // 5b. Pickup sets, one per pickup location. Skipped once bootstrapped —
     // these objects are found-or-created by name, and PICKUP_LOCATIONS'

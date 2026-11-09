@@ -87,6 +87,12 @@ const StepShipping: React.FC<Props> = ({ cart, shippingOptions }) => {
     }
   }, [deliveryOptions])
 
+  // Each rate carries the per-service shipping option it must be saved against.
+  // The provider lookup is only a fallback for before the per-service options
+  // exist (the rates route then attaches nothing).
+  const optionIdFor = (rate: CarrierRate): string | undefined =>
+    rate.shipping_option_id ?? optionByProvider[rate.provider_id]
+
   const [response, setResponse] = useState<CarrierRatesResponse | null>(null)
   const [isLoadingRates, setIsLoadingRates] = useState(true)
 
@@ -168,7 +174,7 @@ const StepShipping: React.FC<Props> = ({ cart, shippingOptions }) => {
       sigOn && base.signature_sibling
         ? (ratesById.get(base.signature_sibling.rate_id) ?? base)
         : base
-    const optionId = optionByProvider[eff.provider_id]
+    const optionId = optionIdFor(eff)
     if (!optionId) {
       setError(
         `No shipping option configured for provider "${eff.provider_id}"`,
@@ -231,7 +237,7 @@ const StepShipping: React.FC<Props> = ({ cart, shippingOptions }) => {
       return
     }
 
-    const optionId = optionByProvider[selectedRate.provider_id]
+    const optionId = optionIdFor(selectedRate)
     if (!optionId) {
       setError(
         `No shipping option configured for provider "${selectedRate.provider_id}"`,

@@ -27,6 +27,8 @@ export default async function fixShippingPrices({ container }: ExecArgs) {
   }
 
   for (const option of allOptions) {
+    // Calculated (live-rate) options are priced by their provider; never pin a flat price on them.
+    if ((option as { price_type?: string }).price_type === "calculated") continue
     let target = correctPrices[option.name]
     if (target === undefined) {
       if (/pickup/i.test(option.name)) {
