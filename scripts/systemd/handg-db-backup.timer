@@ -1,0 +1,9 @@
+[Unit]
+Description=Run Hops & Glory Postgres backup nightly at 16:30 UTC (03:30 Sydney AEDT)
+
+[Timer]
+OnCalendar=*-*-* 16:30:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target
