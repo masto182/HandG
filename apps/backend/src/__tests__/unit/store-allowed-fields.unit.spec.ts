@@ -7,6 +7,8 @@ const frameworkRoot = path.dirname(require.resolve("@medusajs/framework"))
 const { FieldParser, AllowedFieldFilter } = require(
   path.join(frameworkRoot, "http/utils/field-filtering/index.js")
 )
+const { getRelationsDepth } = require(path.join(frameworkRoot, "http/utils/relations-limit.js"))
+const DEFAULT_STORE_RELATIONS_LIMIT = 3
 
 const storefrontData = path.resolve(__dirname, "../../../../storefront/src/lib/data")
 
@@ -17,12 +19,25 @@ function readConst(file: string, name: string): string {
   return match[1]
 }
 
+function queryConfig(route: string, configName: string) {
+  return require(path.join(medusaRoot, "api/store", route, "query-config.js"))[configName]
+}
+
 function droppedFields(route: string, configName: string, fields: string, extra: string[] = []) {
-  const config = require(path.join(medusaRoot, "api/store", route, "query-config.js"))[configName]
+  const config = queryConfig(route, configName)
   const parsedFields = FieldParser.parse(fields.replace(/\s+/g, ""), config.defaults)
   return new AllowedFieldFilter({ allowed: [...config.allowed, ...extra] }).getNotAllowedFields({
     parsedFields,
   })
+}
+
+function tooDeepFields(route: string, configName: string, fields: string) {
+  const limit = queryConfig(route, configName).storeRelationsLimit ?? DEFAULT_STORE_RELATIONS_LIMIT
+  return fields
+    .replace(/\s+/g, "")
+    .split(",")
+    .map((f) => f.replace(/^[+-]/, ""))
+    .filter((f) => getRelationsDepth(f) > limit)
 }
 
 describe("store API allowed fields cover storefront requests", () => {
@@ -36,6 +51,11 @@ describe("store API allowed fields cover storefront requests", () => {
         STORE_CART_EXTRA_ALLOWED_FIELDS
       )
     ).toEqual([])
+  })
+
+  it("keeps cart fields within the store relations depth limit", () => {
+    const fields = readConst("cart.ts", "CART_QUERY_FIELDS")
+    expect(tooDeepFields("carts", "retrieveTransformQueryConfig", fields)).toEqual([])
   })
 
   it("requests the shipping address courier note on the cart", () => {
@@ -68,5 +88,6 @@ describe("store API allowed fields cover storefront requests", () => {
     ["customers", "retrieveTransformQueryConfig", "*orders,+addresses"],
   ])("keeps storefront fields on %s (%s)", (route, configName, fields) => {
     expect(droppedFields(route, configName, fields)).toEqual([])
+    expect(tooDeepFields(route, configName, fields)).toEqual([])
   })
 })

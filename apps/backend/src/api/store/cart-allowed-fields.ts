@@ -4,6 +4,6 @@ export const STORE_CART_EXTRA_ALLOWED_FIELDS = [
   "items.variant.product.metadata",
   "items.variant.inventory_quantity",
   "items.variant.options",
-  "items.variant.options.option",
+  "items.product.options",
   "shipping_address.metadata",
 ]

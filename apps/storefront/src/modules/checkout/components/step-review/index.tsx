@@ -21,10 +21,21 @@ function getBrewery(item: any): string | undefined {
 }
 
 function getFormat(item: any): string {
-  const opts: Array<{ value?: string; option?: { title?: string } }> =
-    item?.variant?.options ?? []
+  const opts: Array<{
+    value?: string
+    option_id?: string
+    option?: { title?: string }
+  }> = item?.variant?.options ?? []
+  const titles = new Map<string, string>(
+    (item?.product?.options ?? []).map((o: { id: string; title?: string }) => [
+      o.id,
+      o.title ?? "",
+    ]),
+  )
   const fmt = opts.find(
-    (o) => (o.option?.title ?? "").toLowerCase() === "format",
+    (o) =>
+      (o.option?.title ?? titles.get(o.option_id ?? "") ?? "").toLowerCase() ===
+      "format",
   )?.value
   if (fmt) return fmt
   const vt = (item?.variant_title ?? "") as string
