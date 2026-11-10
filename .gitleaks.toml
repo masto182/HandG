@@ -14,6 +14,7 @@ paths = [
   '''(.*?)\.test$''',
   '''pnpm-lock\.yaml''',
   '''docs/.*\.md$''',
+  '''\.claude/skills/.*\.md$''',
 ]
 
 regexes = [

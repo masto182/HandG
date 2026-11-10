@@ -23,7 +23,7 @@ Server action `console.error` logs appear in the **Next.js terminal**, NOT the b
 ```
 Storefront:     http://localhost:8000
 Medusa backend: http://localhost:9000
-Publishable key: pk_3e3eb2623bb1b1ca57f81b53cf602504f871ac3c0d26e6acf8c35d06ff5b3bd3
+Publishable key: NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY in apps/storefront/.env.local
 DB:             postgres://medusa:medusa_dev_password@localhost:5432/medusa (see apps/backend/.env DATABASE_URL — this changes, always confirm there first)
 ```
 
@@ -40,9 +40,10 @@ DB:             postgres://medusa:medusa_dev_password@localhost:5432/medusa (see
 ### Step 1: Get a JWT token
 
 ```bash
+PK=$(grep '^NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=' /Users/cmasterson/projects/HandG/apps/storefront/.env.local | cut -d= -f2)
 TOKEN=$(curl -s -X POST http://localhost:9000/auth/customer/emailpass \
   -H "Content-Type: application/json" \
-  -H "x-publishable-api-key: pk_3e3eb2623bb1b1ca57f81b53cf602504f871ac3c0d26e6acf8c35d06ff5b3bd3" \
+  -H "x-publishable-api-key: $PK" \
   -d '{"email":"approved@test.hopsandglory.au","password":"TestApproved123!"}' \
   | python3 -c "import sys,json; print(json.load(sys.stdin).get('token','NO_TOKEN'))")
 echo "Token: ${TOKEN:0:30}..."
@@ -72,7 +73,7 @@ Replace `ENDPOINT` and `METHOD` as needed:
 ```bash
 curl -s "http://localhost:9000/ENDPOINT" \
   -H "Authorization: Bearer $TOKEN" \
-  -H "x-publishable-api-key: pk_3e3eb2623bb1b1ca57f81b53cf602504f871ac3c0d26e6acf8c35d06ff5b3bd3" \
+  -H "x-publishable-api-key: $PK" \
   -H "Content-Type: application/json" | python3 -m json.tool
 ```
 
@@ -81,7 +82,7 @@ curl -s "http://localhost:9000/ENDPOINT" \
 ```bash
 curl -s -X POST "http://localhost:9000/ENDPOINT" \
   -H "Authorization: Bearer $TOKEN" \
-  -H "x-publishable-api-key: pk_3e3eb2623bb1b1ca57f81b53cf602504f871ac3c0d26e6acf8c35d06ff5b3bd3" \
+  -H "x-publishable-api-key: $PK" \
   -H "Content-Type: application/json" \
   -d '{"key":"value"}' | python3 -m json.tool
 ```
@@ -91,7 +92,7 @@ curl -s -X POST "http://localhost:9000/ENDPOINT" \
 ```bash
 curl -s -X DELETE "http://localhost:9000/ENDPOINT" \
   -H "Authorization: Bearer $TOKEN" \
-  -H "x-publishable-api-key: pk_3e3eb2623bb1b1ca57f81b53cf602504f871ac3c0d26e6acf8c35d06ff5b3bd3" \
+  -H "x-publishable-api-key: $PK" \
   -H "Content-Type: application/json" \
   -d '{"product_id":"prod_xxx"}' | python3 -m json.tool
 ```
