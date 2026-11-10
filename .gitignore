@@ -19,7 +19,8 @@ storybook-static
 .dev/
 
 # IDE / tooling config (personal, not project-specific)
-.claude/
+.claude/*
+!.claude/skills/
 .snowflake/
 
 # stray curl/http response files
