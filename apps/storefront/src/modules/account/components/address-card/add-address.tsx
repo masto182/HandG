@@ -44,6 +44,7 @@ const AddAddress = ({
   const handleAddressSelect = useCallback(
     (parts: {
       address_1: string
+      unit: string | null
       city: string
       province: string
       postal_code: string
@@ -121,7 +122,7 @@ const AddAddress = ({
               onPlaceSelect={handleAddressSelect}
             />
             <Input
-              label="Apartment, suite, etc."
+              label="Unit / Apartment (e.g. 18)"
               name="address_2"
               defaultValue={autoAddress2}
               autoComplete="address-line2"

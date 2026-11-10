@@ -2,6 +2,7 @@
 
 import { sdk } from "@lib/config"
 import medusaError from "@lib/util/medusa-error"
+import { withAuStreetLine } from "@lib/util/address-format"
 import {
   normaliseCourierNote,
   withCourierNote,
@@ -202,7 +203,7 @@ export const addCustomerAddress = async (
   const isDefaultBilling = (currentState.isDefaultBilling as boolean) || false
   const isDefaultShipping = (currentState.isDefaultShipping as boolean) || false
 
-  const address = {
+  const address = withAuStreetLine({
     first_name: formData.get("first_name") as string,
     last_name: formData.get("last_name") as string,
     company: formData.get("company") as string,
@@ -222,7 +223,7 @@ export const addCustomerAddress = async (
           },
         }
       : {}),
-  }
+  })
 
   const headers = {
     ...(await getAuthHeaders()),
@@ -270,7 +271,7 @@ export const updateCustomerAddress = async (
     return { success: false, error: "Address ID is required" }
   }
 
-  const address = {
+  const address = withAuStreetLine({
     first_name: formData.get("first_name") as string,
     last_name: formData.get("last_name") as string,
     company: formData.get("company") as string,
@@ -280,7 +281,7 @@ export const updateCustomerAddress = async (
     postal_code: formData.get("postal_code") as string,
     province: formData.get("province") as string,
     country_code: formData.get("country_code") as string,
-  } as HttpTypes.StoreUpdateCustomerAddress
+  }) as HttpTypes.StoreUpdateCustomerAddress
 
   const phone = formData.get("phone") as string
 

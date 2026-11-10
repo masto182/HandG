@@ -1,3 +1,10 @@
+import {
+  buildAuStreetLine,
+  isSameUnit,
+  normaliseAuAddress,
+  splitLeadingUnit,
+} from "@retail-example/shared-types"
+
 type AddressLike = {
   first_name?: string | null
   last_name?: string | null
@@ -32,8 +39,25 @@ const IDENTITY_FIELDS: (keyof AddressLike)[] = [
 const norm = (v: string | null | undefined) =>
   (v ?? "").trim().replace(/\s+/g, " ").toLowerCase()
 
+const streetKey = (a: AddressLike) => {
+  const n = normaliseAuAddress(a.address_1, a.address_2)
+  const split = splitLeadingUnit(n.address_1)
+  return { unit: split.unit, street: split.street, extra: n.address_2 }
+}
+
 export function isSameAddress(a: AddressLike, b: AddressLike): boolean {
-  return IDENTITY_FIELDS.every((f) => norm(a[f]) === norm(b[f]))
+  const sa = streetKey(a)
+  const sb = streetKey(b)
+  const sameUnit = (!sa.unit && !sb.unit) || isSameUnit(sa.unit, sb.unit)
+  return (
+    sameUnit &&
+    norm(sa.street) === norm(sb.street) &&
+    norm(sa.extra) === norm(sb.extra) &&
+    IDENTITY_FIELDS.every(
+      (f) =>
+        f === "address_1" || f === "address_2" || norm(a[f]) === norm(b[f]),
+    )
+  )
 }
 
 const timeOf = (a: SavedAddressLike) =>
@@ -50,8 +74,7 @@ export function sortSavedAddresses<T extends SavedAddressLike>(
 
 export function formatAddressSummary(addr: AddressLike): string {
   return [
-    addr.address_2,
-    addr.address_1,
+    buildAuStreetLine(addr.address_2, addr.address_1),
     addr.city,
     addr.province,
     addr.postal_code,

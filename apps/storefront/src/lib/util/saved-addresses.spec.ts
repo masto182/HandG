@@ -45,6 +45,15 @@ describe("isSameAddress", () => {
       isSameAddress({ ...base, address_2: null }, { ...base, address_2: "" }),
     ).toBe(true)
   })
+
+  it("treats 4/42 Street and 42 Street + unit 4 as the same address", () => {
+    expect(
+      isSameAddress(
+        { ...base, address_1: "4/42 Greenup Street", address_2: "" },
+        { ...base, address_2: "Unit 4" },
+      ),
+    ).toBe(true)
+  })
 })
 
 describe("sortSavedAddresses", () => {

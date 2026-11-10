@@ -10,6 +10,7 @@ import ErrorMessage from "@modules/checkout/components/error-message"
 import AddressAutocomplete from "@modules/common/components/address-autocomplete"
 import { useActionState, useEffect, useMemo, useRef, useState } from "react"
 import { useTrack } from "@lib/hooks/use-track"
+import { isSameUnit } from "@retail-example/shared-types"
 import {
   COURIER_NOTE_MAX,
   courierNoteOf,
@@ -381,6 +382,11 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
                   setFormData((prev) => ({
                     ...prev,
                     "shipping_address.address_1": addr.address_1,
+                    "shipping_address.address_2":
+                      addr.unit &&
+                      isSameUnit(prev["shipping_address.address_2"], addr.unit)
+                        ? ""
+                        : prev["shipping_address.address_2"],
                     "shipping_address.city": addr.city,
                     "shipping_address.province": addr.province,
                     "shipping_address.postal_code": addr.postal_code,
@@ -391,15 +397,18 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
             </div>
             <div className="space-y-2">
               <label className="font-semibold text-[12px] text-hg-text-secondary uppercase tracking-widest">
-                Apartment, Suite, Unit (Optional)
+                Unit / Apartment (Optional)
               </label>
               <input
                 name="shipping_address.address_2"
                 value={formData["shipping_address.address_2"]}
                 onChange={handleChange}
-                placeholder="Unit 4"
+                placeholder="18"
                 className="w-full bg-hg-surface border-0 ring-1 ring-hg-border focus:ring-2 focus:ring-hg-gold rounded-xl px-4 py-4 text-hg-text placeholder:text-hg-text-muted transition-all outline-none"
               />
+              <p className="text-[12px] text-hg-text-muted">
+                We&apos;ll write it as 18/28 Street, or Level 5, 28 Street.
+              </p>
             </div>
             <div className="space-y-2">
               <label className="font-semibold text-[12px] text-hg-text-secondary uppercase tracking-widest">

@@ -25,6 +25,7 @@ import {
 import { getRegion } from "./regions"
 import { getLocale } from "./locale-actions"
 import { getCustomerOffers } from "./wishlist-offers"
+import { withAuStreetLine } from "@lib/util/address-format"
 
 // Shared field selection for fetching a cart with everything the cart/checkout
 // templates need to render (items, variants, totals, promotions).
@@ -550,6 +551,18 @@ export async function setAddresses(
     }
 
     const courierNote = normaliseCourierNote(input.courier_note)
+    if (input.shipping_address) {
+      input = {
+        ...input,
+        shipping_address: withAuStreetLine(input.shipping_address),
+      }
+    }
+    if (input.billing_address) {
+      input = {
+        ...input,
+        billing_address: withAuStreetLine(input.billing_address),
+      }
+    }
     const data: Record<string, unknown> = {
       shipping_address: {
         ...input.shipping_address,

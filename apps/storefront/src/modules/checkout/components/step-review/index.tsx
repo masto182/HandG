@@ -1,6 +1,7 @@
 "use client"
 import { placeOrder } from "@lib/data/cart"
 import { convertToLocale } from "@lib/util/money"
+import { buildAuStreetLine } from "@retail-example/shared-types"
 import { HttpTypes } from "@medusajs/types"
 import HeatHoldBanner from "@modules/checkout/components/heat-hold-banner"
 import { useTrack } from "@lib/hooks/use-track"
@@ -152,7 +153,7 @@ const StepReview: React.FC<Props> = ({ cart, isPickup, heatHold }) => {
               <p className="font-bold text-hg-text">
                 {addr.first_name} {addr.last_name}
               </p>
-              <p>{addr.address_1}</p>
+              <p>{buildAuStreetLine(addr.address_2, addr.address_1)}</p>
               {addr.company && <p>{addr.company}</p>}
               <p>
                 {addr.city}, {addr.province} {addr.postal_code}

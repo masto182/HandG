@@ -1,6 +1,11 @@
 "use client"
 
 import { useEffect, useRef } from "react"
+import {
+  buildAuStreetLine,
+  formatUnit,
+  splitLeadingUnit,
+} from "@retail-example/shared-types"
 
 const GOOGLE_MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""
 
@@ -11,6 +16,7 @@ type AddressAutocompleteProps = {
   defaultValue?: string
   onPlaceSelect?: (place: {
     address_1: string
+    unit: string | null
     city: string
     province: string
     postal_code: string
@@ -33,6 +39,7 @@ export default function AddressAutocomplete({
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null)
   const callbackRef = useRef(onPlaceSelect)
   callbackRef.current = onPlaceSelect
+  const typedRef = useRef(defaultValue ?? "")
 
   useEffect(() => {
     if (!GOOGLE_MAPS_KEY) return
@@ -45,7 +52,12 @@ export default function AddressAutocomplete({
       if (!inputRef.current) return
       if (!window.google?.maps?.places) return
 
-      const ac = new window.google.maps.places.Autocomplete(inputRef.current, {
+      const input = inputRef.current
+      input.addEventListener("input", () => {
+        typedRef.current = input.value
+      })
+
+      const ac = new window.google.maps.places.Autocomplete(input, {
         types: ["address"],
         componentRestrictions: { country: "au" },
         fields: ["address_components", "formatted_address"],
@@ -66,16 +78,27 @@ export default function AddressAutocomplete({
         const route = get("route")
         const streetOnly = `${streetNumber} ${route}`.trim()
 
+        // Google returns the unit as subpremise when it knows it; otherwise
+        // recover the "18/" or "Unit 18" the customer typed before selecting,
+        // so the Australian unit/street line is never lost.
+        const googleUnit =
+          get("subpremise") || (get("floor") ? `Level ${get("floor")}` : "")
+        const unit =
+          formatUnit(googleUnit) || splitLeadingUnit(typedRef.current).unit
+        const streetLine = buildAuStreetLine(unit, streetOnly)
+
         // Only ever submit the street line — never Google's formatted_address,
         // which duplicates city/state/postcode/country already captured in
         // their own fields (this caused malformed address_1 values like
         // "71 Boyle St, Prospect SA 5082, Australia").
         if (inputRef.current) {
-          inputRef.current.value = streetOnly
+          inputRef.current.value = streetLine
+          typedRef.current = streetLine
         }
 
         callbackRef.current?.({
-          address_1: streetOnly,
+          address_1: streetLine,
+          unit: unit || null,
           city: get("locality") || get("sublocality_level_1"),
           province: getShort("administrative_area_level_1"),
           postal_code: get("postal_code"),

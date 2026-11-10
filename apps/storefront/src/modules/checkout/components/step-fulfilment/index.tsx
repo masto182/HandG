@@ -2,6 +2,7 @@
 import { setShippingMethod, updateCart } from "@lib/data/cart"
 import { getPickupOptions, getDeliveryOptions } from "@lib/util/shipping"
 import { convertToLocale } from "@lib/util/money"
+import { buildAuStreetLine } from "@retail-example/shared-types"
 import type { PickupLocationDTO } from "@lib/data/pickup-locations"
 import { HttpTypes } from "@medusajs/types"
 import { useRouter } from "next/navigation"
@@ -28,7 +29,7 @@ function slugFromOption(option: any): string | null {
 function formatAddress(addr: any): string {
   if (!addr) return ""
   const parts = [
-    addr.address_1,
+    buildAuStreetLine(addr.address_2, addr.address_1),
     addr.city,
     addr.province,
     addr.postal_code,

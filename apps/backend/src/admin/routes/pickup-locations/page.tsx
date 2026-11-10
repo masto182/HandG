@@ -1,4 +1,5 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
+import { buildAuStreetLine } from "@retail-example/shared-types"
 import {
   Container,
   Heading,
@@ -81,7 +82,14 @@ const stateToHours = (s: HoursState): Hour[] =>
 
 function formatAddress(addr: StockLocationAddress | null): string {
   if (!addr) return "—"
-  return [addr.address_1, addr.city, addr.province, addr.postal_code].filter(Boolean).join(", ")
+  return [
+    buildAuStreetLine(addr.address_2, addr.address_1),
+    addr.city,
+    addr.province,
+    addr.postal_code,
+  ]
+    .filter(Boolean)
+    .join(", ")
 }
 
 const hoursSummary = (hours: Hour[] | null): string => {
