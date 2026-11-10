@@ -75,7 +75,8 @@ describe("email templates render", () => {
       isPickup: true,
       storeUrl: STORE_URL,
     })
-    expect(out.html).not.toContain("Pay via PayID")
+    expect(out.html).not.toContain("Payment instructions")
+    expect(out.html).not.toContain("payments@hopsandglory.au")
   })
 
   it("order_payment_captured (transactional)", async () => {

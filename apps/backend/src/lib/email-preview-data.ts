@@ -83,6 +83,21 @@ export async function getApplicationRejectedSample(container: any) {
 
 // --- order-placed / order-payment-captured ---
 
+async function resolvePreviewPayidValues(
+  container: any
+): Promise<{ payidAlias?: string; holdHours: number }> {
+  try {
+    const svc = container.resolve("siteConfig") as { get: <T>(key: string) => Promise<T> }
+    const [payidAlias, holdHours] = await Promise.all([
+      svc.get<string>("payid_alias").catch(() => undefined),
+      svc.get<number>("payid_hold_hours").catch(() => 24),
+    ])
+    return { payidAlias, holdHours: Number(holdHours) || 24 }
+  } catch {
+    return { payidAlias: undefined, holdHours: 24 }
+  }
+}
+
 async function mostRecentOrderRaw(container: any) {
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
 
@@ -142,6 +157,7 @@ export async function getOrderPlacedSample(container: any) {
   const synthetic: string[] = []
 
   if (!order) {
+    const siteValues = await resolvePreviewPayidValues(container)
     return {
       props: {
         name: "Alex",
@@ -159,8 +175,8 @@ export async function getOrderPlacedSample(container: any) {
         currencyCode: "aud",
         isPickup: false,
         isCash: false,
-        payidAlias: "payments@hopsandglory.au",
-        holdHours: 24,
+        payidAlias: siteValues.payidAlias,
+        holdHours: siteValues.holdHours,
         ordersEmail: "orders@hopsandglory.au",
         storeUrl,
       },
@@ -198,6 +214,7 @@ export async function getOrderPlacedSample(container: any) {
     promotions: order.promotions,
     total,
   })
+  const siteValues = await resolvePreviewPayidValues(container)
 
   return {
     props: {
@@ -209,8 +226,8 @@ export async function getOrderPlacedSample(container: any) {
       currencyCode: order.currency_code || "aud",
       isPickup,
       isCash,
-      payidAlias: isPayId ? "payments@hopsandglory.au" : undefined,
-      holdHours: 24,
+      payidAlias: isPayId ? siteValues.payidAlias : undefined,
+      holdHours: siteValues.holdHours,
       ordersEmail: "orders@hopsandglory.au",
       storeUrl,
     },

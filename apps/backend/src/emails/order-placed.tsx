@@ -53,7 +53,7 @@ export default function OrderPlacedEmail({
   currencyCode = "aud",
   isPickup = false,
   isCash = false,
-  payidAlias = "payments@hopsandglory.au",
+  payidAlias,
   holdHours = 24,
   ordersEmail = "orders@hopsandglory.au",
   storeUrl = "https://hopsandglory.au",
