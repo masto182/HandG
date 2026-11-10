@@ -1,6 +1,7 @@
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { getStoreUrl, refreshEmailConfig } from "./email"
 import { getLowestVariantPrice } from "./wishlist-price"
+import { computeOrderBreakdown } from "./order-breakdown"
 
 /**
  * Sample-data fetchers for the admin "Email Templates" preview page.
@@ -107,6 +108,7 @@ async function mostRecentOrderRaw(container: any) {
       "total",
       "currency_code",
       "shipping_methods.name",
+      "shipping_methods.amount",
       "payment_collections.payments.provider_id",
     ],
     filters: { status: { $ne: "canceled" } } as any,
@@ -121,6 +123,16 @@ async function mostRecentOrderRaw(container: any) {
     filters: { id: order.id },
   })
   order.items = (withItems[0] as any)?.items || []
+  try {
+    const { data: withPromos } = await query.graph({
+      entity: "order",
+      fields: ["id", "promotions.code"],
+      filters: { id: order.id },
+    })
+    order.promotions = (withPromos[0] as any)?.promotions || []
+  } catch {
+    order.promotions = []
+  }
   return order
 }
 
@@ -139,6 +151,11 @@ export async function getOrderPlacedSample(container: any) {
           { title: "Cantillon Gueuze · 375ml", quantity: 2, unit_price: 38 },
         ],
         total: 118,
+        subtotal: 118,
+        shippingTotal: 15,
+        discountTotal: 15,
+        shippingMethodName: "Aramex",
+        promotionCodes: [],
         currencyCode: "aud",
         isPickup: false,
         isCash: false,
@@ -174,12 +191,21 @@ export async function getOrderPlacedSample(container: any) {
     (p: any) => typeof p.provider_id === "string" && p.provider_id.startsWith("pp_payid")
   )
 
+  const total = Number(order.total ?? 0) || 0
+  const breakdown = computeOrderBreakdown({
+    items,
+    shippingMethods: order.shipping_methods,
+    promotions: order.promotions,
+    total,
+  })
+
   return {
     props: {
       name,
       orderDisplayId: String(order.display_id ?? order.id),
       items,
-      total: Number(order.total ?? 0) || 0,
+      total,
+      ...breakdown,
       currencyCode: order.currency_code || "aud",
       isPickup,
       isCash,

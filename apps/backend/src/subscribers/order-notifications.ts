@@ -3,6 +3,7 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { sendTemplate, refreshEmailConfig, getStoreUrl } from "../lib/email"
 import * as OrderPlacedTpl from "../emails/order-placed"
 import * as OrderPaymentCapturedTpl from "../emails/order-payment-captured"
+import { computeOrderBreakdown } from "../lib/order-breakdown"
 
 type Logger = {
   info: (msg: string) => void
@@ -64,6 +65,7 @@ export default async function orderEmailHandler({
         "total",
         "currency_code",
         "shipping_methods.name",
+        "shipping_methods.amount",
         "payment_collections.payments.provider_id",
       ],
       filters: { id: event.data.id },
@@ -80,6 +82,17 @@ export default async function orderEmailHandler({
       filters: { id: order.id },
     })
     order.items = (withItems[0] as any)?.items || []
+
+    try {
+      const { data: withPromos } = await query.graph({
+        entity: "order",
+        fields: ["id", "promotions.code"],
+        filters: { id: order.id },
+      })
+      order.promotions = (withPromos[0] as any)?.promotions || []
+    } catch {
+      order.promotions = []
+    }
 
     const customerId = order.customer_id || undefined
     const orderDisplayId = String(order.display_id ?? order.id)
@@ -114,6 +127,12 @@ export default async function orderEmailHandler({
 
       const payidAlias = isPayId ? await resolvePayidAlias(container) : undefined
       const { holdHours, ordersEmail } = await resolveSiteConfigValues(container)
+      const breakdown = computeOrderBreakdown({
+        items,
+        shippingMethods: order.shipping_methods,
+        promotions: order.promotions,
+        total,
+      })
 
       const result = await sendTemplate({
         to: order.email,
@@ -125,6 +144,7 @@ export default async function orderEmailHandler({
           orderDisplayId,
           items,
           total,
+          ...breakdown,
           currencyCode,
           isPickup,
           isCash,

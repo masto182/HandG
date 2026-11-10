@@ -30,6 +30,15 @@ export function payidReference(order: {
   return order.display_id != null ? String(order.display_id) : ""
 }
 
+export function payidTypeLabel(alias: string | null | undefined): string {
+  const value = (alias || "").trim()
+  if (value.includes("@")) return "Email"
+  const digits = value.replace(/[\s()+-]/g, "")
+  if (/^(04\d{8}|614\d{8})$/.test(digits)) return "Mobile number"
+  if (/^\d{11}$/.test(digits)) return "ABN"
+  return "PayID"
+}
+
 /**
  * PayID auto-cancel window in hours.
  * Backend job `cancel-unpaid-payid-orders` cancels PayID orders unpaid

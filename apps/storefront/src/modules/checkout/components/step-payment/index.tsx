@@ -1,7 +1,7 @@
 "use client"
 import { initiatePaymentSession } from "@lib/data/cart"
 import { isManual, isPayId } from "@lib/constants"
-import { PAYID_ALIAS } from "@lib/constants/payment"
+import { PAYID_ALIAS, payidTypeLabel } from "@lib/constants/payment"
 import { useTrack } from "@lib/hooks/use-track"
 import { HttpTypes } from "@medusajs/types"
 import { useEffect, useState } from "react"
@@ -192,7 +192,7 @@ const StepPayment: React.FC<Props> = ({
                   PayID Type
                 </p>
                 <p className="text-base font-bold text-hg-text mt-1">
-                  ABN / Business Email
+                  {payidTypeLabel(payidEmail)}
                 </p>
               </div>
               <svg
@@ -257,10 +257,11 @@ const StepPayment: React.FC<Props> = ({
                 Reference
               </p>
               <p className="text-base font-bold text-hg-text mt-1">
-                Your order number
+                Given after you place your order
               </p>
               <p className="text-[11px] text-hg-text-secondary mt-0.5">
-                Shown once your order is placed and included in your
+                Your order number is your payment reference. Place your order
+                first; we&apos;ll show the number on the next screen and in your
                 confirmation email.
               </p>
             </div>

@@ -118,7 +118,7 @@ test.describe.serial("New flows — PR 3 / 4 / 5", () => {
     const mainText = (await page.locator("main").last().textContent()) || ""
     // No pre-order reference: the order number is the reference.
     expect(mainText).not.toMatch(/HG-[A-Z0-9]{4,}/)
-    expect(mainText).toContain("Your order number")
+    expect(mainText).toContain("Given after you place your order")
     // Alias should match the configured one, not the stale stale@example.test.
     expect(mainText).toContain("payments@example.test")
     expect(mainText).not.toContain("stale@example.test")

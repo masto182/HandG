@@ -15,6 +15,11 @@ export type OrderPlacedProps = {
   orderDisplayId: string
   items: OrderPlacedItem[]
   total: number
+  subtotal?: number
+  shippingTotal?: number
+  discountTotal?: number
+  shippingMethodName?: string
+  promotionCodes?: string[]
   currencyCode: string
   isPickup: boolean
   isCash?: boolean
@@ -40,6 +45,11 @@ export default function OrderPlacedEmail({
     { title: "Cantillon Gueuze · 375ml", quantity: 2, unit_price: 38 },
   ],
   total = 118,
+  subtotal,
+  shippingTotal,
+  discountTotal,
+  shippingMethodName,
+  promotionCodes = [],
   currencyCode = "aud",
   isPickup = false,
   isCash = false,
@@ -85,6 +95,50 @@ export default function OrderPlacedEmail({
           </Row>
         ))}
         <Hr style={tableDivider} />
+        {subtotal !== undefined ? (
+          <Row>
+            <Column>
+              <Text style={tableCell}>Subtotal</Text>
+            </Column>
+            <Column align="right">
+              <Text style={{ ...tableCell, textAlign: "right" }}>
+                {fmt(subtotal, currencyCode)}
+              </Text>
+            </Column>
+          </Row>
+        ) : null}
+        {shippingTotal !== undefined ? (
+          <Row>
+            <Column>
+              <Text style={tableCell}>
+                {isPickup
+                  ? "Pickup"
+                  : shippingMethodName
+                    ? `Shipping · ${shippingMethodName}`
+                    : "Shipping"}
+              </Text>
+            </Column>
+            <Column align="right">
+              <Text style={{ ...tableCell, textAlign: "right" }}>
+                {shippingTotal > 0 ? fmt(shippingTotal, currencyCode) : "Free"}
+              </Text>
+            </Column>
+          </Row>
+        ) : null}
+        {discountTotal ? (
+          <Row>
+            <Column>
+              <Text style={tableCell}>
+                {promotionCodes.length ? `Discount (${promotionCodes.join(", ")})` : "Discount"}
+              </Text>
+            </Column>
+            <Column align="right">
+              <Text style={{ ...tableCell, textAlign: "right" }}>
+                −{fmt(discountTotal, currencyCode)}
+              </Text>
+            </Column>
+          </Row>
+        ) : null}
         <Row>
           <Column>
             <Text style={tableTotalCell}>Total</Text>
