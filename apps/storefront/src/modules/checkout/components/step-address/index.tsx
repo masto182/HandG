@@ -8,6 +8,7 @@ import Checkbox from "@modules/common/components/checkbox"
 import { SubmitButton } from "@modules/checkout/components/submit-button"
 import ErrorMessage from "@modules/checkout/components/error-message"
 import AddressAutocomplete from "@modules/common/components/address-autocomplete"
+import OptionalField from "@modules/common/components/optional-field"
 import { useActionState, useEffect, useMemo, useRef, useState } from "react"
 import { useTrack } from "@lib/hooks/use-track"
 import { buildAuStreetLine } from "@retail-example/shared-types"
@@ -47,6 +48,7 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
   const [showForm, setShowForm] = useState(savedAddresses.length === 0)
   const [saveAddress, setSaveAddress] = useState(false)
   const [companyShown, setCompanyShown] = useState(false)
+  const [line2Shown, setLine2Shown] = useState(false)
   const [numberCorrected, setNumberCorrected] = useState(false)
   const shouldTrackSubmit = useRef(false)
 
@@ -373,7 +375,19 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
                 />
               </div>
             </div>
-            {companyShown || formData["shipping_address.company"] ? (
+            <OptionalField
+              open={companyShown || !!formData["shipping_address.company"]}
+              addLabel="Add company name"
+              testId="company"
+              onOpen={() => setCompanyShown(true)}
+              onClose={() => {
+                setCompanyShown(false)
+                setFormData((prev) => ({
+                  ...prev,
+                  "shipping_address.company": "",
+                }))
+              }}
+            >
               <div className="space-y-2">
                 <label className="font-semibold text-[12px] text-hg-text-secondary uppercase tracking-widest">
                   Company (Optional)
@@ -387,16 +401,7 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
                   className="w-full bg-hg-surface border-0 ring-1 ring-hg-border focus:ring-2 focus:ring-hg-gold rounded-xl px-4 py-4 text-hg-text placeholder:text-hg-text-muted transition-all outline-none"
                 />
               </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setCompanyShown(true)}
-                className="self-start text-sm text-hg-text-secondary underline underline-offset-2 hover:text-hg-text"
-                data-testid="add-company"
-              >
-                + Add company name
-              </button>
-            )}
+            </OptionalField>
             <div
               className="space-y-2"
               onInput={(e) => {
@@ -444,10 +449,22 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
                 </p>
               )}
             </div>
-            {formData["shipping_address.address_2"] && (
+            <OptionalField
+              open={line2Shown || !!formData["shipping_address.address_2"]}
+              addLabel="Add address line 2"
+              testId="address-line-2"
+              onOpen={() => setLine2Shown(true)}
+              onClose={() => {
+                setLine2Shown(false)
+                setFormData((prev) => ({
+                  ...prev,
+                  "shipping_address.address_2": "",
+                }))
+              }}
+            >
               <div className="space-y-2">
                 <label className="font-semibold text-[12px] text-hg-text-secondary uppercase tracking-widest">
-                  Address line 2
+                  Address line 2 (Optional)
                 </label>
                 <input
                   name="shipping_address.address_2"
@@ -457,7 +474,7 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
                   className="w-full bg-hg-surface border-0 ring-1 ring-hg-border focus:ring-2 focus:ring-hg-gold rounded-xl px-4 py-4 text-hg-text placeholder:text-hg-text-muted transition-all outline-none"
                 />
               </div>
-            )}
+            </OptionalField>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <label className="font-semibold text-[12px] text-hg-text-secondary uppercase tracking-widest">

@@ -1,5 +1,6 @@
 "use client"
 import { COURIER_NOTE_MAX, courierNoteOf } from "@lib/util/saved-addresses"
+import OptionalField from "@modules/common/components/optional-field"
 
 import {
   deleteCustomerAddress,
@@ -28,7 +29,8 @@ const EditAddress: React.FC<EditAddressProps> = ({
 }) => {
   const [removing, setRemoving] = useState(false)
   const [successState, setSuccessState] = useState(false)
-  const [line2Shown, setLine2Shown] = useState(false)
+  const [line2Shown, setLine2Shown] = useState(!!address.address_2)
+  const [companyShown, setCompanyShown] = useState(!!address.company)
   const { state, open, close: closeModal } = useToggleState(false)
 
   const [formState, formAction] = useActionState(updateCustomerAddress, {
@@ -147,13 +149,21 @@ const EditAddress: React.FC<EditAddressProps> = ({
                 data-testid="last-name-input"
               />
             </div>
-            <Input
-              label="Company (optional)"
-              name="company"
-              autoComplete="organization"
-              defaultValue={address.company || undefined}
-              data-testid="company-input"
-            />
+            <OptionalField
+              open={companyShown}
+              addLabel="Add company name"
+              testId="company"
+              onOpen={() => setCompanyShown(true)}
+              onClose={() => setCompanyShown(false)}
+            >
+              <Input
+                label="Company (optional)"
+                name="company"
+                autoComplete="organization"
+                defaultValue={address.company || undefined}
+                data-testid="company-input"
+              />
+            </OptionalField>
             <Input
               label="Address, e.g. 18/28 McDonald Street"
               name="address_1"
@@ -162,7 +172,13 @@ const EditAddress: React.FC<EditAddressProps> = ({
               defaultValue={address.address_1 || undefined}
               data-testid="address-1-input"
             />
-            {line2Shown || address.address_2 ? (
+            <OptionalField
+              open={line2Shown}
+              addLabel="Add address line 2"
+              testId="address-line-2"
+              onOpen={() => setLine2Shown(true)}
+              onClose={() => setLine2Shown(false)}
+            >
               <Input
                 label="Address line 2 (optional)"
                 name="address_2"
@@ -170,16 +186,7 @@ const EditAddress: React.FC<EditAddressProps> = ({
                 defaultValue={address.address_2 || undefined}
                 data-testid="address-2-input"
               />
-            ) : (
-              <button
-                type="button"
-                onClick={() => setLine2Shown(true)}
-                className="self-start text-sm text-on-surface-variant underline underline-offset-2 hover:text-on-surface"
-                data-testid="add-address-line-2"
-              >
-                + Add address line 2
-              </button>
-            )}
+            </OptionalField>
             <Input
               label="Note for the courier (optional)"
               name="courier_note"

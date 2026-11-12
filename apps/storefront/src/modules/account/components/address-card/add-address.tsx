@@ -12,6 +12,7 @@ import { SubmitButton } from "@modules/checkout/components/submit-button"
 import Input from "@modules/common/components/input"
 import Modal from "@modules/common/components/modal"
 import AddressAutocomplete from "@modules/common/components/address-autocomplete"
+import OptionalField from "@modules/common/components/optional-field"
 
 const AddAddress = ({
   region,
@@ -26,6 +27,7 @@ const AddAddress = ({
   const [autoProvince, setAutoProvince] = useState("")
   const [autoPostal, setAutoPostal] = useState("")
   const [line2Shown, setLine2Shown] = useState(false)
+  const [companyShown, setCompanyShown] = useState(false)
 
   const [formState, formAction] = useActionState(addCustomerAddress, {
     success: false,
@@ -38,6 +40,7 @@ const AddAddress = ({
     setAutoProvince("")
     setAutoPostal("")
     setLine2Shown(false)
+    setCompanyShown(false)
     closeModal()
   }
 
@@ -109,35 +112,40 @@ const AddAddress = ({
                 data-testid="last-name-input"
               />
             </div>
-            <Input
-              label="Company (optional)"
-              name="company"
-              autoComplete="organization"
-              data-testid="company-input"
-            />
+            <OptionalField
+              open={companyShown}
+              addLabel="Add company name"
+              testId="company"
+              onOpen={() => setCompanyShown(true)}
+              onClose={() => setCompanyShown(false)}
+            >
+              <Input
+                label="Company (optional)"
+                name="company"
+                autoComplete="organization"
+                data-testid="company-input"
+              />
+            </OptionalField>
             <AddressAutocomplete
               name="address_1"
               label="Address, e.g. 18/28 McDonald Street"
               required
               onPlaceSelect={handleAddressSelect}
             />
-            {line2Shown ? (
+            <OptionalField
+              open={line2Shown}
+              addLabel="Add address line 2"
+              testId="address-line-2"
+              onOpen={() => setLine2Shown(true)}
+              onClose={() => setLine2Shown(false)}
+            >
               <Input
                 label="Address line 2 (optional)"
                 name="address_2"
                 autoComplete="address-line2"
                 data-testid="address-2-input"
               />
-            ) : (
-              <button
-                type="button"
-                onClick={() => setLine2Shown(true)}
-                className="self-start text-sm text-on-surface-variant underline underline-offset-2 hover:text-on-surface"
-                data-testid="add-address-line-2"
-              >
-                + Add address line 2
-              </button>
-            )}
+            </OptionalField>
             <Input
               label="Note for the courier (optional)"
               name="courier_note"
