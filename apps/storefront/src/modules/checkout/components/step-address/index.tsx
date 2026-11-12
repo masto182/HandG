@@ -10,7 +10,10 @@ import ErrorMessage from "@modules/checkout/components/error-message"
 import AddressAutocomplete from "@modules/common/components/address-autocomplete"
 import { useActionState, useEffect, useMemo, useRef, useState } from "react"
 import { useTrack } from "@lib/hooks/use-track"
-import { isSameUnit } from "@retail-example/shared-types"
+import {
+  buildAuStreetLine,
+  splitAuAddressForForm,
+} from "@retail-example/shared-types"
 import {
   COURIER_NOTE_MAX,
   courierNoteOf,
@@ -48,23 +51,29 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
   const [saveAddress, setSaveAddress] = useState(false)
   const shouldTrackSubmit = useRef(false)
 
-  const [formData, setFormData] = useState<Record<string, string>>({
-    "shipping_address.first_name":
-      cart?.shipping_address?.first_name || customer?.first_name || "",
-    "shipping_address.last_name":
-      cart?.shipping_address?.last_name || customer?.last_name || "",
-    "shipping_address.address_1": cart?.shipping_address?.address_1 || "",
-    "shipping_address.address_2": cart?.shipping_address?.address_2 || "",
-    "shipping_address.company": cart?.shipping_address?.company || "",
-    "shipping_address.postal_code": cart?.shipping_address?.postal_code || "",
-    "shipping_address.city": cart?.shipping_address?.city || "",
-    "shipping_address.country_code":
-      cart?.shipping_address?.country_code || "au",
-    "shipping_address.province": cart?.shipping_address?.province || "",
-    "shipping_address.phone":
-      cart?.shipping_address?.phone || customer?.phone || "",
-    "shipping_address.courier_note": courierNoteOf(cart?.shipping_address),
-    email: cart?.email || customer?.email || "",
+  const [formData, setFormData] = useState<Record<string, string>>(() => {
+    const split = splitAuAddressForForm(
+      cart?.shipping_address?.address_1,
+      cart?.shipping_address?.address_2,
+    )
+    return {
+      "shipping_address.first_name":
+        cart?.shipping_address?.first_name || customer?.first_name || "",
+      "shipping_address.last_name":
+        cart?.shipping_address?.last_name || customer?.last_name || "",
+      "shipping_address.address_1": split.street,
+      "shipping_address.address_2": split.unit,
+      "shipping_address.company": cart?.shipping_address?.company || "",
+      "shipping_address.postal_code": cart?.shipping_address?.postal_code || "",
+      "shipping_address.city": cart?.shipping_address?.city || "",
+      "shipping_address.country_code":
+        cart?.shipping_address?.country_code || "au",
+      "shipping_address.province": cart?.shipping_address?.province || "",
+      "shipping_address.phone":
+        cart?.shipping_address?.phone || customer?.phone || "",
+      "shipping_address.courier_note": courierNoteOf(cart?.shipping_address),
+      email: cart?.email || customer?.email || "",
+    }
   })
 
   useEffect(() => {
@@ -77,8 +86,14 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
             addr.first_name || customer?.first_name || "",
           "shipping_address.last_name":
             addr.last_name || customer?.last_name || "",
-          "shipping_address.address_1": addr.address_1 || "",
-          "shipping_address.address_2": addr.address_2 || "",
+          "shipping_address.address_1": splitAuAddressForForm(
+            addr.address_1,
+            addr.address_2,
+          ).street,
+          "shipping_address.address_2": splitAuAddressForForm(
+            addr.address_1,
+            addr.address_2,
+          ).unit,
           "shipping_address.company": addr.company || "",
           "shipping_address.postal_code": addr.postal_code || "",
           "shipping_address.city": addr.city || "",
@@ -371,11 +386,34 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
             </div>
             <div className="space-y-2">
               <label className="font-semibold text-[12px] text-hg-text-secondary uppercase tracking-widest">
+                Unit / Level (Optional)
+              </label>
+              <input
+                name="shipping_address.address_2"
+                value={formData["shipping_address.address_2"]}
+                onChange={handleChange}
+                placeholder="e.g. 18 or Level 5"
+                className="w-full bg-hg-surface border-0 ring-1 ring-hg-border focus:ring-2 focus:ring-hg-gold rounded-xl px-4 py-4 text-hg-text placeholder:text-hg-text-muted transition-all outline-none"
+              />
+            </div>
+            <div
+              className="space-y-2"
+              onInput={(e) => {
+                const target = e.target as HTMLInputElement
+                if (target.name === "shipping_address.address_1") {
+                  setFormData((prev) => ({
+                    ...prev,
+                    "shipping_address.address_1": target.value,
+                  }))
+                }
+              }}
+            >
+              <label className="font-semibold text-[12px] text-hg-text-secondary uppercase tracking-widest">
                 Street Address
               </label>
               <AddressAutocomplete
                 name="shipping_address.address_1"
-                label=""
+                label="Start typing your street address"
                 required
                 defaultValue={formData["shipping_address.address_1"]}
                 onPlaceSelect={(addr) => {
@@ -383,10 +421,7 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
                     ...prev,
                     "shipping_address.address_1": addr.address_1,
                     "shipping_address.address_2":
-                      addr.unit &&
-                      isSameUnit(prev["shipping_address.address_2"], addr.unit)
-                        ? ""
-                        : prev["shipping_address.address_2"],
+                      prev["shipping_address.address_2"] || addr.unit || "",
                     "shipping_address.city": addr.city,
                     "shipping_address.province": addr.province,
                     "shipping_address.postal_code": addr.postal_code,
@@ -394,21 +429,6 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
                   }))
                 }}
               />
-            </div>
-            <div className="space-y-2">
-              <label className="font-semibold text-[12px] text-hg-text-secondary uppercase tracking-widest">
-                Unit / Apartment (Optional)
-              </label>
-              <input
-                name="shipping_address.address_2"
-                value={formData["shipping_address.address_2"]}
-                onChange={handleChange}
-                placeholder="18"
-                className="w-full bg-hg-surface border-0 ring-1 ring-hg-border focus:ring-2 focus:ring-hg-gold rounded-xl px-4 py-4 text-hg-text placeholder:text-hg-text-muted transition-all outline-none"
-              />
-              <p className="text-[12px] text-hg-text-muted">
-                We&apos;ll write it as 18/28 Street, or Level 5, 28 Street.
-              </p>
             </div>
             <div className="space-y-2">
               <label className="font-semibold text-[12px] text-hg-text-secondary uppercase tracking-widest">
@@ -466,6 +486,32 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
                 />
               </div>
             </div>
+            {formData["shipping_address.address_1"] && (
+              <p
+                className="text-sm text-hg-text-secondary"
+                data-testid="address-preview"
+                aria-live="polite"
+              >
+                <span className="font-semibold text-hg-text">
+                  Delivering to:{" "}
+                </span>
+                {[
+                  buildAuStreetLine(
+                    formData["shipping_address.address_2"],
+                    formData["shipping_address.address_1"],
+                  ),
+                  [
+                    formData["shipping_address.city"],
+                    formData["shipping_address.province"],
+                    formData["shipping_address.postal_code"],
+                  ]
+                    .filter(Boolean)
+                    .join(" "),
+                ]
+                  .filter(Boolean)
+                  .join(", ")}
+              </p>
+            )}
             <div className="space-y-2">
               <label className="font-semibold text-[12px] text-hg-text-secondary uppercase tracking-widest">
                 Phone

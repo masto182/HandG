@@ -35,6 +35,18 @@ export function splitLeadingUnit(street?: string | null): { unit: string | null;
   return { unit: formatUnit(match[1].replace(/,\s*$/, "")), street: clean(match[2]) }
 }
 
+export function splitAuAddressForForm(
+  address_1: string | null | undefined,
+  address_2: string | null | undefined
+): { unit: string; street: string } {
+  const leading = splitLeadingUnit(address_1)
+  const extra = formatUnit(address_2)
+  if (!leading.unit) return { unit: extra, street: leading.street }
+  if (!extra || isSameUnit(leading.unit, extra))
+    return { unit: extra || leading.unit, street: leading.street }
+  return { unit: `${leading.unit}, ${extra}`, street: leading.street }
+}
+
 export function buildAuStreetLine(
   unit: string | null | undefined,
   street: string | null | undefined

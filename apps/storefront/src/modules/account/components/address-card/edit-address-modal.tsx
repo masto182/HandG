@@ -1,5 +1,6 @@
 "use client"
 import { COURIER_NOTE_MAX, courierNoteOf } from "@lib/util/saved-addresses"
+import { splitAuAddressForForm } from "@retail-example/shared-types"
 
 import {
   deleteCustomerAddress,
@@ -154,19 +155,25 @@ const EditAddress: React.FC<EditAddressProps> = ({
               data-testid="company-input"
             />
             <Input
-              label="Address"
+              label="Unit / Level (e.g. 18 or Level 5)"
+              name="address_2"
+              autoComplete="address-line2"
+              defaultValue={
+                splitAuAddressForForm(address.address_1, address.address_2)
+                  .unit || undefined
+              }
+              data-testid="address-2-input"
+            />
+            <Input
+              label="Street address"
               name="address_1"
               required
               autoComplete="address-line1"
-              defaultValue={address.address_1 || undefined}
+              defaultValue={
+                splitAuAddressForForm(address.address_1, address.address_2)
+                  .street || undefined
+              }
               data-testid="address-1-input"
-            />
-            <Input
-              label="Apartment, suite, etc."
-              name="address_2"
-              autoComplete="address-line2"
-              defaultValue={address.address_2 || undefined}
-              data-testid="address-2-input"
             />
             <Input
               label="Note for the courier (optional)"

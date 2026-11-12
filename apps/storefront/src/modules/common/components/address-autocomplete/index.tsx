@@ -1,11 +1,7 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-import {
-  buildAuStreetLine,
-  formatUnit,
-  splitLeadingUnit,
-} from "@retail-example/shared-types"
+import { formatUnit, splitLeadingUnit } from "@retail-example/shared-types"
 
 const GOOGLE_MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""
 
@@ -79,25 +75,25 @@ export default function AddressAutocomplete({
         const streetOnly = `${streetNumber} ${route}`.trim()
 
         // Google returns the unit as subpremise when it knows it; otherwise
-        // recover the "18/" or "Unit 18" the customer typed before selecting,
-        // so the Australian unit/street line is never lost.
+        // recover the "18/" or "Level 5" the customer typed before selecting.
+        // The unit is handed back separately for the Unit / Level field; the
+        // street box only ever holds the street.
         const googleUnit =
           get("subpremise") || (get("floor") ? `Level ${get("floor")}` : "")
         const unit =
           formatUnit(googleUnit) || splitLeadingUnit(typedRef.current).unit
-        const streetLine = buildAuStreetLine(unit, streetOnly)
 
-        // Only ever submit the street line — never Google's formatted_address,
-        // which duplicates city/state/postcode/country already captured in
-        // their own fields (this caused malformed address_1 values like
+        // Never submit Google's formatted_address, which duplicates
+        // city/state/postcode/country already captured in their own fields
+        // (this caused malformed address_1 values like
         // "71 Boyle St, Prospect SA 5082, Australia").
         if (inputRef.current) {
-          inputRef.current.value = streetLine
-          typedRef.current = streetLine
+          inputRef.current.value = streetOnly
+          typedRef.current = streetOnly
         }
 
         callbackRef.current?.({
-          address_1: streetLine,
+          address_1: streetOnly,
           unit: unit || null,
           city: get("locality") || get("sublocality_level_1"),
           province: getShort("administrative_area_level_1"),

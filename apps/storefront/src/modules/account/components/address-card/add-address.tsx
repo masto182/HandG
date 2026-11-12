@@ -53,6 +53,7 @@ const AddAddress = ({
       setAutoCity(parts.city)
       setAutoProvince(parts.province)
       setAutoPostal(parts.postal_code)
+      if (parts.unit) setAutoAddress2((prev) => prev || parts.unit || "")
     },
     [],
   )
@@ -115,18 +116,19 @@ const AddAddress = ({
               autoComplete="organization"
               data-testid="company-input"
             />
-            <AddressAutocomplete
-              name="address_1"
-              label="Address"
-              required
-              onPlaceSelect={handleAddressSelect}
-            />
             <Input
-              label="Unit / Apartment (e.g. 18)"
+              label="Unit / Level (e.g. 18 or Level 5)"
               name="address_2"
-              defaultValue={autoAddress2}
+              value={autoAddress2}
+              onChange={(e) => setAutoAddress2(e.target.value)}
               autoComplete="address-line2"
               data-testid="address-2-input"
+            />
+            <AddressAutocomplete
+              name="address_1"
+              label="Street address"
+              required
+              onPlaceSelect={handleAddressSelect}
             />
             <Input
               label="Note for the courier (optional)"

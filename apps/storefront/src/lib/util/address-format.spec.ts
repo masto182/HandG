@@ -3,6 +3,7 @@ import {
   formatUnit,
   isSameUnit,
   normaliseAuAddress,
+  splitAuAddressForForm,
   splitLeadingUnit,
 } from "@retail-example/shared-types"
 
@@ -87,6 +88,26 @@ describe("normaliseAuAddress", () => {
       address_1: "42 Greenup Street",
       address_2: "",
     })
+  })
+})
+
+describe("splitAuAddressForForm", () => {
+  it.each([
+    ["18/28 McDonald Street", "", "18", "28 McDonald Street"],
+    ["Level 5, 28 McDonald Street", "", "Level 5", "28 McDonald Street"],
+    ["28 McDonald Street", "18", "18", "28 McDonald Street"],
+    ["18/ 28 McDonald Street", "18", "18", "28 McDonald Street"],
+    ["5/28 McDonald Street", "18", "5, 18", "28 McDonald Street"],
+    ["42 Greenup Street", null, "", "42 Greenup Street"],
+  ])("%p + %p -> unit %p, street %p", (a1, a2, unit, street) => {
+    expect(splitAuAddressForForm(a1, a2)).toEqual({ unit, street })
+  })
+
+  it("round-trips through normaliseAuAddress", () => {
+    const split = splitAuAddressForForm("Level 5, 28 McDonald Street", "")
+    expect(normaliseAuAddress(split.street, split.unit).address_1).toBe(
+      "Level 5, 28 McDonald Street",
+    )
   })
 })
 
