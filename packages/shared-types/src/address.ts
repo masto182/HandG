@@ -35,6 +35,23 @@ export function splitLeadingUnit(street?: string | null): { unit: string | null;
   return { unit: formatUnit(match[1].replace(/,\s*$/, "")), street: clean(match[2]) }
 }
 
+export function resolveAuPick(pick: {
+  typed?: string | null
+  subpremise?: string | null
+  streetNumber?: string | null
+  route?: string | null
+}): { address_1: string; corrected: boolean } {
+  const googleNumber = clean(pick.streetNumber)
+  const route = clean(pick.route)
+  const typed = splitLeadingUnit(pick.typed)
+  const typedNumber = typed.unit ? (typed.street.match(/^(\d+[A-Za-z]?)\b/)?.[1] ?? "") : ""
+  if (typed.unit && typedNumber && typedNumber.toLowerCase() !== googleNumber.toLowerCase()) {
+    return { address_1: buildAuStreetLine(typed.unit, `${typedNumber} ${route}`), corrected: true }
+  }
+  const unit = formatUnit(pick.subpremise) || typed.unit
+  return { address_1: buildAuStreetLine(unit, `${googleNumber} ${route}`), corrected: false }
+}
+
 export function splitAuAddressForForm(
   address_1: string | null | undefined,
   address_2: string | null | undefined

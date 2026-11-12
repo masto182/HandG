@@ -25,7 +25,6 @@ const AddAddress = ({
   const [autoCity, setAutoCity] = useState("")
   const [autoProvince, setAutoProvince] = useState("")
   const [autoPostal, setAutoPostal] = useState("")
-  const [autoAddress1, setAutoAddress1] = useState("")
 
   const [formState, formAction] = useActionState(addCustomerAddress, {
     success: false,
@@ -37,20 +36,18 @@ const AddAddress = ({
     setAutoCity("")
     setAutoProvince("")
     setAutoPostal("")
-    setAutoAddress1("")
     closeModal()
   }
 
   const handleAddressSelect = useCallback(
     (parts: {
       address_1: string
-      unit: string | null
+      corrected: boolean
       city: string
       province: string
       postal_code: string
       country_code: string
     }) => {
-      setAutoAddress1(parts.address_1)
       setAutoCity(parts.city)
       setAutoProvince(parts.province)
       setAutoPostal(parts.postal_code)
@@ -117,21 +114,13 @@ const AddAddress = ({
               data-testid="company-input"
             />
             <AddressAutocomplete
-              name="address_search"
-              label="Start typing your address"
+              name="address_1"
+              label="Address, e.g. 18/28 McDonald Street"
+              required
               onPlaceSelect={handleAddressSelect}
             />
             <Input
-              label="Address line 1 (e.g. 18/28 McDonald Street)"
-              name="address_1"
-              required
-              defaultValue={autoAddress1}
-              key={`address1-${autoAddress1}`}
-              autoComplete="address-line1"
-              data-testid="address-1-input"
-            />
-            <Input
-              label="Address line 2 (optional)"
+              label="Building name (optional)"
               name="address_2"
               autoComplete="address-line2"
               data-testid="address-2-input"

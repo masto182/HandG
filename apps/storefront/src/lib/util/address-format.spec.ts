@@ -3,6 +3,7 @@ import {
   formatUnit,
   isSameUnit,
   normaliseAuAddress,
+  resolveAuPick,
   splitAuAddressForForm,
   splitLeadingUnit,
 } from "@retail-example/shared-types"
@@ -89,6 +90,85 @@ describe("normaliseAuAddress", () => {
       address_2: "",
     })
   })
+})
+
+describe("resolveAuPick (real Google top picks, 2026-11-12)", () => {
+  it.each([
+    [
+      "Level 5 1 Martin Place Sydney",
+      null,
+      "5",
+      "Martin Pl",
+      "Level 5, 1 Martin Pl",
+      true,
+    ],
+    [
+      "Level 5, 1 Martin Place Sydney",
+      null,
+      "5",
+      "Martin Pl",
+      "Level 5, 1 Martin Pl",
+      true,
+    ],
+    [
+      "18/28 McDonald Street Freshwater",
+      "28",
+      "18",
+      "McDonald St",
+      "18/28 McDonald St",
+      true,
+    ],
+    [
+      "18/28 McDonald Street Freshwater",
+      "18",
+      "28",
+      "McDonald St",
+      "18/28 McDonald St",
+      false,
+    ],
+    [
+      "Unit 18 28 McDonald Street Freshwater",
+      "unit 18",
+      "28",
+      "McDonald St",
+      "Unit 18, 28 McDonald St",
+      false,
+    ],
+    [
+      "Suite 3 Level 5 1 Martin Place Sydney",
+      "suite 3 level 5",
+      "1",
+      "Martin Pl",
+      "Suite 3 Level 5, 1 Martin Pl",
+      false,
+    ],
+    [
+      "Shop 2 100 Oxford Street Paddington",
+      "shop 2",
+      "100",
+      "Oxford St",
+      "Shop 2, 100 Oxford St",
+      false,
+    ],
+    [
+      "28 McDonald Street Freshwater",
+      null,
+      "28",
+      "McDonald St",
+      "28 McDonald St",
+      false,
+    ],
+  ])(
+    "%p (google unit %p, no. %p) -> %p",
+    (typed, subpremise, streetNumber, route, line1, corrected) => {
+      expect(resolveAuPick({ typed, subpremise, streetNumber, route })).toEqual(
+        {
+          address_1: line1,
+          corrected,
+        },
+      )
+    },
+  )
 })
 
 describe("splitAuAddressForForm", () => {

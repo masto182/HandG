@@ -1,11 +1,7 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-import {
-  buildAuStreetLine,
-  formatUnit,
-  splitLeadingUnit,
-} from "@retail-example/shared-types"
+import { resolveAuPick } from "@retail-example/shared-types"
 
 const GOOGLE_MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""
 
@@ -16,7 +12,7 @@ type AddressAutocompleteProps = {
   defaultValue?: string
   onPlaceSelect?: (place: {
     address_1: string
-    unit: string | null
+    corrected: boolean
     city: string
     province: string
     postal_code: string
@@ -74,19 +70,18 @@ export default function AddressAutocomplete({
           place.address_components?.find((c) => c.types.includes(type))
             ?.short_name || ""
 
-        const streetNumber = get("street_number")
-        const route = get("route")
-        const streetOnly = `${streetNumber} ${route}`.trim()
-
         // Google returns the unit as subpremise when it knows it; otherwise
-        // recover the "18/" or "Unit 18" the customer typed before selecting,
-        // and build Address line 1 the Australian way (18/28 Street,
-        // Unit 18, 28 Street).
+        // recover the "18/" or "Unit 18" the customer typed. If Google picked a
+        // different street number from the one typed (it reads "Level 5 1 ..."
+        // as number 5, and ranks the reversed 28/18 first), keep the typed one.
         const googleUnit =
           get("subpremise") || (get("floor") ? `Level ${get("floor")}` : "")
-        const unit =
-          formatUnit(googleUnit) || splitLeadingUnit(typedRef.current).unit
-        const line1 = buildAuStreetLine(unit, streetOnly)
+        const { address_1: line1, corrected } = resolveAuPick({
+          typed: typedRef.current,
+          subpremise: googleUnit,
+          streetNumber: get("street_number"),
+          route: get("route"),
+        })
 
         // Never submit Google's formatted_address, which duplicates
         // city/state/postcode/country already captured in their own fields
@@ -99,7 +94,7 @@ export default function AddressAutocomplete({
 
         callbackRef.current?.({
           address_1: line1,
-          unit: unit || null,
+          corrected,
           city: get("locality") || get("sublocality_level_1"),
           province: getShort("administrative_area_level_1"),
           postal_code: get("postal_code"),

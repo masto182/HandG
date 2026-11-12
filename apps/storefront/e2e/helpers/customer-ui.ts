@@ -262,7 +262,6 @@ export async function gotoDeliveryPaymentStep(page: Page): Promise<void> {
   await page.waitForURL(/step=address/, { timeout: 15_000 })
   await page.fill('input[name="shipping_address.first_name"]', "Delivery")
   await page.fill('input[name="shipping_address.last_name"]', "Tester")
-  await page.getByTestId("enter-address-manually").click()
   await page.fill('input[name="shipping_address.address_1"]', "1 Test Street")
   await page.keyboard.press("Escape")
   await page.fill('input[name="shipping_address.city"]', "Melbourne")
@@ -310,7 +309,6 @@ export async function checkoutDeliveryPayid(
   await page.waitForURL(/step=address/, { timeout: 15_000 })
   await page.fill('input[name="shipping_address.first_name"]', "Delivery")
   await page.fill('input[name="shipping_address.last_name"]', "Tester")
-  await page.getByTestId("enter-address-manually").click()
   await page.fill('input[name="shipping_address.address_1"]', "1 Test Street")
   await page.keyboard.press("Escape") // dismiss any AU address autocomplete dropdown
   await page.fill('input[name="shipping_address.city"]', "Melbourne")

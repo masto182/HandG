@@ -46,9 +46,8 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
   )
   const [showForm, setShowForm] = useState(savedAddresses.length === 0)
   const [saveAddress, setSaveAddress] = useState(false)
-  const [addressFieldsShown, setAddressFieldsShown] = useState(
-    !!cart?.shipping_address?.address_1,
-  )
+  const [line2Shown, setLine2Shown] = useState(false)
+  const [numberCorrected, setNumberCorrected] = useState(false)
   const shouldTrackSubmit = useRef(false)
 
   const [formData, setFormData] = useState<Record<string, string>>(() => {
@@ -374,133 +373,133 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
                 />
               </div>
             </div>
-            <div className="space-y-2">
+            <div
+              className="space-y-2"
+              onInput={(e) => {
+                const target = e.target as HTMLInputElement
+                if (target.name === "shipping_address.address_1") {
+                  setNumberCorrected(false)
+                  setFormData((prev) => ({
+                    ...prev,
+                    "shipping_address.address_1": target.value,
+                  }))
+                }
+              }}
+            >
               <label
-                htmlFor="address_search"
+                htmlFor="shipping_address.address_1"
                 className="font-semibold text-[12px] text-hg-text-secondary uppercase tracking-widest"
               >
                 Address
               </label>
               <AddressAutocomplete
-                name="address_search"
-                label="Start typing your address"
-                required={!addressFieldsShown}
+                name="shipping_address.address_1"
+                label="Start typing your address, e.g. 18/28 McDonald Street"
+                required
+                defaultValue={formData["shipping_address.address_1"]}
                 onPlaceSelect={(addr) => {
+                  setNumberCorrected(addr.corrected)
                   setFormData((prev) => ({
                     ...prev,
                     "shipping_address.address_1": addr.address_1,
-                    "shipping_address.address_2": "",
                     "shipping_address.city": addr.city,
                     "shipping_address.province": addr.province,
                     "shipping_address.postal_code": addr.postal_code,
                     "shipping_address.country_code": addr.country_code,
                   }))
-                  setAddressFieldsShown(true)
                 }}
               />
-              {!addressFieldsShown && (
-                <button
-                  type="button"
-                  onClick={() => setAddressFieldsShown(true)}
-                  className="text-sm text-hg-text-secondary underline underline-offset-2 hover:text-hg-text"
-                  data-testid="enter-address-manually"
+              {numberCorrected && (
+                <p
+                  className="text-[12px] text-hg-gold"
+                  role="status"
+                  data-testid="street-number-check"
                 >
-                  Enter address manually
-                </button>
+                  We kept the street number you typed. Please check it&apos;s
+                  right.
+                </p>
               )}
             </div>
-            {addressFieldsShown && (
-              <>
-                <div className="space-y-2">
-                  <label className="font-semibold text-[12px] text-hg-text-secondary uppercase tracking-widest">
-                    Address line 1
-                  </label>
-                  <input
-                    name="shipping_address.address_1"
-                    autoComplete="address-line1"
-                    value={formData["shipping_address.address_1"]}
-                    onChange={handleChange}
-                    required
-                    placeholder="e.g. 18/28 McDonald Street"
-                    className="w-full bg-hg-surface border-0 ring-1 ring-hg-border focus:ring-2 focus:ring-hg-gold rounded-xl px-4 py-4 text-hg-text placeholder:text-hg-text-muted transition-all outline-none"
-                  />
-                  <p className="text-[12px] text-hg-text-muted">
-                    Add your unit or level here if it&apos;s missing, e.g. 18/28
-                    McDonald Street or Level 5, 1 Martin Place.
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <label className="font-semibold text-[12px] text-hg-text-secondary uppercase tracking-widest">
-                    Address line 2 (Optional)
-                  </label>
-                  <input
-                    name="shipping_address.address_2"
-                    autoComplete="address-line2"
-                    value={formData["shipping_address.address_2"]}
-                    onChange={handleChange}
-                    placeholder="Building name, if needed"
-                    className="w-full bg-hg-surface border-0 ring-1 ring-hg-border focus:ring-2 focus:ring-hg-gold rounded-xl px-4 py-4 text-hg-text placeholder:text-hg-text-muted transition-all outline-none"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="font-semibold text-[12px] text-hg-text-secondary uppercase tracking-widest">
-                    Company (Optional)
-                  </label>
-                  <input
-                    name="shipping_address.company"
-                    value={formData["shipping_address.company"]}
-                    onChange={handleChange}
-                    placeholder="Business name"
-                    className="w-full bg-hg-surface border-0 ring-1 ring-hg-border focus:ring-2 focus:ring-hg-gold rounded-xl px-4 py-4 text-hg-text placeholder:text-hg-text-muted transition-all outline-none"
-                  />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <label className="font-semibold text-[12px] text-hg-text-secondary uppercase tracking-widest">
-                      City
-                    </label>
-                    <input
-                      name="shipping_address.city"
-                      autoComplete="address-level2"
-                      value={formData["shipping_address.city"]}
-                      onChange={handleChange}
-                      required
-                      placeholder="Sydney"
-                      className="w-full bg-hg-surface border-0 ring-1 ring-hg-border focus:ring-2 focus:ring-hg-gold rounded-xl px-4 py-4 text-hg-text placeholder:text-hg-text-muted transition-all outline-none"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="font-semibold text-[12px] text-hg-text-secondary uppercase tracking-widest">
-                      State / County
-                    </label>
-                    <input
-                      name="shipping_address.province"
-                      autoComplete="address-level1"
-                      value={formData["shipping_address.province"]}
-                      onChange={handleChange}
-                      required
-                      placeholder="NSW"
-                      className="w-full bg-hg-surface border-0 ring-1 ring-hg-border focus:ring-2 focus:ring-hg-gold rounded-xl px-4 py-4 text-hg-text placeholder:text-hg-text-muted transition-all outline-none"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="font-semibold text-[12px] text-hg-text-secondary uppercase tracking-widest">
-                      Postcode
-                    </label>
-                    <input
-                      name="shipping_address.postal_code"
-                      autoComplete="postal-code"
-                      value={formData["shipping_address.postal_code"]}
-                      onChange={handleChange}
-                      required
-                      placeholder="2000"
-                      className="w-full bg-hg-surface border-0 ring-1 ring-hg-border focus:ring-2 focus:ring-hg-gold rounded-xl px-4 py-4 text-hg-text placeholder:text-hg-text-muted transition-all outline-none"
-                    />
-                  </div>
-                </div>
-              </>
+            {line2Shown || formData["shipping_address.address_2"] ? (
+              <div className="space-y-2">
+                <label className="font-semibold text-[12px] text-hg-text-secondary uppercase tracking-widest">
+                  Building name (Optional)
+                </label>
+                <input
+                  name="shipping_address.address_2"
+                  autoComplete="address-line2"
+                  value={formData["shipping_address.address_2"]}
+                  onChange={handleChange}
+                  className="w-full bg-hg-surface border-0 ring-1 ring-hg-border focus:ring-2 focus:ring-hg-gold rounded-xl px-4 py-4 text-hg-text placeholder:text-hg-text-muted transition-all outline-none"
+                />
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setLine2Shown(true)}
+                className="self-start text-sm text-hg-text-secondary underline underline-offset-2 hover:text-hg-text"
+                data-testid="add-address-line-2"
+              >
+                + Add building name
+              </button>
             )}
-            {addressFieldsShown && formData["shipping_address.address_1"] && (
+            <div className="space-y-2">
+              <label className="font-semibold text-[12px] text-hg-text-secondary uppercase tracking-widest">
+                Company (Optional)
+              </label>
+              <input
+                name="shipping_address.company"
+                value={formData["shipping_address.company"]}
+                onChange={handleChange}
+                placeholder="Business name"
+                className="w-full bg-hg-surface border-0 ring-1 ring-hg-border focus:ring-2 focus:ring-hg-gold rounded-xl px-4 py-4 text-hg-text placeholder:text-hg-text-muted transition-all outline-none"
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <label className="font-semibold text-[12px] text-hg-text-secondary uppercase tracking-widest">
+                  Suburb
+                </label>
+                <input
+                  name="shipping_address.city"
+                  autoComplete="address-level2"
+                  value={formData["shipping_address.city"]}
+                  onChange={handleChange}
+                  required
+                  placeholder="Sydney"
+                  className="w-full bg-hg-surface border-0 ring-1 ring-hg-border focus:ring-2 focus:ring-hg-gold rounded-xl px-4 py-4 text-hg-text placeholder:text-hg-text-muted transition-all outline-none"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="font-semibold text-[12px] text-hg-text-secondary uppercase tracking-widest">
+                  State / County
+                </label>
+                <input
+                  name="shipping_address.province"
+                  autoComplete="address-level1"
+                  value={formData["shipping_address.province"]}
+                  onChange={handleChange}
+                  required
+                  placeholder="NSW"
+                  className="w-full bg-hg-surface border-0 ring-1 ring-hg-border focus:ring-2 focus:ring-hg-gold rounded-xl px-4 py-4 text-hg-text placeholder:text-hg-text-muted transition-all outline-none"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="font-semibold text-[12px] text-hg-text-secondary uppercase tracking-widest">
+                  Postcode
+                </label>
+                <input
+                  name="shipping_address.postal_code"
+                  autoComplete="postal-code"
+                  value={formData["shipping_address.postal_code"]}
+                  onChange={handleChange}
+                  required
+                  placeholder="2000"
+                  className="w-full bg-hg-surface border-0 ring-1 ring-hg-border focus:ring-2 focus:ring-hg-gold rounded-xl px-4 py-4 text-hg-text placeholder:text-hg-text-muted transition-all outline-none"
+                />
+              </div>
+            </div>
+            {formData["shipping_address.address_1"] && (
               <p
                 className="text-sm text-hg-text-secondary"
                 data-testid="address-preview"

@@ -395,7 +395,6 @@ test.describe("Membership Access Control — Full Flow", () => {
       // Address step: fill the form and continue to shipping
       await page.fill('input[name="shipping_address.first_name"]', "Member")
       await page.fill('input[name="shipping_address.last_name"]', "Tester")
-      await page.getByTestId("enter-address-manually").click()
       await page.fill(
         'input[name="shipping_address.address_1"]',
         "1 Test Street",
