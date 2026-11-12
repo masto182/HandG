@@ -26,7 +26,14 @@ const IMAGE_HOSTS = (process.env.STOREFRONT_IMAGE_HOSTS || "")
 function buildImgSrc(isDev: boolean): string {
   const hosts = IMAGE_HOSTS.flatMap((h) => [`https://${h}`, `http://${h}`])
   const dev = isDev ? ["http://localhost:9100", "http://localhost:9000"] : []
-  return ["'self'", "data:", "blob:", ...hosts, ...dev].join(" ")
+  return [
+    "'self'",
+    "data:",
+    "blob:",
+    "https://maps.gstatic.com",
+    ...hosts,
+    ...dev,
+  ].join(" ")
 }
 
 export async function middleware(request: NextRequest) {
