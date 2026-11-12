@@ -1,7 +1,11 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-import { formatUnit, splitLeadingUnit } from "@retail-example/shared-types"
+import {
+  buildAuStreetLine,
+  formatUnit,
+  splitLeadingUnit,
+} from "@retail-example/shared-types"
 
 const GOOGLE_MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""
 
@@ -75,25 +79,26 @@ export default function AddressAutocomplete({
         const streetOnly = `${streetNumber} ${route}`.trim()
 
         // Google returns the unit as subpremise when it knows it; otherwise
-        // recover the "18/" or "Level 5" the customer typed before selecting.
-        // The unit is handed back separately for the Unit / Level field; the
-        // street box only ever holds the street.
+        // recover the "18/" or "Unit 18" the customer typed before selecting,
+        // and build Address line 1 the Australian way (18/28 Street,
+        // Unit 18, 28 Street).
         const googleUnit =
           get("subpremise") || (get("floor") ? `Level ${get("floor")}` : "")
         const unit =
           formatUnit(googleUnit) || splitLeadingUnit(typedRef.current).unit
+        const line1 = buildAuStreetLine(unit, streetOnly)
 
         // Never submit Google's formatted_address, which duplicates
         // city/state/postcode/country already captured in their own fields
         // (this caused malformed address_1 values like
         // "71 Boyle St, Prospect SA 5082, Australia").
         if (inputRef.current) {
-          inputRef.current.value = streetOnly
-          typedRef.current = streetOnly
+          inputRef.current.value = line1
+          typedRef.current = line1
         }
 
         callbackRef.current?.({
-          address_1: streetOnly,
+          address_1: line1,
           unit: unit || null,
           city: get("locality") || get("sublocality_level_1"),
           province: getShort("administrative_area_level_1"),

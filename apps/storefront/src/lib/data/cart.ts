@@ -544,6 +544,12 @@ export async function setAddresses(
       throw new Error("No existing cart found when setting addresses")
     }
 
+    if (!input.shipping_address?.address_1?.trim()) {
+      throw new Error(
+        "Please choose your address from the list or enter it manually.",
+      )
+    }
+
     if (!input.shipping_address?.phone?.trim()) {
       throw new Error(
         "Please enter a phone number so the courier can contact you about delivery.",

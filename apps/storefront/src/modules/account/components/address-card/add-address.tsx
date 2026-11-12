@@ -25,7 +25,7 @@ const AddAddress = ({
   const [autoCity, setAutoCity] = useState("")
   const [autoProvince, setAutoProvince] = useState("")
   const [autoPostal, setAutoPostal] = useState("")
-  const [autoAddress2, setAutoAddress2] = useState("")
+  const [autoAddress1, setAutoAddress1] = useState("")
 
   const [formState, formAction] = useActionState(addCustomerAddress, {
     success: false,
@@ -37,7 +37,7 @@ const AddAddress = ({
     setAutoCity("")
     setAutoProvince("")
     setAutoPostal("")
-    setAutoAddress2("")
+    setAutoAddress1("")
     closeModal()
   }
 
@@ -50,10 +50,10 @@ const AddAddress = ({
       postal_code: string
       country_code: string
     }) => {
+      setAutoAddress1(parts.address_1)
       setAutoCity(parts.city)
       setAutoProvince(parts.province)
       setAutoPostal(parts.postal_code)
-      if (parts.unit) setAutoAddress2((prev) => prev || parts.unit || "")
     },
     [],
   )
@@ -116,19 +116,25 @@ const AddAddress = ({
               autoComplete="organization"
               data-testid="company-input"
             />
+            <AddressAutocomplete
+              name="address_search"
+              label="Start typing your address"
+              onPlaceSelect={handleAddressSelect}
+            />
             <Input
-              label="Unit / Level (e.g. 18 or Level 5)"
+              label="Address line 1 (e.g. 18/28 McDonald Street)"
+              name="address_1"
+              required
+              defaultValue={autoAddress1}
+              key={`address1-${autoAddress1}`}
+              autoComplete="address-line1"
+              data-testid="address-1-input"
+            />
+            <Input
+              label="Address line 2 (optional)"
               name="address_2"
-              value={autoAddress2}
-              onChange={(e) => setAutoAddress2(e.target.value)}
               autoComplete="address-line2"
               data-testid="address-2-input"
-            />
-            <AddressAutocomplete
-              name="address_1"
-              label="Street address"
-              required
-              onPlaceSelect={handleAddressSelect}
             />
             <Input
               label="Note for the courier (optional)"
