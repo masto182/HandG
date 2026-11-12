@@ -120,12 +120,6 @@ const AddAddress = ({
               onPlaceSelect={handleAddressSelect}
             />
             <Input
-              label="Building name (optional)"
-              name="address_2"
-              autoComplete="address-line2"
-              data-testid="address-2-input"
-            />
-            <Input
               label="Note for the courier (optional)"
               name="courier_note"
               maxLength={COURIER_NOTE_MAX}

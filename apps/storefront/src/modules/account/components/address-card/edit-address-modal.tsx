@@ -161,13 +161,15 @@ const EditAddress: React.FC<EditAddressProps> = ({
               defaultValue={address.address_1 || undefined}
               data-testid="address-1-input"
             />
-            <Input
-              label="Building name (optional)"
-              name="address_2"
-              autoComplete="address-line2"
-              defaultValue={address.address_2 || undefined}
-              data-testid="address-2-input"
-            />
+            {address.address_2 && (
+              <Input
+                label="Address line 2"
+                name="address_2"
+                autoComplete="address-line2"
+                defaultValue={address.address_2}
+                data-testid="address-2-input"
+              />
+            )}
             <Input
               label="Note for the courier (optional)"
               name="courier_note"

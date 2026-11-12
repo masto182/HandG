@@ -46,7 +46,7 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
   )
   const [showForm, setShowForm] = useState(savedAddresses.length === 0)
   const [saveAddress, setSaveAddress] = useState(false)
-  const [line2Shown, setLine2Shown] = useState(false)
+  const [companyShown, setCompanyShown] = useState(false)
   const [numberCorrected, setNumberCorrected] = useState(false)
   const shouldTrackSubmit = useRef(false)
 
@@ -373,6 +373,30 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
                 />
               </div>
             </div>
+            {companyShown || formData["shipping_address.company"] ? (
+              <div className="space-y-2">
+                <label className="font-semibold text-[12px] text-hg-text-secondary uppercase tracking-widest">
+                  Company (Optional)
+                </label>
+                <input
+                  name="shipping_address.company"
+                  autoComplete="organization"
+                  value={formData["shipping_address.company"]}
+                  onChange={handleChange}
+                  placeholder="Business name"
+                  className="w-full bg-hg-surface border-0 ring-1 ring-hg-border focus:ring-2 focus:ring-hg-gold rounded-xl px-4 py-4 text-hg-text placeholder:text-hg-text-muted transition-all outline-none"
+                />
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setCompanyShown(true)}
+                className="self-start text-sm text-hg-text-secondary underline underline-offset-2 hover:text-hg-text"
+                data-testid="add-company"
+              >
+                + Add company name
+              </button>
+            )}
             <div
               className="space-y-2"
               onInput={(e) => {
@@ -420,10 +444,10 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
                 </p>
               )}
             </div>
-            {line2Shown || formData["shipping_address.address_2"] ? (
+            {formData["shipping_address.address_2"] && (
               <div className="space-y-2">
                 <label className="font-semibold text-[12px] text-hg-text-secondary uppercase tracking-widest">
-                  Building name (Optional)
+                  Address line 2
                 </label>
                 <input
                   name="shipping_address.address_2"
@@ -433,28 +457,7 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
                   className="w-full bg-hg-surface border-0 ring-1 ring-hg-border focus:ring-2 focus:ring-hg-gold rounded-xl px-4 py-4 text-hg-text placeholder:text-hg-text-muted transition-all outline-none"
                 />
               </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setLine2Shown(true)}
-                className="self-start text-sm text-hg-text-secondary underline underline-offset-2 hover:text-hg-text"
-                data-testid="add-address-line-2"
-              >
-                + Add building name
-              </button>
             )}
-            <div className="space-y-2">
-              <label className="font-semibold text-[12px] text-hg-text-secondary uppercase tracking-widest">
-                Company (Optional)
-              </label>
-              <input
-                name="shipping_address.company"
-                value={formData["shipping_address.company"]}
-                onChange={handleChange}
-                placeholder="Business name"
-                className="w-full bg-hg-surface border-0 ring-1 ring-hg-border focus:ring-2 focus:ring-hg-gold rounded-xl px-4 py-4 text-hg-text placeholder:text-hg-text-muted transition-all outline-none"
-              />
-            </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <label className="font-semibold text-[12px] text-hg-text-secondary uppercase tracking-widest">
