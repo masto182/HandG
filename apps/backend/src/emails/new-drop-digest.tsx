@@ -33,6 +33,8 @@ export type NewDropDigestProps = {
   vipNudge?: boolean
   /** Optional operator-written update shown under the greeting. */
   introMessage?: string | null
+  /** Optional operator-written subject line; replaces the generated one. */
+  subjectOverride?: string | null
 }
 
 type OrderedSection = {
@@ -106,6 +108,8 @@ function leadHeading(sections: OrderedSection[]): string {
 }
 
 export const subject = (p: NewDropDigestProps) => {
+  const custom = p.subjectOverride?.trim()
+  if (custom) return custom
   const all = orderedSections(p).flatMap((s) => s.products)
   if (all.length === 1) return `New drop: ${all[0]?.beerName ?? "just landed"}`
   return leadHeading(orderedSections(p))

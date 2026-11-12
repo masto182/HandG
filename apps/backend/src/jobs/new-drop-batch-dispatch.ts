@@ -1,6 +1,6 @@
 import { MedusaContainer } from "@medusajs/framework/types"
 import { Modules } from "@medusajs/framework/utils"
-import { sendTemplate, refreshEmailConfig, getStoreUrl } from "../lib/email"
+import { sendTemplate, refreshEmailConfig, getStoreUrl, getDropsFrom } from "../lib/email"
 import { exceedsThrottle } from "../lib/alert-throttle"
 import { withJobLock } from "../lib/job-lock"
 import { NEW_DROP_BATCH_MODULE } from "../modules/new-drop-batch"
@@ -283,8 +283,10 @@ async function runDispatch(container: MedusaContainer) {
                     : null,
                   storeUrl,
                   introMessage: batch.intro_message ?? null,
+                  subjectOverride: batch.subject ?? null,
                   vipNudge,
                 },
+                from: getDropsFrom(),
                 container,
               })
 

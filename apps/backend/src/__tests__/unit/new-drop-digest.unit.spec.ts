@@ -111,6 +111,34 @@ describe("new-drop-digest email - personalized (brewery/hop sections)", () => {
     expect(out.html).not.toContain("Other new drops")
   })
 
+  it("custom subject replaces the generated subject but keeps the personalised heading", async () => {
+    const out = await renderEmail(NewDropDigest as any, {
+      name: "Cam",
+      brewerySection: {
+        label: "Tree House",
+        products: [product(), product({ beerName: "Green", handle: "g" })],
+      },
+      hopSection: null,
+      generalSection: null,
+      storeUrl: STORE_URL,
+      subjectOverride: "  Tree House is back  ",
+    })
+    expect(out.subject).toBe("Tree House is back")
+    expect(out.html).toContain("New releases from Tree House")
+  })
+
+  it("blank custom subject falls back to the generated subject", async () => {
+    const out = await renderEmail(NewDropDigest as any, {
+      name: "Cam",
+      brewerySection: { label: "Tree House", products: [product()] },
+      hopSection: null,
+      generalSection: null,
+      storeUrl: STORE_URL,
+      subjectOverride: "   ",
+    })
+    expect(out.subject).toBe("New drop: Julius")
+  })
+
   it("general section as secondary (brewery lead, plus unrelated general items)", async () => {
     const out = await renderEmail(NewDropDigest as any, {
       name: "Cam",

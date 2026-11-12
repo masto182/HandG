@@ -144,6 +144,7 @@ function ReviewSendModal({
   const [loading, setLoading] = useState(false)
   const [label, setLabel] = useState("")
   const [introMessage, setIntroMessage] = useState("")
+  const [subjectLine, setSubjectLine] = useState("")
   const [sending, setSending] = useState(false)
   const [conflictBlockers, setConflictBlockers] = useState<Record<
     string,
@@ -184,6 +185,7 @@ function ReviewSendModal({
     if (open) {
       setLabel("")
       setIntroMessage("")
+      setSubjectLine("")
       setSelectedPreviewKey(null)
       setRenderCache({})
       setExcludedCustomerIds(new Set())
@@ -217,6 +219,7 @@ function ReviewSendModal({
             product_ids: selectedIds,
             customer_id: key === GENERIC_PREVIEW_KEY ? null : key,
             intro_message: introMessage.trim() || null,
+            subject: subjectLine.trim() || null,
           },
         }
       )
@@ -271,6 +274,7 @@ function ReviewSendModal({
           product_ids: selectedIds,
           label: label.trim() || null,
           intro_message: introMessage.trim() || null,
+          subject: subjectLine.trim() || null,
           excluded_customer_ids: [...excludedCustomerIds],
         },
       })
@@ -316,6 +320,22 @@ function ReviewSendModal({
               onChange={(e) => setLabel(e.target.value)}
               placeholder="e.g. Tree House - August shipment"
             />
+          </div>
+
+          <div className="flex flex-col gap-y-2">
+            <Label size="small">Subject line (optional)</Label>
+            <Input
+              value={subjectLine}
+              onChange={(e) => setSubjectLine(e.target.value)}
+              onBlur={() => {
+                if (selectedPreviewKey) selectPreviewRecipient(selectedPreviewKey, true)
+              }}
+              maxLength={200}
+              placeholder="Blank = automatic, e.g. 'New releases from Tree House'"
+            />
+            <Text size="xsmall" className="text-ui-fg-subtle">
+              Same subject for every recipient. The heading inside the email stays personalised.
+            </Text>
           </div>
 
           <div className="flex flex-col gap-y-2">

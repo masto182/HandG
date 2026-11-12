@@ -6,6 +6,7 @@ const Schema = z.object({
   product_ids: z.array(z.string().min(1)).min(1),
   customer_id: z.string().min(1).nullable().optional(),
   intro_message: z.string().trim().max(2000).nullable().optional(),
+  subject: z.string().trim().max(200).nullable().optional(),
 })
 
 /**
@@ -25,7 +26,8 @@ export async function POST(req: AuthenticatedMedusaRequest, res: MedusaResponse)
     req.scope,
     productIds,
     parsed.data.customer_id ?? null,
-    parsed.data.intro_message || null
+    parsed.data.intro_message || null,
+    parsed.data.subject || null
   )
   res.json(result)
 }

@@ -108,6 +108,7 @@ services:
       RESEND_API_KEY: ${RESEND_API_KEY}
       RESEND_WEBHOOK_SECRET: ${RESEND_WEBHOOK_SECRET}
       EMAIL_FROM: ${EMAIL_FROM}
+      NEW_DROPS_FROM_EMAIL: "${NEW_DROPS_FROM_EMAIL:-Hops & Glory <drops@hopsandglory.au>}"
       STORE_URL: https://${PRIMARY_DOMAIN}
       SENTRY_DSN: ${SENTRY_DSN}
     networks:

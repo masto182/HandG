@@ -15,6 +15,7 @@ const resend = new Resend(process.env.RESEND_API_KEY || "re_test_placeholder")
  */
 let _fromEmail = process.env.EMAIL_FROM || "Example Store <noreply@example.com>"
 let _storeUrl = process.env.STORE_URL || "https://example.com"
+let _dropsFrom = process.env.NEW_DROPS_FROM_EMAIL || ""
 
 export function getEmailFrom(): string {
   return _fromEmail
@@ -22,6 +23,11 @@ export function getEmailFrom(): string {
 
 export function getStoreUrl(): string {
   return _storeUrl
+}
+
+/** Sender for New Drops digests; falls back to the main From address. */
+export function getDropsFrom(): string {
+  return _dropsFrom || _fromEmail
 }
 
 /**
@@ -34,12 +40,14 @@ export async function refreshEmailConfig(container: any): Promise<void> {
     const svc = container.resolve("siteConfig") as {
       get: <T>(key: string) => Promise<T>
     }
-    const [from, url] = await Promise.all([
+    const [from, url, dropsFrom] = await Promise.all([
       svc.get<string>("email_from"),
       svc.get<string>("store_url"),
+      svc.get<string>("email_drops_from"),
     ])
     if (from) _fromEmail = from
     if (url) _storeUrl = url
+    if (dropsFrom) _dropsFrom = dropsFrom
   } catch {
     // SiteConfig not available; keep current values.
   }
@@ -230,6 +238,8 @@ export type SendTemplateArgs<P> = {
   category: NotificationCategory
   template: EmailTemplateModule<P>
   props: P
+  /** Override the sender for this message (defaults to the main From address). */
+  from?: string
   /**
    * Optional Medusa container — used for soft customer-existence check
    * and (once Block 4.2 lands) opt-out gating. Pass `req.scope` from a
@@ -292,6 +302,7 @@ export async function sendTemplate<P>({
   category,
   template,
   props,
+  from,
   container,
 }: SendTemplateArgs<P>): Promise<SendTemplateResult> {
   const templateName =
@@ -322,7 +333,7 @@ export async function sendTemplate<P>({
   try {
     const { html, text, subject } = await renderEmail(template, props)
     const result = await resend.emails.send({
-      from: _fromEmail,
+      from: from || _fromEmail,
       to,
       subject,
       html,

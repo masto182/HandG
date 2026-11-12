@@ -191,6 +191,18 @@ export const SITE_CONFIG_REGISTRY: Record<string, SiteConfigDefinition> = {
     description: "Sender for all transactional email.",
     validate: requireString,
   },
+  email_drops_from: {
+    key: "email_drops_from",
+    type: "string",
+    isPublic: false,
+    envVar: "NEW_DROPS_FROM_EMAIL",
+    default: "",
+    group: "email",
+    label: "New Drops from address",
+    description: "Sender for New Drops digests. Blank uses the main From address.",
+    validate: (value: unknown) =>
+      typeof value === "string" && value.trim() === "" ? null : requireEmail(value),
+  },
   email_orders_to: {
     key: "email_orders_to",
     type: "string",
