@@ -25,6 +25,7 @@ const AddAddress = ({
   const [autoCity, setAutoCity] = useState("")
   const [autoProvince, setAutoProvince] = useState("")
   const [autoPostal, setAutoPostal] = useState("")
+  const [line2Shown, setLine2Shown] = useState(false)
 
   const [formState, formAction] = useActionState(addCustomerAddress, {
     success: false,
@@ -36,6 +37,7 @@ const AddAddress = ({
     setAutoCity("")
     setAutoProvince("")
     setAutoPostal("")
+    setLine2Shown(false)
     closeModal()
   }
 
@@ -108,7 +110,7 @@ const AddAddress = ({
               />
             </div>
             <Input
-              label="Company"
+              label="Company (optional)"
               name="company"
               autoComplete="organization"
               data-testid="company-input"
@@ -119,6 +121,23 @@ const AddAddress = ({
               required
               onPlaceSelect={handleAddressSelect}
             />
+            {line2Shown ? (
+              <Input
+                label="Address line 2 (optional)"
+                name="address_2"
+                autoComplete="address-line2"
+                data-testid="address-2-input"
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => setLine2Shown(true)}
+                className="self-start text-sm text-on-surface-variant underline underline-offset-2 hover:text-on-surface"
+                data-testid="add-address-line-2"
+              >
+                + Add address line 2
+              </button>
+            )}
             <Input
               label="Note for the courier (optional)"
               name="courier_note"
@@ -163,7 +182,7 @@ const AddAddress = ({
               data-testid="phone-input"
             />
             <input type="hidden" name="country_code" value="au" />
-            <div className="flex items-center h-10 px-4 bg-hg-surface border border-hg-border rounded-md text-hg-text text-sm">
+            <div className="flex items-center h-12 px-4 bg-surface-container-lowest rounded-xl text-body-md text-on-surface">
               Australia
             </div>
           </div>

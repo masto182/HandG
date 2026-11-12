@@ -28,6 +28,7 @@ const EditAddress: React.FC<EditAddressProps> = ({
 }) => {
   const [removing, setRemoving] = useState(false)
   const [successState, setSuccessState] = useState(false)
+  const [line2Shown, setLine2Shown] = useState(false)
   const { state, open, close: closeModal } = useToggleState(false)
 
   const [formState, formAction] = useActionState(updateCustomerAddress, {
@@ -147,7 +148,7 @@ const EditAddress: React.FC<EditAddressProps> = ({
               />
             </div>
             <Input
-              label="Company"
+              label="Company (optional)"
               name="company"
               autoComplete="organization"
               defaultValue={address.company || undefined}
@@ -161,14 +162,23 @@ const EditAddress: React.FC<EditAddressProps> = ({
               defaultValue={address.address_1 || undefined}
               data-testid="address-1-input"
             />
-            {address.address_2 && (
+            {line2Shown || address.address_2 ? (
               <Input
-                label="Address line 2"
+                label="Address line 2 (optional)"
                 name="address_2"
                 autoComplete="address-line2"
-                defaultValue={address.address_2}
+                defaultValue={address.address_2 || undefined}
                 data-testid="address-2-input"
               />
+            ) : (
+              <button
+                type="button"
+                onClick={() => setLine2Shown(true)}
+                className="self-start text-sm text-on-surface-variant underline underline-offset-2 hover:text-on-surface"
+                data-testid="add-address-line-2"
+              >
+                + Add address line 2
+              </button>
             )}
             <Input
               label="Note for the courier (optional)"
@@ -213,7 +223,7 @@ const EditAddress: React.FC<EditAddressProps> = ({
               data-testid="phone-input"
             />
             <input type="hidden" name="country_code" value="au" />
-            <div className="flex items-center h-10 px-4 bg-hg-surface border border-hg-border rounded-md text-hg-text text-sm">
+            <div className="flex items-center h-12 px-4 bg-surface-container-lowest rounded-xl text-body-md text-on-surface">
               Australia
             </div>
           </div>
