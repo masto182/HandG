@@ -10,7 +10,7 @@ import { getHeatHold } from "@lib/data/heat-hold"
 import { getPickupLocations } from "@lib/data/pickup-locations"
 import {
   getPayidHoldHours,
-  getOrdersEmail,
+  getContactEmail,
   getPayidAlias,
 } from "@lib/data/site-config"
 import { getPickupOptions } from "@lib/util/shipping"
@@ -103,7 +103,13 @@ export default async function Checkout({
         if (isPickup) redirect("/checkout?step=payment")
         if (!cart.shipping_address?.address_1)
           redirect("/checkout?step=address")
-        return <StepShipping cart={cart} shippingOptions={shippingMethods} />
+        return (
+          <StepShipping
+            cart={cart}
+            shippingOptions={shippingMethods}
+            contactEmail={await getContactEmail()}
+          />
+        )
       case "payment":
         if (
           !isPickup &&
@@ -116,7 +122,7 @@ export default async function Checkout({
         )
         const [payHoldHours, payOrdersEmail, payidAlias] = await Promise.all([
           getPayidHoldHours(),
-          getOrdersEmail(),
+          getContactEmail(),
           getPayidAlias(),
         ])
         return (

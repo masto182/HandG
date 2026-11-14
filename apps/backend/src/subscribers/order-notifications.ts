@@ -1,6 +1,7 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { sendTemplate, refreshEmailConfig, getStoreUrl } from "../lib/email"
+import { notifyOwnerOfOrder } from "../lib/owner-alerts"
 import * as OrderPlacedTpl from "../emails/order-placed"
 import * as OrderPaymentCapturedTpl from "../emails/order-payment-captured"
 import { computeOrderBreakdown } from "../lib/order-breakdown"
@@ -24,14 +25,14 @@ async function resolvePayidAlias(container: any): Promise<string | undefined> {
 async function resolveSiteConfigValues(
   container: any
 ): Promise<{ holdHours: number; ordersEmail: string }> {
-  const defaults = { holdHours: 24, ordersEmail: "orders@hopsandglory.au" }
+  const defaults = { holdHours: 24, ordersEmail: "hello@hopsandglory.au" }
   try {
     const svc = container.resolve("siteConfig") as {
       get: <T>(key: string) => Promise<T>
     }
     const [holdHours, ordersEmail] = await Promise.all([
       svc.get<number>("payid_hold_hours").catch(() => defaults.holdHours),
-      svc.get<string>("email_orders_to").catch(() => defaults.ordersEmail),
+      svc.get<string>("email_hello_to").catch(() => defaults.ordersEmail),
     ])
     return { holdHours, ordersEmail }
   } catch {
@@ -156,6 +157,28 @@ export default async function orderEmailHandler({
         container,
       })
       logger.info(`[Notification] order.placed email → ${order.email}: ${JSON.stringify(result)}`)
+      try {
+        const alerted = await notifyOwnerOfOrder(container, {
+          orderId: order.id,
+          orderDisplayId,
+          customerEmail: order.email,
+          customerName: firstName,
+          items,
+          total,
+          ...breakdown,
+          currencyCode,
+          isPickup,
+          isCash,
+          isPayId,
+        })
+        logger.info(
+          `[Notification] owner alert for order ${orderDisplayId}: ${alerted ? "sent" : "skipped (no email_alerts_to)"}`
+        )
+      } catch (alertErr: any) {
+        logger.error(
+          `[Notification] owner alert failed for order ${orderDisplayId}: ${alertErr?.message}`
+        )
+      }
       return
     }
 

@@ -1,11 +1,13 @@
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import { breweryLabel } from "@lib/util/brewery-label"
+import { getContactEmail } from "@lib/data/site-config"
 
 export default async function Footer({
   isApproved = false,
 }: {
   isApproved?: boolean
 }) {
+  const contactEmail = await getContactEmail()
   return (
     <footer className="bg-hg-surface-low pt-16 pb-10 border-t border-hg-border/30">
       <div className="max-w-[1440px] mx-auto px-6">
@@ -68,7 +70,7 @@ export default async function Footer({
               )}
               <li>
                 <a
-                  href="mailto:hello@hopsandglory.au"
+                  href={`mailto:${contactEmail}`}
                   className="text-sm text-hg-text-secondary hover:text-hg-gold transition-colors"
                 >
                   Contact Us
@@ -121,7 +123,7 @@ export default async function Footer({
                 </svg>
               </a>
               <a
-                href="mailto:hello@hopsandglory.au"
+                href={`mailto:${contactEmail}`}
                 aria-label="Send us an email"
                 className="w-10 h-10 flex items-center justify-center border border-hg-border rounded-full text-hg-text hover:border-hg-gold hover:text-hg-gold transition-all"
               >

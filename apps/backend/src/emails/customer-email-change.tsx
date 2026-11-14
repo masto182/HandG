@@ -3,6 +3,7 @@ import { Section, Text } from "@react-email/components"
 import Layout from "./_components/Layout"
 import Heading from "./_components/Heading"
 import Button from "./_components/Button"
+import { getReplyTo } from "../lib/email"
 
 export type CustomerEmailChangeProps = {
   name: string
@@ -41,7 +42,7 @@ export default function CustomerEmailChangeEmail({
         <Text style={securityText}>
           If you didn&apos;t request this change, you can safely ignore this email — your current
           address remains active. If you believe someone else has accessed your account, please
-          contact us at <span style={supportEmail}>support@hopsandglory.au</span>.
+          contact us at <span style={supportEmail}>{getReplyTo() || "hello@hopsandglory.au"}</span>.
         </Text>
       </Section>
     </Layout>

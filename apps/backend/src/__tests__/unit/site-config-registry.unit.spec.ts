@@ -33,6 +33,11 @@ describe("site-config registry", () => {
     expect(def.type).toBe("string")
   })
 
+  it("email reply-to and shipping-from read their env vars before the placeholder default", () => {
+    expect(SITE_CONFIG_REGISTRY.email_hello_to.envVar).toBe("EMAIL_REPLY_TO")
+    expect(SITE_CONFIG_REGISTRY.shipping_from_email.envVar).toBe("SHIPPING_FROM_EMAIL")
+  })
+
   it("vip_thresholds default has all 5 tiers", () => {
     const def = SITE_CONFIG_REGISTRY.vip_thresholds
     const v = def.default as Record<string, number>

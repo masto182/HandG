@@ -15,6 +15,7 @@ const resend = new Resend(process.env.RESEND_API_KEY || "re_test_placeholder")
  */
 let _fromEmail = process.env.EMAIL_FROM || "Example Store <noreply@example.com>"
 let _storeUrl = process.env.STORE_URL || "https://example.com"
+let _replyTo = process.env.EMAIL_REPLY_TO || ""
 let _dropsFrom = process.env.NEW_DROPS_FROM_EMAIL || ""
 
 export function getEmailFrom(): string {
@@ -25,9 +26,17 @@ export function getStoreUrl(): string {
   return _storeUrl
 }
 
+export function getReplyTo(): string {
+  return _replyTo
+}
+
 /** Sender for New Drops digests; falls back to the main From address. */
 export function getDropsFrom(): string {
   return _dropsFrom || _fromEmail
+}
+
+function replyToField(): { replyTo?: string } {
+  return _replyTo ? { replyTo: _replyTo } : {}
 }
 
 /**
@@ -40,13 +49,15 @@ export async function refreshEmailConfig(container: any): Promise<void> {
     const svc = container.resolve("siteConfig") as {
       get: <T>(key: string) => Promise<T>
     }
-    const [from, url, dropsFrom] = await Promise.all([
+    const [from, url, replyTo, dropsFrom] = await Promise.all([
       svc.get<string>("email_from"),
       svc.get<string>("store_url"),
+      svc.get<string>("email_hello_to"),
       svc.get<string>("email_drops_from"),
     ])
     if (from) _fromEmail = from
     if (url) _storeUrl = url
+    if (replyTo) _replyTo = replyTo
     if (dropsFrom) _dropsFrom = dropsFrom
   } catch {
     // SiteConfig not available; keep current values.
@@ -164,6 +175,7 @@ export async function sendEmail({
       subject,
       html,
       text,
+      ...replyToField(),
       trackOpens: TRACKING_ENABLED,
       trackClicks: TRACKING_ENABLED,
     } as any)
@@ -338,6 +350,7 @@ export async function sendTemplate<P>({
       subject,
       html,
       text,
+      ...replyToField(),
       trackOpens: TRACKING_ENABLED,
       trackClicks: TRACKING_ENABLED,
     } as any)

@@ -236,11 +236,13 @@ export const SITE_CONFIG_REGISTRY: Record<string, SiteConfigDefinition> = {
   email_hello_to: {
     key: "email_hello_to",
     type: "string",
-    isPublic: false,
+    isPublic: true,
+    envVar: "EMAIL_REPLY_TO",
     default: "hello@example.com",
     group: "email",
     label: "General inbox",
-    description: "Public contact address.",
+    description:
+      "Public contact address — shown on the storefront and used as reply-to on all outgoing email.",
     validate: requireEmail,
   },
 
@@ -446,6 +448,7 @@ export const SITE_CONFIG_REGISTRY: Record<string, SiteConfigDefinition> = {
     key: "shipping_from_email",
     type: "string",
     isPublic: false,
+    envVar: "SHIPPING_FROM_EMAIL",
     default: "orders@example.com",
     group: "shipping",
     label: "Ship-from email",

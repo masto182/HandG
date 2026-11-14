@@ -52,7 +52,9 @@ dig TXT hopsandglory.au        # capture SPF/DKIM/DMARC already on domain
 - [ ] Set in `.env.production`:
   ```
   RESEND_API_KEY=re_live_...
-  RESEND_FROM_EMAIL=orders@hopsandglory.au
+  EMAIL_FROM=Hops & Glory <orders@hopsandglory.au>
+  EMAIL_REPLY_TO=hello@hopsandglory.au
+  SHIPPING_FROM_EMAIL=orders@hopsandglory.au
   ```
 
 ---
@@ -102,11 +104,12 @@ dig TXT hopsandglory.au        # capture SPF/DKIM/DMARC already on domain
 Create two environments in GH repo Settings → Environments:
 
 **`staging` environment:**
-| Secret | Value |
-|--------|-------|
-| `ORACLE_HOST` | VM IP address |
-| `ORACLE_USER` | `ubuntu` (or your VM user) |
-| `ORACLE_SSH_KEY` | Contents of SSH private key (PEM) |
+
+| Secret            | Value                                 |
+| ----------------- | ------------------------------------- |
+| `ORACLE_HOST`     | VM IP address                         |
+| `ORACLE_USER`     | `ubuntu` (or your VM user)            |
+| `ORACLE_SSH_KEY`  | Contents of SSH private key (PEM)     |
 | `GHCR_PULL_TOKEN` | GitHub PAT with `read:packages` scope |
 
 **`production` environment:**

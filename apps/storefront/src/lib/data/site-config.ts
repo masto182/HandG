@@ -47,3 +47,8 @@ export async function getOrdersEmail(): Promise<string> {
   const cfg = await getPublicConfig()
   return cfg.email_orders_to
 }
+
+export async function getContactEmail(): Promise<string> {
+  const cfg = await getPublicConfig()
+  return cfg.email_hello_to
+}

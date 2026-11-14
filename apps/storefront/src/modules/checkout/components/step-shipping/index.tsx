@@ -17,6 +17,7 @@ import { useTrack } from "@lib/hooks/use-track"
 type Props = {
   cart: HttpTypes.StoreCart
   shippingOptions: HttpTypes.StoreCartShippingOption[] | null
+  contactEmail: string
 }
 
 function estimateDeliveryDays(rate: CarrierRate): number {
@@ -50,7 +51,11 @@ function rateDescription(rate: CarrierRate): string {
   return "Standard courier handling"
 }
 
-const StepShipping: React.FC<Props> = ({ cart, shippingOptions }) => {
+const StepShipping: React.FC<Props> = ({
+  cart,
+  shippingOptions,
+  contactEmail,
+}) => {
   const router = useRouter()
   const track = useTrack()
   const deliveryOptions = getDeliveryOptions(shippingOptions)
@@ -542,10 +547,10 @@ const StepShipping: React.FC<Props> = ({ cart, shippingOptions }) => {
                   included with this option. Extra cover available at lodgement
                   &mdash; email{" "}
                   <a
-                    href="mailto:aus.beers@gmail.com"
+                    href={`mailto:${contactEmail}`}
                     className="text-hg-gold hover:underline"
                   >
-                    aus.beers@gmail.com
+                    {contactEmail}
                   </a>{" "}
                   for pricing.
                 </>
@@ -554,10 +559,10 @@ const StepShipping: React.FC<Props> = ({ cart, shippingOptions }) => {
                   No parcel cover included on this option. Extra cover available
                   at lodgement &mdash; email{" "}
                   <a
-                    href="mailto:aus.beers@gmail.com"
+                    href={`mailto:${contactEmail}`}
                     className="text-hg-gold hover:underline"
                   >
-                    aus.beers@gmail.com
+                    {contactEmail}
                   </a>{" "}
                   for pricing.
                 </>
@@ -565,10 +570,10 @@ const StepShipping: React.FC<Props> = ({ cart, shippingOptions }) => {
                 <>
                   Extra insurance cover available at lodgement &mdash; email{" "}
                   <a
-                    href="mailto:aus.beers@gmail.com"
+                    href={`mailto:${contactEmail}`}
                     className="text-hg-gold hover:underline"
                   >
-                    aus.beers@gmail.com
+                    {contactEmail}
                   </a>{" "}
                   for pricing.
                 </>

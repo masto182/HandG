@@ -11,6 +11,7 @@ export type PublicSiteConfig = {
   payid_alias: string
   payid_hold_hours: number
   email_orders_to: string
+  email_hello_to: string
   cash_pickup_enabled: boolean
   vip_early_access_offsets_hours: {
     vip1: number
@@ -33,6 +34,7 @@ export const PUBLIC_SITE_CONFIG_DEFAULTS: PublicSiteConfig = {
   payid_alias: "payments@example.com",
   payid_hold_hours: 24,
   email_orders_to: "orders@example.com",
+  email_hello_to: "hello@example.com",
   cash_pickup_enabled: true,
   vip_early_access_offsets_hours: { vip1: 0, vip2: 6, vip3: 12, vip4: 24, vip5: 48 },
   site_name: "Example Store",

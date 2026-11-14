@@ -1,6 +1,7 @@
 import { computeOrderBreakdown } from "../../lib/order-breakdown"
 import { renderEmail } from "../../lib/render-email"
 import * as OrderPlaced from "../../emails/order-placed"
+import { buildOwnerOrderAlert } from "../../lib/owner-alerts"
 
 describe("computeOrderBreakdown", () => {
   it("derives discount so rows add up to the charged total", () => {
@@ -71,5 +72,32 @@ describe("order-placed email totals", () => {
     })
     expect(out.html).toContain("Free")
     expect(out.html).not.toContain("Discount")
+  })
+
+  it("owner alert includes the breakdown", () => {
+    const { text } = buildOwnerOrderAlert(
+      {
+        orderId: "order_1",
+        orderDisplayId: "1042",
+        customerEmail: "a@b.test",
+        customerName: "Cam",
+        items: base.items,
+        total: 75,
+        subtotal: 90,
+        shippingTotal: 15,
+        discountTotal: 30,
+        shippingMethodName: "Aramex",
+        promotionCodes: ["B2G1"],
+        currencyCode: "aud",
+        isPickup: false,
+        isCash: false,
+        isPayId: true,
+      },
+      "https://admin.example.com"
+    )
+    expect(text).toContain("Subtotal: $90.00")
+    expect(text).toContain("Shipping (Aramex): $15.00")
+    expect(text).toContain("Discount (B2G1): -$30.00")
+    expect(text).toContain("Total: $75.00")
   })
 })

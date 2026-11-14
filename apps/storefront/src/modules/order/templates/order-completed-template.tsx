@@ -12,7 +12,7 @@ import PaymentDetails from "@modules/order/components/payment-details"
 import { HttpTypes } from "@medusajs/types"
 import {
   getPayidHoldHours,
-  getOrdersEmail,
+  getContactEmail,
   getPayidAlias,
 } from "@lib/data/site-config"
 
@@ -26,7 +26,7 @@ export default async function OrderCompletedTemplate({
   const cookies = await nextCookies()
   const [holdHours, ordersEmail, payidAlias] = await Promise.all([
     getPayidHoldHours(),
-    getOrdersEmail(),
+    getContactEmail(),
     getPayidAlias(),
   ])
 
