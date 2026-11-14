@@ -10,6 +10,6 @@
  */
 
 export const DEFAULT_REFERRAL_BODY =
-  "Joining Hops & Glory. Allocation access + a $25 credit when you sign up with my code."
+  "I'd like to invite you to apply for Hops & Glory membership."
 
 export const DEFAULT_REFERRAL_EMAIL_SUBJECT = "An invite to Hops & Glory"

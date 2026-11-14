@@ -56,8 +56,8 @@ export const NOTIFICATION_CATEGORIES: ReadonlyArray<CategoryDefinition> = [
   },
   {
     category: "referrals",
-    label: "Referral Rewards",
-    description: "Notifications when one of your referrals earns you credit.",
+    label: "Referral Updates",
+    description: "Updates about your referrals.",
     transactional: false,
     order: 5,
   },

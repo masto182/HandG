@@ -43,8 +43,8 @@ const sample: PreferenceEntry[] = [
   },
   {
     category: "referrals",
-    label: "Referral Rewards",
-    description: "Refs",
+    label: "Referral Updates",
+    description: "Updates about your referrals.",
     transactional: false,
     enabled: false,
   },

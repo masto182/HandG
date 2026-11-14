@@ -254,11 +254,6 @@ export default function ReferralsPage({
               <div className="text-h2 font-bold text-secondary">
                 {data.stats.network_contribution} points
               </div>
-              {data.stats.contribution_value > 0 && (
-                <p className="text-xs text-on-surface-variant mt-2">
-                  ≈ ${data.stats.contribution_value.toFixed(2)} in VIP rewards
-                </p>
-              )}
             </div>
           </div>
         </div>
@@ -449,203 +444,20 @@ export default function ReferralsPage({
 function EmptyState() {
   return (
     <div className="w-full" data-testid="referrals-page-wrapper">
-      <div className="space-y-6">
-        <section className="relative overflow-hidden rounded-xl border border-outline-variant/30 p-6 small:p-10">
-          <div className="absolute top-[-100px] right-[-100px] w-80 h-80 bg-primary/5 blur-[120px] rounded-full" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 relative z-10">
-            <div>
-              <span className="inline-block text-label-caps text-primary border border-primary/30 px-3 py-1 rounded-full mb-4">
-                MEMBER PRIVILEGE
-              </span>
-              <h1 className="text-h2 small:text-h1 mb-4">
-                Expand the Inner Circle
-              </h1>
-              <p className="text-body-lg text-on-surface-variant mb-6">
-                Share the craft. For every collector who joins via your
-                invitation, you both receive exclusive allocation access and a
-                $25 credit toward your next order.
-              </p>
-              <div>
-                <span className="text-label-caps text-on-surface-variant tracking-wider block mb-2">
-                  YOUR REFERRAL CODE
-                </span>
-                <p className="text-body-sm text-on-surface-variant mb-4">
-                  You&apos;ll receive your unique invite link once your
-                  membership is approved.
-                </p>
-                <a
-                  href="/apply"
-                  className="inline-block bg-primary text-on-primary px-6 py-3 font-bold rounded-lg hover:brightness-110 active:scale-95 transition-all"
-                >
-                  Track application
-                </a>
-              </div>
-            </div>
-            <div className="hidden small:block">
-              <div className="aspect-square relative rounded-xl overflow-hidden border border-outline-variant/30 bg-surface-container" />
-            </div>
-          </div>
-        </section>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          <div className="bg-surface-elevated border border-outline-variant/20 p-6 rounded-xl flex flex-col justify-between">
-            <div className="flex justify-between items-start mb-4">
-              <svg
-                className="w-6 h-6 text-primary"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-                />
-              </svg>
-              <span className="text-label-caps text-on-surface-variant">
-                INVITED
-              </span>
-            </div>
-            <div className="text-h2 font-bold">0</div>
-            <div className="text-body-sm text-on-surface-variant">
-              Successful Referrals
-            </div>
-          </div>
-          <div className="bg-surface-elevated border border-outline-variant/20 p-6 rounded-xl flex flex-col justify-between">
-            <div className="flex justify-between items-start mb-4">
-              <svg
-                className="w-6 h-6 text-secondary"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <span className="text-label-caps text-on-surface-variant">
-                CREDIT
-              </span>
-            </div>
-            <div className="text-h2 font-bold">$0.00</div>
-            <div className="text-body-sm text-on-surface-variant">
-              Total Earned
-            </div>
-          </div>
-          <div className="bg-surface-elevated border border-outline-variant/20 p-6 rounded-xl flex flex-col justify-between">
-            <div className="flex justify-between items-start mb-4">
-              <svg
-                className="w-6 h-6 text-error"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                />
-              </svg>
-              <span className="text-label-caps text-on-surface-variant">
-                MEMBER STATUS
-              </span>
-            </div>
-            <div className="text-h2 font-bold text-on-surface-variant">
-              LOCKED
-            </div>
-            <div className="text-body-sm text-on-surface-variant italic">
-              3 more for VIP access
-            </div>
-          </div>
+      <section className="relative overflow-hidden rounded-xl border border-outline-variant/30 p-6 small:p-10">
+        <div className="absolute top-[-100px] right-[-100px] w-80 h-80 bg-primary/5 blur-[120px] rounded-full" />
+        <div className="relative z-10">
+          <span className="inline-block text-label-caps text-primary border border-primary/30 px-3 py-1 rounded-full mb-4">
+            REFERRAL PROGRAM
+          </span>
+          <h1 className="text-h2 small:text-h1 mb-4">
+            Your referral link isn&apos;t available yet.
+          </h1>
+          <p className="text-body-lg text-on-surface-variant">
+            Please contact us if you need help with your referral link.
+          </p>
         </div>
-
-        <div className="bg-surface-container border border-outline-variant/20 rounded-xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-outline-variant/10 flex justify-between items-center bg-surface-container-high/10">
-            <h3 className="text-h3 font-bold">Referral History</h3>
-            <svg
-              className="w-5 h-5 text-on-surface-variant"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          </div>
-          <div className="p-10 flex flex-col items-center text-center">
-            <div className="w-24 h-24 rounded-full bg-surface-container-low flex items-center justify-center mb-6 border border-outline-variant/20">
-              <svg
-                className="w-12 h-12 text-on-surface-variant"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-                />
-              </svg>
-            </div>
-            <h4 className="text-h3 font-bold mb-2">No referrals yet</h4>
-            <p className="text-body-lg text-on-surface-variant max-w-[420px]">
-              No referrals yet — bring the right people in to grow your network.
-            </p>
-            <button className="mt-8 px-8 py-4 border border-primary text-primary font-bold rounded-lg hover:bg-primary/5 transition-all flex items-center gap-3 active:scale-95">
-              Invite Your First Member
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M14 5l7 7m0 0l-7 7m7-7H3"
-                />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-6 justify-between border-t border-outline-variant/20 pt-8">
-          <div className="flex-1">
-            <h5 className="text-body-md font-bold mb-1">Program Guidelines</h5>
-            <p className="text-body-sm text-on-surface-variant">
-              Referrals must be first-time members. Rewards are credited after
-              their first box shipment. Maximum 5 referrals per month for Elite
-              Tier members.
-            </p>
-          </div>
-          <div className="flex gap-4 items-center">
-            <a
-              className="text-label-caps text-primary hover:underline"
-              href="#"
-            >
-              Full Terms
-            </a>
-            <span className="w-1 h-1 bg-outline rounded-full" />
-            <a
-              className="text-label-caps text-primary hover:underline"
-              href="#"
-            >
-              Support
-            </a>
-          </div>
-        </div>
-      </div>
+      </section>
     </div>
   )
 }

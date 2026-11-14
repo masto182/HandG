@@ -24,6 +24,12 @@ describe("notification-preference categories", () => {
     expect(isTransactional("announcements")).toBe(false)
   })
 
+  it("describes referral notifications without promising credit", () => {
+    const referrals = NOTIFICATION_CATEGORIES.find((c) => c.category === "referrals")
+    expect(referrals?.label).toBe("Referral Updates")
+    expect(referrals?.description).toBe("Updates about your referrals.")
+  })
+
   it("includes the specials category (opt-out, default-enabled)", () => {
     expect(isKnownCategory("specials")).toBe(true)
     expect(isTransactional("specials")).toBe(false)
