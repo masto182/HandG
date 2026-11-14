@@ -1,5 +1,52 @@
 # Changelog
 
+## [1.3.0](https://github.com/masto182/HandG/compare/v1.2.0...v1.3.0) (2026-11-14)
+
+
+### Features
+
+* **account:** add click-through links to all notification types ([d9ca1b4](https://github.com/masto182/HandG/commit/d9ca1b468d9e6637bc6c09f6bdf5e6fd4c76a98b))
+* **account:** add full Notifications inbox page + harden broadcast dispatch ([554ec15](https://github.com/masto182/HandG/commit/554ec15993e176b93e2b3d94da97a68847badca3))
+* **account:** optional company label, expandable line 2, styled country box ([39df114](https://github.com/masto182/HandG/commit/39df114f682ee3ed30a1df75855404fa570c7af3))
+* **account:** use open/closed envelope icon for notification read state ([c8ca34e](https://github.com/masto182/HandG/commit/c8ca34ee6bd466e24a2c765c454408d5f1ca26b0))
+* add optional courier note to delivery addresses ([6d06e49](https://github.com/masto182/HandG/commit/6d06e49866b5a89aea5806194d1e32d1e2d1dfcc))
+* **address:** collapsible company and address line 2 everywhere ([8d87f60](https://github.com/masto182/HandG/commit/8d87f60bc2d9f8efed72dfaa57f0c81033656121))
+* **address:** company above address behind a link, drop line 2 input ([0d9e635](https://github.com/masto182/HandG/commit/0d9e635a5d9f2c77d732397b700952f05fc3caa6))
+* **address:** search-then-fill address entry with manual fallback ([4c6bb9f](https://github.com/masto182/HandG/commit/4c6bb9f5304bedd81887132db88ca3d9cc0c79f7))
+* **address:** separate Unit / Level field above the street lookup ([0670a38](https://github.com/masto182/HandG/commit/0670a38114f5492d5b4b7a1ebf4b1db70862844f))
+* **address:** single Address field and keep the typed street number ([8bf7b5e](https://github.com/masto182/HandG/commit/8bf7b5ec033b11edeaf4163a7f9f470947172de9))
+* **admin:** add broadcast announcements (email + in-app inbox) ([d154c44](https://github.com/masto182/HandG/commit/d154c44f94eec99db43df5541fb165d8cdad7874))
+* **analytics:** fix funnel/drilldown, add session tracking, demand capture ([f2af55f](https://github.com/masto182/HandG/commit/f2af55fedb32e21ef87a8fec812b462471b2f276))
+* **analytics:** proxy tracking beacons through same-origin Next routes ([3e3eac0](https://github.com/masto182/HandG/commit/3e3eac062924603f24d0f2176ad543cc55020349))
+* **email:** consolidate sender model, reply-to and owner alert breakdown ([6496d2d](https://github.com/masto182/HandG/commit/6496d2d6337b7ece6f3d62eabd2289895dfa8570))
+* **notifications:** bell item opens notifications page with detail modal ([5f353f8](https://github.com/masto182/HandG/commit/5f353f86186618f055d88cb5e9425a7337007b8a))
+* **notifications:** open full notification in a detail modal from bell and inbox ([b02184f](https://github.com/masto182/HandG/commit/b02184f3ab5adfabc1db9794456a9d1ae980462b))
+* **notifications:** replace per-product new-drop emails with a personalized batch digest ([a558fa9](https://github.com/masto182/HandG/commit/a558fa9eda72c42760a1659c390bc6cae9b5db02))
+* **promotions:** add Tree House brewery buy-4-get-1-free promotion ([#7](https://github.com/masto182/HandG/issues/7)) ([bcf85f8](https://github.com/masto182/HandG/commit/bcf85f8e2db5d9b7b5ddab8f53801e27b5c23961))
+* **shipping:** one calculated shipping option per carrier service ([6f23b52](https://github.com/masto182/HandG/commit/6f23b52c54c2cdf0e9e08135c08449f90a81ddd0))
+* **storefront:** add price sorting to store listing ([619c78e](https://github.com/masto182/HandG/commit/619c78e4a7bea011d3f553211f5256270a1446b6))
+
+
+### Bug Fixes
+
+* **address:** keep Australian unit numbers on the street line ([beed7d5](https://github.com/masto182/HandG/commit/beed7d5ef7cccacf7ef36b95d4751301cab32902))
+* **cart:** keep cart fields within Medusa's 3-level store relations limit ([7567b20](https://github.com/masto182/HandG/commit/7567b2043bee26cc66f4280eda2979b5c2af08c8))
+* **checkout:** show unit on saved addresses, preselect newest, skip duplicate saves ([efe3f0f](https://github.com/masto182/HandG/commit/efe3f0fd66b2fe663fb0256f1aa221893e1c40d3))
+* clear high/critical audit findings and restore available_at in 409 ([#10](https://github.com/masto182/HandG/issues/10)) ([ab94a4e](https://github.com/masto182/HandG/commit/ab94a4e9d6648493dfb4d37785493e06eaaed0fd))
+* correct ShipEngine label data and malformed address capture ([e34d4b8](https://github.com/masto182/HandG/commit/e34d4b835b1cf2a429ec73b5227cdbbb26d6744c))
+* **csp:** allow maps.gstatic.com images for the Google address dropdown ([3da0548](https://github.com/masto182/HandG/commit/3da0548e24496467c49ae2b19f0090e84a9a80ac))
+* **e2e:** realign nightly suite with PayID reference, required phone and workflow guard ([e0013e4](https://github.com/masto182/HandG/commit/e0013e4ee6bfc35728b5cc326741f1b5047b8345))
+* enforce VIP early-access ladder from release time across stock loads, cart and checkout ([2d6bc77](https://github.com/masto182/HandG/commit/2d6bc7762dd128a3c93b65800b1fb1dde6cf3e20))
+* **referrals:** remove unoffered $25 credit promise from referral copy ([7270a79](https://github.com/masto182/HandG/commit/7270a79d7f14051b690c29b7144c9d7e18688800))
+* **search:** keep inventory_qty live so counts and facets never go stale ([a323214](https://github.com/masto182/HandG/commit/a323214f922e7855e34932ff259b95f19e19eb4b))
+* **search:** style filter never linked new beers, counted out-of-stock, and showed empty styles ([08506bc](https://github.com/masto182/HandG/commit/08506bc7cc3d5427c002ec098290e886537cea4e))
+* **security:** patch Next.js RCE and high-severity transitive advisories ([2d20a69](https://github.com/masto182/HandG/commit/2d20a69be6ec4c5e00668927e167961ee4034658))
+* **shipping:** pass ShipEngine carrier IDs through prod and require checkout phone ([5dc10f0](https://github.com/masto182/HandG/commit/5dc10f069383c09d9e740a315580c2d45f70c7c7))
+* show one PayID and one payment reference everywhere ([f90c10b](https://github.com/masto182/HandG/commit/f90c10bba92ba8064f02aae106bfbc80b556c919))
+* show shipping and discounts in order email; clarify PayID checkout details ([02c8f60](https://github.com/masto182/HandG/commit/02c8f60b38eeac238005fdf2bec31d7ea7a823cc))
+* stop seed.ts from recreating admin-renamed pickup locations ([4fee4ea](https://github.com/masto182/HandG/commit/4fee4ea2e91f9d5350d17143dc645f69cae1cb4d))
+* **storefront:** route bell dropdown through working server-action auth ([77268ad](https://github.com/masto182/HandG/commit/77268ad9e6f415e26dc3d17c20a6a06901403e5b))
+
 ## [1.2.0](https://github.com/masto182/HandG/compare/v1.1.0...v1.2.0) (2026-08-17)
 
 
