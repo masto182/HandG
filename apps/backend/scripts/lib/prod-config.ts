@@ -43,7 +43,7 @@ export const PROD_ADMIN_EMAIL =
 export const PROD_ADMIN_PASSWORD =
   process.env.MEDUSA_PROD_ADMIN_PASSWORD ?? process.env.MEDUSA_ADMIN_PASSWORD ?? ""
 
-export const YOLO_DETECT_URL = process.env.YOLO_DETECT_URL ?? "http://192.168.2.45:8765/detect"
+export const YOLO_DETECT_URL = process.env.YOLO_DETECT_URL ?? "http://192.168.2.43:8765/detect"
 export const YOLO_HEALTH_URL = YOLO_DETECT_URL.replace(/\/detect$/, "/health")
 
 // scp is BLOCKED by org policy on this machine. Never shell out to scp — use
@@ -240,7 +240,7 @@ export async function checkEnvironment(opts: { quick?: boolean } = {}): Promise<
             status: "FAIL",
             detail: `unreachable at ${YOLO_HEALTH_URL}`,
             fixHint:
-              'ssh administrator@192.168.2.45 "python C:/detect_server.py" (run in background)',
+              'ssh administrator@192.168.2.43 "python C:/detect_server.py" (run in background)',
           }
     )
   }
@@ -284,8 +284,10 @@ export const BREWERY_NAMES: Record<string, string> = {
   tall_trees: "Tall Trees Brew Lab",
   threat: "Threat Level Midnight",
   off_script: "Off Script Brewing",
+  ill_will: "Ill Will Brewing",
   trillium: "Trillium Brewing",
   freak_folk: "Freak Folk Brewing",
+  shelton: "Shelton Brewing",
   messorem: "Messorem",
   treehouse: "Tree House",
   deep_fried_beers: "Deep Fried Beers",
