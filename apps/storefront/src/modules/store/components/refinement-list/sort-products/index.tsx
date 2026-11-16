@@ -38,6 +38,10 @@ const sortOptions: { label: string; value: SortOptions }[] = [
   { label: "Untappd Rating Low–High", value: "untappd_asc" },
   { label: "Stock Low First", value: "stock_asc" },
   { label: "Stock High First", value: "stock_desc" },
+  { label: "Brewery A–Z", value: "brewery_asc" },
+  { label: "Brewery Z–A", value: "brewery_desc" },
+  { label: "Packaged Newest", value: "packaged_at" },
+  { label: "Packaged Oldest", value: "packaged_at_asc" },
 ]
 
 const SortProducts = ({

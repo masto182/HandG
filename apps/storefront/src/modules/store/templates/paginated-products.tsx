@@ -33,6 +33,10 @@ const MEILI_SORT_MAP: Record<string, string> = {
   untappd_asc: "untappd_score:asc",
   stock_asc: "inventory_qty:asc",
   stock_desc: "inventory_qty:desc",
+  price_asc: "min_price:asc",
+  price_desc: "min_price:desc",
+  brewery_asc: "brewery:asc",
+  brewery_desc: "brewery:desc",
 }
 
 function buildSearchParams(

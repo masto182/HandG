@@ -1,6 +1,7 @@
 import type { ExecArgs } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { getMeiliClient, PRODUCTS_INDEX, configureIndex } from "../lib/meilisearch"
+import { getMinPrices } from "../lib/search-price"
 
 // Storefront filter groups — deliberately coarser than the 31-style taxonomy
 // but splits the IPA family (which otherwise dominates the catalog) into its
@@ -121,6 +122,16 @@ export default async function reindexSearch({ container }: ExecArgs) {
     }
   } catch {}
 
+  let minPriceMap = new Map<string, number>()
+  try {
+    minPriceMap = await getMinPrices(
+      container,
+      products.map((p: any) => p.id)
+    )
+  } catch (err) {
+    console.warn("[Search] price lookup failed:", err)
+  }
+
   const documents = products.map((p: any) => {
     const meta = p.metadata || {}
     const desc = p.description || ""
@@ -155,6 +166,7 @@ export default async function reindexSearch({ container }: ExecArgs) {
       is_collab: isCollab,
       tags: (p as any).tags?.map((t: any) => t.value).filter(Boolean) ?? [],
       inventory_qty: inventoryQty,
+      min_price: minPriceMap.get(p.id) ?? 0,
     }
   })
 

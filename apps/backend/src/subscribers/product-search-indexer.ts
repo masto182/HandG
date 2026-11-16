@@ -1,6 +1,7 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { getMeiliClient, PRODUCTS_INDEX } from "../lib/meilisearch"
+import { getMinPrices } from "../lib/search-price"
 
 // Mirrors reindex-search.ts's getFilterGroup — keep in sync.
 function getFilterGroup(slug: string | undefined, family: string | undefined): string {
@@ -144,6 +145,15 @@ export default async function productSearchIndexer({
     )
   }
 
+  let minPrice = 0
+  try {
+    minPrice = (await getMinPrices(container, [productId])).get(productId) ?? 0
+  } catch (err) {
+    logger.warn(
+      `[Search] price lookup failed for ${productId}: ${err instanceof Error ? err.message : String(err)}`
+    )
+  }
+
   try {
     await index.addDocuments(
       [
@@ -171,6 +181,7 @@ export default async function productSearchIndexer({
           hop_countries: hopCountries,
           tags: (product as any).tags?.map((t: any) => t.value).filter(Boolean) ?? [],
           inventory_qty: inventoryQty,
+          min_price: minPrice,
         },
       ],
       { primaryKey: "id" }

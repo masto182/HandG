@@ -6,6 +6,9 @@ describe("search safeSort allowlist", () => {
     expect(safeSort("abv:desc")).toBe("abv:desc")
     expect(safeSort("title:asc")).toBe("title:asc")
     expect(safeSort("untappd_score:desc")).toBe("untappd_score:desc")
+    expect(safeSort("packaged_at_ts:asc")).toBe("packaged_at_ts:asc")
+    expect(safeSort("inventory_qty:desc")).toBe("inventory_qty:desc")
+    expect(safeSort("min_price:asc")).toBe("min_price:asc")
   })
 
   it("falls back to default for non-sortable attributes", () => {

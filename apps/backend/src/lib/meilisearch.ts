@@ -56,6 +56,8 @@ export async function configureIndex() {
     "untappd_score",
     "packaged_at_ts",
     "inventory_qty",
+    "min_price",
+    "brewery",
   ])
 
   await index.updateSearchableAttributes(["title", "brewery", "style", "hops", "description"])

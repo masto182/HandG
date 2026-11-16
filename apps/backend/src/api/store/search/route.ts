@@ -18,7 +18,16 @@ const MAX_OFFSET = 10000
 // sort against an allowlist so a malformed/unsortable value can't error the
 // query or sort by an unintended attribute.
 const DEFAULT_SORT = "created_at_ts:desc"
-const SORTABLE_ATTRS = new Set(["created_at_ts", "abv", "title", "untappd_score"])
+const SORTABLE_ATTRS = new Set([
+  "created_at_ts",
+  "abv",
+  "title",
+  "untappd_score",
+  "packaged_at_ts",
+  "inventory_qty",
+  "min_price",
+  "brewery",
+])
 export function safeSort(raw: unknown): string {
   const s = String(raw ?? "")
   const [attr, dir] = s.split(":")
