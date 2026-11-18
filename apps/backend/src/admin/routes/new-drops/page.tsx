@@ -53,6 +53,7 @@ type PreviewRecipient = {
   matchedHopNames: string[]
   wantsInbox: boolean
   wantsEmail: boolean
+  hasLoggedIn: boolean
   preferences: { category: string; enabled: boolean }[]
 }
 
@@ -237,6 +238,10 @@ function ReviewSendModal({
     [preview, excludedCustomerIds]
   )
   const activeEmailRecipients = activeRecipients.filter((r) => r.wantsEmail)
+  const neverLoggedIn = useMemo(
+    () => (preview ? preview.recipients.filter((r) => !r.hasLoggedIn) : []),
+    [preview]
+  )
   const activeInboxCount = activeRecipients.filter((r) => r.wantsInbox).length
   const activeUniqueCustomerCount = activeRecipients.length
   const activeRecipientsByLeadCategory = useMemo(() => {
@@ -410,6 +415,33 @@ function ReviewSendModal({
                 )}
               </div>
 
+              {neverLoggedIn.length > 0 ? (
+                <div className="flex items-center justify-between gap-x-2">
+                  <Text size="small" className="text-ui-fg-subtle">
+                    {neverLoggedIn.length} matched customers have never logged in
+                  </Text>
+                  <Button
+                    type="button"
+                    size="small"
+                    variant="secondary"
+                    onClick={() => {
+                      setExcludedCustomerIds((prev) => {
+                        const next = new Set(prev)
+                        const allExcluded = neverLoggedIn.every((r) => next.has(r.customer_id))
+                        neverLoggedIn.forEach((r) =>
+                          allExcluded ? next.delete(r.customer_id) : next.add(r.customer_id)
+                        )
+                        return next
+                      })
+                    }}
+                  >
+                    {neverLoggedIn.every((r) => excludedCustomerIds.has(r.customer_id))
+                      ? "Include never-logged-in"
+                      : "Exclude never-logged-in"}
+                  </Button>
+                </div>
+              ) : null}
+
               <div className="flex flex-col gap-y-2">
                 <Text size="small" weight="plus">
                   Preview a recipient
@@ -452,6 +484,7 @@ function ReviewSendModal({
                             <div className="flex flex-col">
                               <Text size="small" weight="plus">
                                 {r.customerLabel}
+                                {r.hasLoggedIn ? "" : " (never logged in)"}{" "}
                               </Text>
                               {r.matchedBreweryNames.length || r.matchedHopNames.length ? (
                                 <Text size="xsmall" className="text-ui-fg-subtle">

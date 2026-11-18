@@ -8,6 +8,7 @@ import { renderEmail } from "../lib/render-email"
 import { getStoreUrl } from "../lib/email"
 import * as NewDropDigestTpl from "../emails/new-drop-digest"
 import type { NewDropDigestProduct } from "../emails/new-drop-digest"
+import { ANALYTICS_MODULE } from "../modules/analytics"
 import { VIP_SCORE_MODULE } from "../modules/vip-score"
 import { describeAvailability, hasEarlierTier, toTier } from "../lib/new-drop-availability"
 import type { Tier } from "../lib/access/early-access"
@@ -101,6 +102,7 @@ export type PreviewRecipient = {
   matchedHopNames: string[]
   wantsInbox: boolean
   wantsEmail: boolean
+  hasLoggedIn: boolean
   preferences: { category: AlertCategory; enabled: boolean }[]
 }
 
@@ -158,6 +160,14 @@ export async function previewNewDropBatch(container: any, productIds: string[]) 
   }
   const previewRecipients: PreviewRecipient[] = []
 
+  let lastActive = new Map<string, string>()
+  try {
+    const analytics = container.resolve(ANALYTICS_MODULE) as any
+    lastActive = await analytics.getLastActiveByCustomerIds([...byCustomer.keys()])
+  } catch (err) {
+    container.resolve("logger")?.warn?.(`[NewDropBatch] login lookup failed: ${err}`)
+  }
+
   for (const [customerId, acc] of byCustomer) {
     let leadCategory: AlertCategory | null = null
     const matchedBreweryNames = new Set<string>()
@@ -189,6 +199,7 @@ export async function previewNewDropBatch(container: any, productIds: string[]) 
       matchedHopNames: [...matchedHopNames],
       wantsInbox: acc.wantsInbox,
       wantsEmail: acc.wantsEmail,
+      hasLoggedIn: lastActive.has(customerId),
       preferences,
     })
   }
