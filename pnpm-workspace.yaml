@@ -65,6 +65,10 @@ auditConfig:
     # npm (latest 3.0.3). Build-time only, via Medusa CLI / mikro-orm globbing.
     # Remove once braces publishes a fix.
     - GHSA-vfj7-8cjw-p6xm
+    # picomatch: advisory names >=4.0.8 as patched but no such release exists on
+    # npm (latest 4.0.7). ReDoS needs attacker-controlled glob patterns; ours come
+    # from build tooling only. Remove once picomatch publishes a fix.
+    - GHSA-fc5q-39xc-vjpf
 
 allowBuilds:
   "@google/genai": true
