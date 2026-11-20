@@ -37,6 +37,16 @@ describe("specials-broadcast email", () => {
     expect(out.subject).toBe("On special: Julius")
   })
 
+  it("uses a trimmed subject override when provided", async () => {
+    const out = await renderEmail(SpecialsBroadcast as any, {
+      name: "Cam",
+      subjectOverride: "  Limited-time cellar sale  ",
+      items: [item(), item({ productTitle: "Green", productHandle: "green" })],
+      storeUrl: STORE_URL,
+    })
+    expect(out.subject).toBe("Limited-time cellar sale")
+  })
+
   it("renders struck-through original price and discounted price for each item", async () => {
     const out = await renderEmail(SpecialsBroadcast as any, {
       name: "Cam",
@@ -102,8 +112,8 @@ describe("specials-broadcast email", () => {
     expect(out.html).not.toContain("<img")
   })
 
-  it("features only the 12 steepest discounts and links to the rest when over the cap", async () => {
-    const items = Array.from({ length: 20 }, (_, i) =>
+  it("features only the 30 steepest discounts and links to the rest when over the cap", async () => {
+    const items = Array.from({ length: 36 }, (_, i) =>
       item({
         productTitle: `Beer ${i}`,
         productHandle: `beer-${i}`,
@@ -115,16 +125,16 @@ describe("specials-broadcast email", () => {
       items,
       storeUrl: STORE_URL,
     })
-    expect(out.html).toContain("/products/beer-19")
-    expect(out.html).toContain("/products/beer-8")
-    expect(out.html).not.toContain("/products/beer-7")
+    expect(out.html).toContain("/products/beer-35")
+    expect(out.html).toContain("/products/beer-6")
+    expect(out.html).not.toContain("/products/beer-5")
     expect(out.html).not.toContain("/products/beer-0")
-    expect(out.html).toMatch(/Plus\s*(<!--.*?-->)?\s*8\s*(<!--.*?-->)?\s*more special/)
+    expect(out.html).toMatch(/Plus\s*(<!--.*?-->)?\s*6\s*(<!--.*?-->)?\s*more special/)
     expect(out.html).toContain("see them all")
   })
 
   it("does not add a featured-cap link when at or under the cap", async () => {
-    const items = Array.from({ length: 12 }, (_, i) =>
+    const items = Array.from({ length: 30 }, (_, i) =>
       item({ productTitle: `Beer ${i}`, productHandle: `beer-${i}` })
     )
     const out = await renderEmail(SpecialsBroadcast as any, {

@@ -18,14 +18,17 @@ import {
 import { useEffect, useMemo, useState } from "react"
 import { sdk } from "../../lib/sdk"
 
-type QueueItem = {
+type BreweryGroupedItem = {
+  brewery_id: string | null
+  brewery_name: string | null
+}
+
+type QueueItem = BreweryGroupedItem & {
   queue_id: string
   product_id: string
   title: string
   handle: string | null
   thumbnail: string | null
-  brewery_id: string | null
-  brewery_name: string | null
   brewery_slug: string | null
   queued_at: string
   blockers: string[]
@@ -93,8 +96,8 @@ const CATEGORY_LABELS: Record<string, string> = {
   new_drops: "All new releases",
 }
 
-function groupByBrewery(items: QueueItem[]) {
-  const map = new Map<string, { key: string; label: string; items: QueueItem[] }>()
+function groupByBrewery<T extends BreweryGroupedItem>(items: T[]) {
+  const map = new Map<string, { key: string; label: string; items: T[] }>()
   for (const item of items) {
     const key = item.brewery_id || "none"
     const label = item.brewery_name || "Other releases"
@@ -906,6 +909,8 @@ function HistoryTab() {
 }
 
 type SpecialsItem = {
+  price_list_id: string
+  product_id: string
   product_title: string
   product_handle: string
   product_thumbnail: string | null
@@ -913,6 +918,33 @@ type SpecialsItem = {
   discounted_price: number
   discount_type: "percentage" | "fixed"
   discount_value: number
+  brewery_id: string | null
+  brewery_name: string | null
+}
+
+type SpecialsRecipient = {
+  customer_id: string
+  label: string
+  has_logged_in: boolean
+  has_ordered: boolean
+  is_active: boolean
+  opted_out: boolean
+}
+
+type SpecialsPreviewResponse = {
+  items: SpecialsItem[]
+  itemCount: number
+  recipientCount: number
+}
+
+type SpecialsRecipientsResponse = {
+  recipients: SpecialsRecipient[]
+}
+
+type SpecialsRenderedPreview = {
+  html: string
+  text: string
+  subject: string
 }
 
 type SpecialsBatch = {
@@ -928,30 +960,406 @@ type SpecialsBatch = {
 
 const fmtAud = (amount: number) => `$${Number(amount).toFixed(2)}`
 
+function SpecialsReviewSendModal({
+  open,
+  onOpenChange,
+  selectedItems,
+  onSent,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  selectedItems: SpecialsItem[]
+  onSent: () => void
+}) {
+  const prompt = usePrompt()
+  const [recipients, setRecipients] = useState<SpecialsRecipient[]>([])
+  const [recipientsLoading, setRecipientsLoading] = useState(false)
+  const [recipientsError, setRecipientsError] = useState<string | null>(null)
+  const [subjectLine, setSubjectLine] = useState("")
+  const [message, setMessage] = useState("")
+  const [skipInactive, setSkipInactive] = useState(true)
+  const [manualExcludedCustomerIds, setManualExcludedCustomerIds] = useState<Set<string>>(new Set())
+  const [preview, setPreview] = useState<SpecialsRenderedPreview | null>(null)
+  const [previewLoading, setPreviewLoading] = useState(false)
+  const [previewError, setPreviewError] = useState<string | null>(null)
+  const [previewBlocked, setPreviewBlocked] = useState<string | null>(null)
+  const [sending, setSending] = useState(false)
+
+  const selectedIds = useMemo(() => selectedItems.map((item) => item.product_id), [selectedItems])
+  const selectedBreweryCount = useMemo(
+    () => new Set(selectedItems.map((item) => item.brewery_id || "none")).size,
+    [selectedItems]
+  )
+  const subjectPlaceholder =
+    selectedItems.length === 1
+      ? `On special: ${selectedItems[0].product_title}`
+      : "This week's specials"
+
+  const renderPreview = async () => {
+    if (selectedIds.length === 0) return
+    setPreviewLoading(true)
+    setPreviewError(null)
+    setPreviewBlocked(null)
+    try {
+      const result = await sdk.client.fetch<SpecialsRenderedPreview>(
+        "/admin/specials-batches/preview-render",
+        {
+          method: "POST",
+          body: {
+            product_ids: selectedIds,
+            subject: subjectLine.trim() || null,
+            message: message.trim() || null,
+          },
+        }
+      )
+      setPreview(result)
+    } catch (err: any) {
+      const body = err?.body
+      if (err?.status === 409) {
+        setPreviewBlocked(body?.message || "One or more selected specials are no longer available.")
+      } else {
+        setPreviewError("Could not render this email - try again.")
+      }
+      setPreview(null)
+    } finally {
+      setPreviewLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!open) {
+      setRecipients([])
+      setSubjectLine("")
+      setMessage("")
+      setSkipInactive(true)
+      setManualExcludedCustomerIds(new Set())
+      setPreview(null)
+      setPreviewError(null)
+      setPreviewBlocked(null)
+      setRecipientsError(null)
+      return
+    }
+
+    setRecipientsLoading(true)
+    setRecipientsError(null)
+    setSubjectLine("")
+    setMessage("")
+    setSkipInactive(true)
+    setManualExcludedCustomerIds(new Set())
+    ;(async () => {
+      try {
+        const { recipients: fetchedRecipients } =
+          await sdk.client.fetch<SpecialsRecipientsResponse>("/admin/specials-batches/recipients")
+        setRecipients(fetchedRecipients || [])
+      } catch {
+        setRecipientsError("Could not load recipients - try again.")
+      } finally {
+        setRecipientsLoading(false)
+      }
+    })()
+    renderPreview()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, selectedIds.join(",")])
+
+  const toggleManualExclude = (customerId: string) => {
+    setManualExcludedCustomerIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(customerId)) next.delete(customerId)
+      else next.add(customerId)
+      return next
+    })
+  }
+
+  const inactiveExcludedCustomerIds = useMemo(
+    () =>
+      skipInactive
+        ? recipients
+            .filter((recipient) => !recipient.is_active)
+            .map((recipient) => recipient.customer_id)
+        : [],
+    [recipients, skipInactive]
+  )
+
+  const excludedCustomerIds = useMemo(() => {
+    const next = new Set(manualExcludedCustomerIds)
+    inactiveExcludedCustomerIds.forEach((customerId) => next.add(customerId))
+    return next
+  }, [inactiveExcludedCustomerIds, manualExcludedCustomerIds])
+
+  const emailRecipientCount = useMemo(
+    () =>
+      recipients.filter(
+        (recipient) => !excludedCustomerIds.has(recipient.customer_id) && !recipient.opted_out
+      ).length,
+    [excludedCustomerIds, recipients]
+  )
+
+  const hasBlockingError = Boolean(previewBlocked)
+
+  const handleSend = async () => {
+    if (selectedIds.length === 0 || emailRecipientCount === 0 || hasBlockingError) return
+
+    const confirmed = await prompt({
+      title: "Send specials batch",
+      description: `This will send ${selectedItems.length} special${
+        selectedItems.length === 1 ? "" : "s"
+      } from ${selectedBreweryCount} brewer${selectedBreweryCount === 1 ? "y" : "ies"} to ${emailRecipientCount} email recipient${emailRecipientCount === 1 ? "" : "s"}. This cannot be undone. Continue?`,
+      confirmText: "Send",
+      cancelText: "Cancel",
+    })
+    if (!confirmed) return
+
+    setSending(true)
+    try {
+      await sdk.client.fetch("/admin/specials-batches", {
+        method: "POST",
+        body: {
+          product_ids: selectedIds,
+          subject: subjectLine.trim() || null,
+          message: message.trim() || null,
+          excluded_customer_ids: recipients
+            .filter((recipient) => excludedCustomerIds.has(recipient.customer_id))
+            .map((recipient) => recipient.customer_id),
+        },
+      })
+      toast.success("Specials batch sent")
+      onOpenChange(false)
+      onSent()
+    } catch (err: any) {
+      const body = err?.body
+      if (err?.status === 409) {
+        setPreviewBlocked(body?.message || "One or more selected specials are no longer available.")
+        toast.error(body?.message || "Could not send this batch.")
+      } else {
+        toast.error("Send failed")
+      }
+    } finally {
+      setSending(false)
+    }
+  }
+
+  return (
+    <FocusModal open={open} onOpenChange={onOpenChange}>
+      <FocusModal.Content>
+        <FocusModal.Header>
+          <Button
+            size="small"
+            onClick={handleSend}
+            isLoading={sending}
+            disabled={recipientsLoading || emailRecipientCount === 0 || hasBlockingError}
+          >
+            Send batch
+          </Button>
+        </FocusModal.Header>
+        <FocusModal.Body className="mx-auto flex w-full max-w-2xl flex-col gap-y-6 px-6 py-6">
+          <Heading level="h2">Review &amp; send</Heading>
+
+          <div className="flex flex-col gap-y-2">
+            <Label size="small">Subject line (optional)</Label>
+            <Input
+              value={subjectLine}
+              onChange={(e) => setSubjectLine(e.target.value)}
+              onBlur={renderPreview}
+              maxLength={200}
+              placeholder={subjectPlaceholder}
+            />
+          </div>
+
+          <div className="flex flex-col gap-y-2">
+            <Label size="small">Message (optional)</Label>
+            <Textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onBlur={renderPreview}
+              rows={5}
+              maxLength={2000}
+              placeholder="Add a short note about this week's specials..."
+            />
+            <Text size="xsmall" className="text-ui-fg-subtle">
+              The preview updates when you click out of this box.
+            </Text>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Container className="p-3">
+              <Text size="small" className="text-ui-fg-subtle">
+                Specials selected
+              </Text>
+              <Text weight="plus">{selectedItems.length}</Text>
+            </Container>
+            <Container className="p-3">
+              <Text size="small" className="text-ui-fg-subtle">
+                Breweries selected
+              </Text>
+              <Text weight="plus">{selectedBreweryCount}</Text>
+            </Container>
+            <Container className="p-3">
+              <Text size="small" className="text-ui-fg-subtle">
+                Recipients
+              </Text>
+              <Text weight="plus">{recipients.length}</Text>
+            </Container>
+            <Container className="p-3">
+              <Text size="small" className="text-ui-fg-subtle">
+                Emails that will be sent
+              </Text>
+              <Text weight="plus">{emailRecipientCount}</Text>
+            </Container>
+          </div>
+
+          <div className="flex items-center justify-between gap-x-3 rounded-lg border border-ui-border-base px-4 py-3">
+            <div className="flex flex-col gap-y-1">
+              <Text size="small" weight="plus">
+                Skip inactive
+              </Text>
+              <Text size="xsmall" className="text-ui-fg-subtle">
+                Excludes customers with no login on record and no orders.
+              </Text>
+            </div>
+            <Checkbox
+              checked={skipInactive}
+              onCheckedChange={(checked) => setSkipInactive(checked === true)}
+            />
+          </div>
+
+          <div className="flex flex-col gap-y-2">
+            <Text size="small" weight="plus">
+              Recipients
+            </Text>
+            {recipientsLoading ? (
+              <Text size="small" className="text-ui-fg-subtle">
+                Loading recipients…
+              </Text>
+            ) : recipientsError ? (
+              <Text size="small" className="text-ui-fg-error">
+                {recipientsError}
+              </Text>
+            ) : (
+              <div className="flex max-h-72 flex-col gap-y-1 overflow-y-auto rounded-lg border border-ui-border-base p-1">
+                {recipients.map((recipient) => {
+                  const manuallyExcluded = manualExcludedCustomerIds.has(recipient.customer_id)
+                  const inactiveExcluded = skipInactive && !recipient.is_active
+                  const excluded = excludedCustomerIds.has(recipient.customer_id)
+
+                  return (
+                    <div
+                      key={recipient.customer_id}
+                      className={`flex items-center gap-x-3 rounded-md px-2 py-2 ${excluded ? "opacity-50" : ""}`}
+                    >
+                      <div className="flex flex-1 flex-col gap-y-1">
+                        <Text size="small" weight="plus">
+                          {recipient.label}
+                        </Text>
+                        <div className="flex flex-wrap gap-1">
+                          {!recipient.is_active ? (
+                            <Badge size="2xsmall" color="orange">
+                              Inactive
+                            </Badge>
+                          ) : null}
+                          {recipient.has_logged_in ? (
+                            <Badge size="2xsmall" color="green">
+                              Logged in
+                            </Badge>
+                          ) : null}
+                          {recipient.has_ordered ? (
+                            <Badge size="2xsmall" color="green">
+                              Ordered
+                            </Badge>
+                          ) : null}
+                          {recipient.opted_out ? (
+                            <Badge size="2xsmall" color="grey">
+                              Opted out of specials
+                            </Badge>
+                          ) : null}
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        size="small"
+                        variant={manuallyExcluded ? "secondary" : "transparent"}
+                        onClick={() => toggleManualExclude(recipient.customer_id)}
+                        disabled={inactiveExcluded && !manuallyExcluded}
+                      >
+                        {manuallyExcluded ? "Undo" : inactiveExcluded ? "Excluded" : "Exclude"}
+                      </Button>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-y-2">
+            <Text size="small" weight="plus">
+              Rendered email
+            </Text>
+            {previewLoading ? (
+              <Text size="small" className="text-ui-fg-subtle">
+                Rendering…
+              </Text>
+            ) : previewError ? (
+              <div className="flex items-center gap-x-3">
+                <Text size="small" className="text-ui-fg-error">
+                  {previewError}
+                </Text>
+                <Button size="small" variant="secondary" onClick={renderPreview}>
+                  Try again
+                </Button>
+              </div>
+            ) : preview ? (
+              <>
+                <Text size="small" className="text-ui-fg-subtle">
+                  Subject: {preview.subject}
+                </Text>
+                <iframe
+                  title="Specials email preview"
+                  srcDoc={preview.html}
+                  sandbox=""
+                  className="h-96 w-full rounded-lg border border-ui-border-base bg-white"
+                />
+              </>
+            ) : null}
+          </div>
+
+          {previewBlocked ? (
+            <Text size="small" className="text-ui-fg-error">
+              {previewBlocked}
+            </Text>
+          ) : null}
+
+          {emailRecipientCount === 0 && !recipientsLoading ? (
+            <Text size="small" className="text-ui-fg-error">
+              No recipients remain after exclusions and opt-outs. Sending is disabled.
+            </Text>
+          ) : null}
+        </FocusModal.Body>
+      </FocusModal.Content>
+    </FocusModal>
+  )
+}
+
 function SpecialsTab() {
   const [items, setItems] = useState<SpecialsItem[]>([])
   const [recipientCount, setRecipientCount] = useState(0)
   const [batches, setBatches] = useState<SpecialsBatch[]>([])
   const [loading, setLoading] = useState(true)
-  const [sending, setSending] = useState(false)
-  const [message, setMessage] = useState("")
-  const [emailPreview, setEmailPreview] = useState<{ html: string; subject: string } | null>(null)
-  const [previewLoading, setPreviewLoading] = useState(false)
-  const [previewError, setPreviewError] = useState<string | null>(null)
-  const prompt = usePrompt()
+  const [error, setError] = useState<string | null>(null)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [reviewOpen, setReviewOpen] = useState(false)
 
   const load = async () => {
     setLoading(true)
+    setError(null)
     try {
       const [preview, history] = await Promise.all([
-        sdk.client.fetch<{ items: SpecialsItem[]; recipientCount: number }>(
-          "/admin/specials-batches/preview"
-        ),
+        sdk.client.fetch<SpecialsPreviewResponse>("/admin/specials-batches/preview"),
         sdk.client.fetch<{ batches: SpecialsBatch[] }>("/admin/specials-batches"),
       ])
       setItems(preview.items || [])
       setRecipientCount(preview.recipientCount || 0)
       setBatches(history.batches || [])
+    } catch {
+      setError("Could not load specials.")
     } finally {
       setLoading(false)
     }
@@ -961,49 +1369,39 @@ function SpecialsTab() {
     load()
   }, [])
 
-  const loadPreviewEmail = async () => {
-    setPreviewLoading(true)
-    setPreviewError(null)
-    try {
-      const result = await sdk.client.fetch<{ html: string; subject: string }>(
-        "/admin/specials-batches/preview-render",
-        { method: "POST", body: { message: message.trim() || null } }
-      )
-      setEmailPreview(result)
-    } catch {
-      setPreviewError("Could not render this email - try again.")
-    } finally {
-      setPreviewLoading(false)
-    }
+  const groups = useMemo(() => groupByBrewery(items), [items])
+
+  const toggleProduct = (productId: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(productId)) next.delete(productId)
+      else next.add(productId)
+      return next
+    })
   }
 
-  const handleSend = async () => {
-    const ok = await prompt({
-      title: "Send specials email?",
-      description: `This sends an email about ${items.length} product${
-        items.length === 1 ? "" : "s"
-      } currently on special to every customer (${recipientCount} recipient${
-        recipientCount === 1 ? "" : "s"
-      }, minus anyone opted out).`,
-      confirmText: "Send to everyone",
-      cancelText: "Cancel",
+  const toggleGroup = (groupItems: SpecialsItem[]) => {
+    const ids = groupItems.map((item) => item.product_id)
+    const allSelected = ids.every((id) => selected.has(id))
+    setSelected((prev) => {
+      const next = new Set(prev)
+      ids.forEach((id) => (allSelected ? next.delete(id) : next.add(id)))
+      return next
     })
-    if (!ok) return
-    setSending(true)
-    try {
-      await sdk.client.fetch("/admin/specials-batches", {
-        method: "POST",
-        body: { message: message.trim() || null },
-      })
-      toast.success("Specials batch sent")
-      setMessage("")
-      setEmailPreview(null)
-      load()
-    } catch (e: any) {
-      toast.error(e?.message || "Send failed")
-    } finally {
-      setSending(false)
-    }
+  }
+
+  const selectedItems = useMemo(
+    () => items.filter((item) => selected.has(item.product_id)),
+    [items, selected]
+  )
+  const selectedBreweryCount = useMemo(
+    () => new Set(selectedItems.map((item) => item.brewery_id || "none")).size,
+    [selectedItems]
+  )
+
+  const handleSent = () => {
+    setSelected(new Set())
+    load()
   }
 
   const retryFailed = async (id: string) => {
@@ -1027,107 +1425,100 @@ function SpecialsTab() {
     )
   }
 
+  if (error) {
+    return (
+      <Container className="flex flex-col items-center gap-y-3 p-8">
+        <Text className="text-ui-fg-error">{error}</Text>
+        <Button size="small" variant="secondary" onClick={load}>
+          Try again
+        </Button>
+      </Container>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-y-6">
-      <Container className="p-0 overflow-hidden">
-        {items.length === 0 ? (
-          <div className="p-8 text-center">
-            <Text className="text-ui-fg-subtle">Nothing is currently on special.</Text>
+      {selected.size > 0 && !reviewOpen ? (
+        <div className="sticky top-0 z-10 flex items-center justify-between rounded-lg border border-ui-border-base bg-ui-bg-base px-4 py-3 shadow-elevation-flyout">
+          <Text weight="plus">
+            {selected.size} special{selected.size === 1 ? "" : "s"} from {selectedBreweryCount}{" "}
+            brewer
+            {selectedBreweryCount === 1 ? "y" : "ies"} selected
+          </Text>
+          <div className="flex gap-x-2">
+            <Button size="small" variant="secondary" onClick={() => setSelected(new Set())}>
+              Clear
+            </Button>
+            <Button size="small" onClick={() => setReviewOpen(true)}>
+              Review &amp; send
+            </Button>
           </div>
-        ) : (
-          <>
-            <Table>
-              <Table.Header>
-                <Table.Row>
-                  <Table.HeaderCell>Product</Table.HeaderCell>
-                  <Table.HeaderCell>Original price</Table.HeaderCell>
-                  <Table.HeaderCell>Special price</Table.HeaderCell>
-                  <Table.HeaderCell>Discount</Table.HeaderCell>
-                </Table.Row>
-              </Table.Header>
-              <Table.Body>
-                {items.map((item) => (
-                  <Table.Row key={item.product_handle}>
-                    <Table.Cell className="flex items-center gap-2">
-                      {item.product_thumbnail && (
-                        <img
-                          src={item.product_thumbnail}
-                          alt=""
-                          className="w-8 h-8 rounded object-cover"
-                        />
-                      )}
-                      {item.product_title}
-                    </Table.Cell>
-                    <Table.Cell className="text-ui-fg-subtle line-through">
-                      {fmtAud(item.original_price)}
-                    </Table.Cell>
-                    <Table.Cell className="font-medium">{fmtAud(item.discounted_price)}</Table.Cell>
-                    <Table.Cell>
-                      {item.discount_type === "percentage"
-                        ? `${item.discount_value}% off`
-                        : `${fmtAud(item.discount_value)} off`}
-                    </Table.Cell>
-                  </Table.Row>
-                ))}
-              </Table.Body>
-            </Table>
-            <div className="p-4 border-t border-ui-border-base flex flex-col gap-y-3">
-              {items.length > 12 ? (
-                <Text size="small" className="text-ui-fg-subtle">
-                  The email features the 12 steepest discounts, with a link to shop the rest - keeps
-                  it a quick read instead of a wall of {items.length} products.
-                </Text>
-              ) : null}
-              <div>
-                <Label size="small" className="mb-1 block">
-                  Message (optional)
-                </Label>
-                <Textarea
-                  placeholder="Add a short note about this week's specials..."
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  rows={3}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Text size="small" className="text-ui-fg-subtle">
-                  {recipientCount} recipient{recipientCount === 1 ? "" : "s"} (everyone opted in)
-                </Text>
-                <div className="flex items-center gap-x-2">
-                  <Button
-                    size="small"
-                    variant="secondary"
-                    onClick={loadPreviewEmail}
-                    isLoading={previewLoading}
-                  >
-                    Preview email
-                  </Button>
-                  <Button size="small" onClick={handleSend} isLoading={sending}>
-                    Send to everyone
-                  </Button>
-                </div>
-              </div>
-              {previewError ? (
-                <Text size="small" className="text-ui-fg-error">
-                  {previewError}
-                </Text>
-              ) : emailPreview ? (
-                <div className="flex flex-col gap-y-2">
-                  <Text size="small" className="text-ui-fg-subtle">
-                    Subject: {emailPreview.subject}
-                  </Text>
-                  <iframe
-                    title="Specials email preview"
-                    srcDoc={emailPreview.html}
-                    sandbox=""
-                    className="w-full h-96 rounded-lg border border-ui-border-base bg-white"
+        </div>
+      ) : null}
+
+      {items.length === 0 ? (
+        <Container className="p-8 text-center">
+          <Text className="text-ui-fg-subtle">Nothing is currently on special.</Text>
+        </Container>
+      ) : (
+        <>
+          <Text size="small" className="text-ui-fg-subtle">
+            {recipientCount} recipient{recipientCount === 1 ? "" : "s"} currently opted in for
+            specials.
+          </Text>
+          {groups.map((group) => {
+            const groupIds = group.items.map((item) => item.product_id)
+            const allSelected = groupIds.length > 0 && groupIds.every((id) => selected.has(id))
+            const someSelected = groupIds.some((id) => selected.has(id))
+
+            return (
+              <Container key={group.key} className="overflow-hidden p-0">
+                <div className="flex items-center gap-x-3 border-b border-ui-border-base px-4 py-3">
+                  <Checkbox
+                    checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                    onCheckedChange={() => toggleGroup(group.items)}
                   />
+                  <Text weight="plus">{group.label}</Text>
+                  <Badge size="2xsmall">{group.items.length}</Badge>
                 </div>
-              ) : null}
-            </div>
-          </>
-        )}
-      </Container>
+                <Table>
+                  <Table.Body>
+                    {group.items.map((item) => (
+                      <Table.Row key={item.product_id}>
+                        <Table.Cell className="w-10">
+                          <Checkbox
+                            checked={selected.has(item.product_id)}
+                            onCheckedChange={() => toggleProduct(item.product_id)}
+                          />
+                        </Table.Cell>
+                        <Table.Cell className="w-14">
+                          <Thumbnail src={item.product_thumbnail} alt={item.product_title} />
+                        </Table.Cell>
+                        <Table.Cell>
+                          <Text size="small" weight="plus">
+                            {item.product_title}
+                          </Text>
+                        </Table.Cell>
+                        <Table.Cell className="text-ui-fg-subtle line-through">
+                          {fmtAud(item.original_price)}
+                        </Table.Cell>
+                        <Table.Cell className="font-medium">
+                          {fmtAud(item.discounted_price)}
+                        </Table.Cell>
+                        <Table.Cell>
+                          {item.discount_type === "percentage"
+                            ? `${item.discount_value}% off`
+                            : `${fmtAud(item.discount_value)} off`}
+                        </Table.Cell>
+                      </Table.Row>
+                    ))}
+                  </Table.Body>
+                </Table>
+              </Container>
+            )
+          })}
+        </>
+      )}
 
       <div>
         <Text weight="plus" className="mb-2 block">
@@ -1176,6 +1567,13 @@ function SpecialsTab() {
           </Container>
         )}
       </div>
+
+      <SpecialsReviewSendModal
+        open={reviewOpen}
+        onOpenChange={setReviewOpen}
+        selectedItems={selectedItems}
+        onSent={handleSent}
+      />
     </div>
   )
 }

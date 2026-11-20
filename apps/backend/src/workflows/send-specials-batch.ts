@@ -1,9 +1,10 @@
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { SPECIALS_BATCH_MODULE } from "../modules/specials-batch"
 import { resolveSegment } from "../lib/resolve-broadcast-segment"
 import { renderEmail } from "../lib/render-email"
 import { getStoreUrl } from "../lib/email"
 import * as SpecialsBroadcastTpl from "../emails/specials-broadcast"
+import { ANALYTICS_MODULE } from "../modules/analytics"
 
 export class NoActiveSpecialsError extends Error {
   constructor() {
@@ -19,6 +20,13 @@ export class SendInProgressError extends Error {
   }
 }
 
+export class SelectedSpecialsUnavailableError extends Error {
+  constructor(public productIds: string[]) {
+    super("Some selected specials are no longer active - refresh and try again")
+    this.name = "SelectedSpecialsUnavailableError"
+  }
+}
+
 export type SpecialsSnapshotItem = {
   price_list_id: string
   product_id: string
@@ -29,6 +37,55 @@ export type SpecialsSnapshotItem = {
   discounted_price: number
   discount_type: "percentage" | "fixed"
   discount_value: number
+}
+
+export type EligibleSpecialsItem = SpecialsSnapshotItem & {
+  brewery_id: string | null
+  brewery_name: string | null
+}
+
+export type SpecialsRecipient = {
+  customer_id: string
+  label: string
+  has_logged_in: boolean
+  has_ordered: boolean
+  is_active: boolean
+  opted_out: boolean
+}
+
+const CUSTOMER_PAGE_SIZE = 1000
+
+function normalizeSubject(subject?: string | null): string | null {
+  const trimmed = subject?.trim()
+  return trimmed ? trimmed : null
+}
+
+function selectEligibleSpecialsItems(
+  eligibleItems: EligibleSpecialsItem[],
+  productIds: string[]
+): { selectedItems: EligibleSpecialsItem[]; unavailableProductIds: string[] } {
+  const uniqueProductIds = [...new Set(productIds.filter(Boolean))]
+  const byProductId = new Map(eligibleItems.map((item) => [item.product_id, item]))
+  const selectedItems = uniqueProductIds
+    .map((productId) => byProductId.get(productId) ?? null)
+    .filter((item): item is EligibleSpecialsItem => !!item)
+  const unavailableProductIds = uniqueProductIds.filter((productId) => !byProductId.has(productId))
+  return { selectedItems, unavailableProductIds }
+}
+
+async function listCustomersById(container: any, customerIds: string[]) {
+  const customerModule = container.resolve(Modules.CUSTOMER) as any
+  const customers: any[] = []
+  for (let index = 0; index < customerIds.length; index += CUSTOMER_PAGE_SIZE) {
+    const pageIds = customerIds.slice(index, index + CUSTOMER_PAGE_SIZE)
+    if (!pageIds.length) continue
+    const page = await customerModule.listCustomers(
+      { id: pageIds },
+      { select: ["id", "email", "first_name", "last_name"] }
+    )
+    customers.push(...page)
+  }
+  return customers
 }
 
 /**
@@ -46,7 +103,7 @@ export type SpecialsSnapshotItem = {
  * <= 0 - variants with manage_inventory off are always treated as
  * available, matching storefront stock-check semantics).
  */
-export async function listEligibleSpecialsItems(container: any): Promise<SpecialsSnapshotItem[]> {
+export async function listEligibleSpecialsItems(container: any): Promise<EligibleSpecialsItem[]> {
   const knex = container.resolve(ContainerRegistrationKeys.PG_CONNECTION)
   const result = await knex.raw(
     `SELECT sale.price_list_id, sale.amount AS sale_amount, base.amount AS base_amount,
@@ -98,17 +155,84 @@ export async function listEligibleSpecialsItems(container: any): Promise<Special
     })
   }
 
-  return [...byProduct.values()]
+  const items = [...byProduct.values()]
+  if (!items.length) return []
+
+  const query = container.resolve(ContainerRegistrationKeys.QUERY) as any
+  const { data } = await query.graph({
+    entity: "product",
+    fields: ["id", "metadata", "breweries.id", "breweries.name", "breweries.slug"],
+    filters: { id: items.map((item) => item.product_id) },
+  })
+
+  const breweryInfoByProductId = new Map<
+    string,
+    { brewery_id: string | null; brewery_name: string | null }
+  >()
+  for (const product of (data ?? []) as any[]) {
+    const metadata = product?.metadata ?? {}
+    const metadataBrewerySlug = metadata?.brewery_slug || null
+    const metadataBreweryName = metadata?.brewery_name || metadata?.brewery || null
+    const breweries = (product?.breweries || []).filter((brewery: any) => brewery?.id)
+    const primaryBrewery =
+      breweries.find(
+        (brewery: any) => metadataBrewerySlug && brewery.slug === metadataBrewerySlug
+      ) ||
+      breweries[0] ||
+      null
+
+    breweryInfoByProductId.set(product.id, {
+      brewery_id: primaryBrewery?.id ?? null,
+      brewery_name: primaryBrewery?.name || metadataBreweryName,
+    })
+  }
+
+  return items.map((item) => ({
+    ...item,
+    brewery_id: breweryInfoByProductId.get(item.product_id)?.brewery_id ?? null,
+    brewery_name: breweryInfoByProductId.get(item.product_id)?.brewery_name ?? null,
+  }))
 }
 
-/** Preview-only: how many recipients an "everyone" send would reach right now. */
-export async function previewSpecialsBatch(container: any) {
-  const items = await listEligibleSpecialsItems(container)
-  const recipientIds = await resolveSegment(container, {})
-  return {
-    itemCount: items.length,
-    recipientCount: recipientIds.length,
+export async function listSpecialsRecipients(container: any): Promise<SpecialsRecipient[]> {
+  const logger = container.resolve("logger") as any
+  const prefService = container.resolve("notificationPreference") as any
+  const customerIds = await resolveSegment(container, {})
+  const [orderedCustomerIds, optedOutRows, customers] = await Promise.all([
+    resolveSegment(container, { has_ordered: true }),
+    prefService.listNotificationPreferences({ category: "specials", enabled: false }),
+    listCustomersById(container, customerIds),
+  ])
+
+  let lastActiveByCustomerId = new Map<string, string>()
+  try {
+    const analytics = container.resolve(ANALYTICS_MODULE) as any
+    lastActiveByCustomerId = await analytics.getLastActiveByCustomerIds(customerIds)
+  } catch (err) {
+    logger?.warn?.(`[SpecialsBatch] login lookup failed: ${err}`)
   }
+
+  const orderedCustomerIdSet = new Set(orderedCustomerIds)
+  const optedOutCustomerIdSet = new Set((optedOutRows as any[]).map((row) => row.customer_id))
+  const customerById = new Map(customers.map((customer: any) => [customer.id, customer]))
+
+  return customerIds.map((customerId) => {
+    const customer = customerById.get(customerId)
+    const label =
+      customer?.email ||
+      [customer?.first_name, customer?.last_name].filter(Boolean).join(" ") ||
+      customerId
+    const hasLoggedIn = lastActiveByCustomerId.has(customerId)
+    const hasOrdered = orderedCustomerIdSet.has(customerId)
+    return {
+      customer_id: customerId,
+      label,
+      has_logged_in: hasLoggedIn,
+      has_ordered: hasOrdered,
+      is_active: hasLoggedIn || hasOrdered,
+      opted_out: optedOutCustomerIdSet.has(customerId),
+    }
+  })
 }
 
 /**
@@ -117,12 +241,31 @@ export async function previewSpecialsBatch(container: any) {
  * same auto-selection and same in-template featured-item cap the real send
  * uses. Read-only, callable as many times as the operator wants.
  */
-export async function renderSpecialsPreview(container: any, message: string | null) {
-  const items = await listEligibleSpecialsItems(container)
+export async function renderSpecialsPreview(
+  container: any,
+  input: { productIds: string[]; message?: string | null; subject?: string | null }
+) {
+  const eligibleItems = await listEligibleSpecialsItems(container)
+  if (!eligibleItems.length || input.productIds.length === 0) {
+    throw new NoActiveSpecialsError()
+  }
+
+  const { selectedItems, unavailableProductIds } = selectEligibleSpecialsItems(
+    eligibleItems,
+    input.productIds
+  )
+  if (unavailableProductIds.length) {
+    throw new SelectedSpecialsUnavailableError(unavailableProductIds)
+  }
+  if (!selectedItems.length) {
+    throw new NoActiveSpecialsError()
+  }
+
   return renderEmail(SpecialsBroadcastTpl as any, {
     name: "Collector",
-    message,
-    items: items.map((i) => ({
+    message: input.message ?? null,
+    subjectOverride: normalizeSubject(input.subject),
+    items: selectedItems.map((i) => ({
       productTitle: i.product_title,
       productHandle: i.product_handle,
       productThumbnail: i.product_thumbnail,
@@ -145,25 +288,48 @@ export async function renderSpecialsPreview(container: any, message: string | nu
  */
 export async function sendSpecialsBatch(
   container: any,
-  input: { label?: string | null; message?: string | null; created_by?: string | null } = {}
+  input: {
+    product_ids: string[]
+    label?: string | null
+    message?: string | null
+    subject?: string | null
+    created_by?: string | null
+    excluded_customer_ids?: string[]
+  }
 ) {
   const batchService = container.resolve(SPECIALS_BATCH_MODULE) as any
+  const productIds = [...new Set((input.product_ids ?? []).filter(Boolean))]
+  const excludedCustomerIds = new Set(input.excluded_customer_ids ?? [])
 
   const [sending] = await batchService.listSpecialsBatches({ status: "sending" })
   if (sending) {
     throw new SendInProgressError()
   }
 
-  const snapshotItems = await listEligibleSpecialsItems(container)
-  if (!snapshotItems.length) {
+  const eligibleItems = await listEligibleSpecialsItems(container)
+  if (!eligibleItems.length || !productIds.length) {
     throw new NoActiveSpecialsError()
   }
+
+  const { selectedItems, unavailableProductIds } = selectEligibleSpecialsItems(
+    eligibleItems,
+    productIds
+  )
+  if (unavailableProductIds.length) {
+    throw new SelectedSpecialsUnavailableError(unavailableProductIds)
+  }
+  if (!selectedItems.length) {
+    throw new NoActiveSpecialsError()
+  }
+
+  const subject = normalizeSubject(input.subject)
 
   const batch = await batchService.createSpecialsBatches({
     label: input.label ?? null,
     message: input.message ?? null,
+    subject,
     status: "sending",
-    product_count: snapshotItems.length,
+    product_count: selectedItems.length,
     created_by: input.created_by ?? null,
   })
 
@@ -173,11 +339,16 @@ export async function sendSpecialsBatch(
 
   try {
     const createdItems = await batchService.createSpecialsBatchItems(
-      snapshotItems.map((i) => ({ batch_id: batch.id, ...i }))
+      selectedItems.map(({ brewery_id, brewery_name, ...snapshotItem }) => ({
+        batch_id: batch.id,
+        ...snapshotItem,
+      }))
     )
     createdItemIds = createdItems.map((i: any) => i.id)
 
-    const recipientIds = await resolveSegment(container, {})
+    const recipientIds = (await resolveSegment(container, {})).filter(
+      (customerId) => !excludedCustomerIds.has(customerId)
+    )
 
     let recipientCount = 0
     for (const customerId of recipientIds) {

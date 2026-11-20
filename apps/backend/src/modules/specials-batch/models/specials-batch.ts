@@ -4,6 +4,7 @@ const SpecialsBatch = model.define("specials_batch", {
   id: model.id().primaryKey(),
   label: model.text().nullable(),
   message: model.text().nullable(),
+  subject: model.text().nullable(),
   status: model.enum(["sending", "sent", "failed"]).default("sending"),
   product_count: model.number().default(0),
   recipient_count: model.number().default(0),

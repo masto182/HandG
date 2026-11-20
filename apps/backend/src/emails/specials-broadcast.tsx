@@ -12,6 +12,7 @@ import {
 export type SpecialsBroadcastProps = {
   name: string
   message?: string | null
+  subjectOverride?: string | null
   items: SpecialsBatchItem[]
   storeUrl: string
 }
@@ -20,7 +21,7 @@ export type SpecialsBroadcastProps = {
  * to the rest - a 66-item email is a wall of noise, not a sale announcement,
  * and risks Gmail's ~102KB clipping threshold (same reasoning as
  * new-drop-digest.tsx's MAX_DISPLAYED). */
-const MAX_FEATURED = 12
+const MAX_FEATURED = 30
 
 function featuredItems(items: SpecialsBatchItem[]): {
   featured: SpecialsBatchItem[]
@@ -32,6 +33,8 @@ function featuredItems(items: SpecialsBatchItem[]): {
 }
 
 export const subject = (p: SpecialsBroadcastProps) => {
+  const custom = p.subjectOverride?.trim()
+  if (custom) return custom
   if (p.items.length === 1) return `On special: ${p.items[0]?.productTitle ?? "one beer"}`
   return "This week's specials"
 }

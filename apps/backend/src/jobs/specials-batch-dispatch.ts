@@ -144,6 +144,7 @@ async function runDispatch(container: MedusaContainer) {
                   props: {
                     name: customer.first_name || "Collector",
                     message: batch.message ?? null,
+                    subjectOverride: batch.subject ?? null,
                     items: items.map((i: any) => ({
                       productTitle: i.product_title,
                       productHandle: i.product_handle,
