@@ -13,6 +13,7 @@ import type {
 } from "@medusajs/framework/types"
 
 import { getShipEngineClient } from "./factory"
+import { trackingUrlForCarrierCode } from "../shipping-common/tracking-url"
 import {
   packableItemsFromLineItems,
   packableItemsFromFulfillmentItems,
@@ -423,7 +424,11 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
         labels: [
           {
             tracking_number: (existingData.tracking_number as string) ?? "",
-            tracking_url: "",
+            tracking_url: trackingUrlForCarrierCode(
+              existingData.carrier_code as string | undefined,
+              existingData.service_code as string | undefined,
+              existingData.tracking_number as string | undefined
+            ),
             label_url: (existingData.label_url as string) ?? "",
           },
         ],
@@ -673,7 +678,11 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
       labels: [
         {
           tracking_number: label.tracking_number ?? "",
-          tracking_url: "",
+          tracking_url: trackingUrlForCarrierCode(
+            label.carrier_code,
+            label.service_code,
+            label.tracking_number
+          ),
           label_url: label.label_download?.pdf ?? label.label_download?.href ?? "",
         },
       ],

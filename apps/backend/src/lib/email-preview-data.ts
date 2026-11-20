@@ -2,6 +2,7 @@ import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { getStoreUrl, refreshEmailConfig } from "./email"
 import { getLowestVariantPrice } from "./wishlist-price"
 import { computeOrderBreakdown } from "./order-breakdown"
+import { resolveShipmentTracking } from "./shipment-tracking"
 
 /**
  * Sample-data fetchers for the admin "Email Templates" preview page.
@@ -264,7 +265,7 @@ export async function getOrderShippedSample(container: any) {
 
   const [fulfillment] = await fulfillmentModule.listFulfillments(
     {},
-    { order: { created_at: "DESC" }, take: 1 }
+    { order: { created_at: "DESC" }, take: 1, relations: ["labels"] }
   )
 
   if (!fulfillment) {
@@ -272,12 +273,12 @@ export async function getOrderShippedSample(container: any) {
       props: {
         name: "Alex",
         orderDisplayId: "1234",
-        carrier: "Australia Post",
-        trackingNumber: "1Z999AA1012345678",
-        trackingUrl: undefined,
+        carrier: "Aramex",
+        trackingNumber: "MP0000000000",
+        trackingUrl: "https://www.aramex.com.au/tools/track?l=MP0000000000",
         storeUrl,
       },
-      synthetic: ["name", "orderDisplayId", "carrier", "trackingNumber"],
+      synthetic: ["name", "orderDisplayId", "carrier", "trackingNumber", "trackingUrl"],
     }
   }
 
@@ -300,14 +301,14 @@ export async function getOrderShippedSample(container: any) {
     synthetic.push("name", "orderDisplayId")
   }
 
-  const labels = (fulfillment as any).labels || []
+  const { carrier, trackingNumber, trackingUrl } = resolveShipmentTracking(fulfillment as any)
   return {
     props: {
       name,
       orderDisplayId,
-      carrier: (fulfillment as any).provider_id,
-      trackingNumber: labels[0]?.tracking_number,
-      trackingUrl: labels[0]?.url,
+      carrier,
+      trackingNumber,
+      trackingUrl,
       storeUrl,
     },
     synthetic,

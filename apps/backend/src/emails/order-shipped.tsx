@@ -18,8 +18,8 @@ export const subject = (p: OrderShippedProps) => `Your order has shipped · #${p
 export default function OrderShippedEmail({
   name = "Alex",
   orderDisplayId = "1234",
-  carrier = "Australia Post",
-  trackingNumber = "1Z999AA1012345678",
+  carrier,
+  trackingNumber,
   trackingUrl,
   storeUrl = "https://hopsandglory.au",
 }: OrderShippedProps) {

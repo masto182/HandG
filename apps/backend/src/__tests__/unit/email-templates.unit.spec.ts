@@ -112,6 +112,17 @@ describe("email templates render", () => {
     expect(out.html).toContain("AP1234")
   })
 
+  it("order_shipped without tracking never shows a placeholder number", async () => {
+    const out = await renderEmail(OrderShipped as any, {
+      name: "Cam",
+      orderDisplayId: "1042",
+      storeUrl: STORE_URL,
+    })
+    expect(out.html).not.toContain("1Z999AA1012345678")
+    expect(out.html).not.toContain("Australia Post")
+    expect(out.html).not.toMatch(/>Tracking</)
+  })
+
   it("order_ready_for_pickup (transactional)", async () => {
     const out = await renderEmail(OrderReadyForPickup as any, {
       name: "Cam",

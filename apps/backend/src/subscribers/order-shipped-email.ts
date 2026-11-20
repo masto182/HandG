@@ -2,6 +2,7 @@ import { SubscriberArgs, type SubscriberConfig } from "@medusajs/framework"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { sendTemplate, refreshEmailConfig, getStoreUrl } from "../lib/email"
 import * as OrderShippedTpl from "../emails/order-shipped"
+import { resolveShipmentTracking } from "../lib/shipment-tracking"
 
 type Logger = {
   info: (msg: string) => void
@@ -25,9 +26,9 @@ export default async function orderShippedHandler({
     const query = container.resolve(ContainerRegistrationKeys.QUERY)
     const fulfillmentModule = container.resolve(Modules.FULFILLMENT)
 
-    const fulfillment = await fulfillmentModule.retrieveFulfillment(
-      event.data.id
-    )
+    const fulfillment = await fulfillmentModule.retrieveFulfillment(event.data.id, {
+      relations: ["labels"],
+    })
 
     // Resolve the order id via the order ↔ fulfillment link
     const { data: links } = await query.graph({
@@ -37,9 +38,7 @@ export default async function orderShippedHandler({
     })
     const orderId = (links?.[0] as any)?.order_id
     if (!orderId) {
-      logger.info(
-        `[Notification] shipment.created ${event.data.id}: no linked order`
-      )
+      logger.info(`[Notification] shipment.created ${event.data.id}: no linked order`)
       return
     }
 
@@ -47,10 +46,7 @@ export default async function orderShippedHandler({
     const order = await orderModule.retrieveOrder(orderId)
     if (!order?.email) return
 
-    const labels = (fulfillment as any).labels || []
-    const trackingNumber = labels[0]?.tracking_number
-    const trackingUrl = labels[0]?.url
-    const carrier = (fulfillment as any).provider_id
+    const { carrier, trackingNumber, trackingUrl } = resolveShipmentTracking(fulfillment as any)
 
     const result = await sendTemplate({
       to: order.email,
@@ -67,9 +63,7 @@ export default async function orderShippedHandler({
       },
       container,
     })
-    logger.info(
-      `[Notification] order shipped → ${order.email}: ${JSON.stringify(result)}`
-    )
+    logger.info(`[Notification] order shipped → ${order.email}: ${JSON.stringify(result)}`)
   } catch (err) {
     logger.error(
       `[Notification] shipment.created handler failed for ${event.data.id}: ${err instanceof Error ? err.message : String(err)}`
