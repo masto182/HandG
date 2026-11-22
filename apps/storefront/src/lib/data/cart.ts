@@ -2,6 +2,7 @@
 
 import { sdk } from "@lib/config"
 import medusaError, { isStaleCartError } from "@lib/util/medusa-error"
+import { classifyCompleteFailure } from "@lib/util/checkout-errors"
 import {
   isSameAddress,
   normaliseCourierNote,
@@ -671,24 +672,16 @@ export async function placeOrder(cartId?: string): Promise<PlaceOrderResult> {
     cartRes = await sdk.store.cart.complete(id, {}, headers)
   } catch (error: any) {
     const message = String(error?.message ?? "")
-    const outOfStock = /not enough stock|out of stock|insufficient stock/i.test(
-      message,
-    )
+    const failure = classifyCompleteFailure(message)
     console.warn(
       JSON.stringify({
         event: "checkout.complete_failed",
-        code: outOfStock ? "OUT_OF_STOCK" : "UNKNOWN",
+        code: failure.code,
         cart_id: id,
         detail: message.slice(0, 300),
       }),
     )
-    return {
-      ok: false,
-      code: outOfStock ? "OUT_OF_STOCK" : "UNKNOWN",
-      message: outOfStock
-        ? "One or more items in your cart is no longer available. Return to your cart to update it."
-        : "We could not place your order. Please return to your cart and try again.",
-    }
+    return { ok: false, ...failure }
   }
 
   if (cartRes?.type === "order") {
@@ -698,12 +691,7 @@ export async function placeOrder(cartId?: string): Promise<PlaceOrderResult> {
     redirect(`/order/${cartRes.order.id}/confirmed`)
   }
 
-  return {
-    ok: false,
-    code: "UNKNOWN",
-    message:
-      "We could not place your order. Please return to your cart and try again.",
-  }
+  return { ok: false, ...classifyCompleteFailure(undefined) }
 }
 
 /**
