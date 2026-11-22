@@ -13,7 +13,9 @@ import {
   getContactEmail,
   getPayidAlias,
 } from "@lib/data/site-config"
+import { getVariantAvailability } from "@lib/data/inventory"
 import { getPickupOptions } from "@lib/util/shipping"
+import { getUnavailableLineIds } from "@lib/util/stock"
 import PaymentWrapper from "@modules/checkout/components/payment-wrapper"
 import CheckoutProgress from "@modules/checkout/components/checkout-progress"
 import CheckoutSummary from "@modules/checkout/templates/checkout-summary"
@@ -65,8 +67,17 @@ export default async function Checkout({
   // automatic promotions.
   await applyAutomaticPromotionsToCart(cart)
 
+  const variantIds = (cart.items ?? [])
+    .map((item) => item.variant_id)
+    .filter(Boolean) as string[]
+  const availability = await getVariantAvailability(variantIds).catch(
+    () => null,
+  )
+  const unavailableLineIds = availability
+    ? getUnavailableLineIds(cart.items ?? [], availability)
+    : []
+
   // customer + shipping methods are both always needed and independent — fetch
-  // in parallel rather than waterfalling.
   const [customer, shippingMethods, earlyAccess] = await Promise.all([
     retrieveCustomer(),
     listCartShippingMethods(cart.id),
@@ -147,7 +158,12 @@ export default async function Checkout({
         }
         const heatHold = await getHeatHold()
         return (
-          <StepReview cart={cart} isPickup={isPickup} heatHold={heatHold} />
+          <StepReview
+            cart={cart}
+            isPickup={isPickup}
+            heatHold={heatHold}
+            unavailableLineIds={unavailableLineIds}
+          />
         )
       case "confirm":
         redirect("/checkout?step=review")

@@ -6,15 +6,16 @@ import Divider from "@modules/common/components/divider"
 import TrackPageView from "@modules/common/components/track-page-view"
 import ThemeToggle from "@modules/layout/components/theme-toggle"
 import { HttpTypes } from "@medusajs/types"
+import type { VariantAvailabilityMap } from "@lib/util/stock"
 
 const CartTemplate = ({
   cart,
   customer,
-  inventoryMap = {},
+  availability = null,
 }: {
   cart: HttpTypes.StoreCart | null
   customer: HttpTypes.StoreCustomer | null
-  inventoryMap?: Record<string, number>
+  availability?: VariantAvailabilityMap | null
 }) => {
   return (
     <div>
@@ -43,21 +44,21 @@ const CartTemplate = ({
           {cart?.items?.length ? (
             <div className="flex flex-col lg:flex-row gap-10">
               <div className="flex-1">
-                <div className="space-y-6">
+                <div className="space-y-6" id="cart-items">
                   {!customer && (
                     <>
                       <SignInPrompt />
                       <Divider />
                     </>
                   )}
-                  <ItemsTemplate cart={cart} inventoryMap={inventoryMap} />
+                  <ItemsTemplate cart={cart} availability={availability} />
                 </div>
               </div>
               <aside className="w-full lg:w-[360px]">
                 <div className="lg:sticky lg:top-8">
                   {cart && cart.region && (
                     <div className="bg-surface-container rounded-2xl border border-outline-variant p-5 lg:p-8 shadow-lg">
-                      <Summary cart={cart} />
+                      <Summary cart={cart} availability={availability} />
                     </div>
                   )}
                 </div>

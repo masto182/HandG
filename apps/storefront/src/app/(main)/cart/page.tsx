@@ -4,7 +4,7 @@ import {
   applyAutomaticPromotionsToCart,
 } from "@lib/data/cart"
 import { retrieveCustomer } from "@lib/data/customer"
-import { getVariantInventory } from "@lib/data/inventory"
+import { getVariantAvailability } from "@lib/data/inventory"
 import CartTemplate from "@modules/cart/templates"
 import EarlyAccessCartGate from "@modules/cart/components/early-access-cart-gate"
 import { getEarlyAccessConfig } from "@lib/data/early-access"
@@ -45,7 +45,9 @@ export default async function Cart() {
 
   const variantIds =
     (cart?.items?.map((i) => i.variant_id).filter(Boolean) as string[]) || []
-  const inventoryMap = await getVariantInventory(variantIds)
+  const availability = await getVariantAvailability(variantIds).catch(
+    () => null,
+  )
 
   return (
     <>
@@ -56,7 +58,7 @@ export default async function Cart() {
       <CartTemplate
         cart={cart}
         customer={customer}
-        inventoryMap={inventoryMap}
+        availability={availability}
       />
     </>
   )

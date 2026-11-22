@@ -1,7 +1,4 @@
-import {
-  ContainerRegistrationKeys,
-  Modules,
-} from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
 /**
@@ -16,7 +13,9 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
  * The storefront fetches products without `+variants.inventory_quantity`
  * (so the list call returns 200) and then enriches with this batched
  * inventory call. Returns a stable `{ inventory: { [variantId]: number } }`
- * shape so merging is trivial on the client.
+ * shape so merging is trivial on the client. The availability map also
+ * carries inventory-management rules so the storefront can distinguish a
+ * genuine stock-out from a variant that permits backorders.
  *
  * Sums available_quantity across all stock locations the variant is linked to.
  */
@@ -28,7 +27,10 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
     .filter(Boolean)
 
   if (!variantIds.length) {
-    return res.json({ inventory: {} as Record<string, number> })
+    return res.json({
+      inventory: {} as Record<string, number>,
+      availability: {},
+    })
   }
 
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
@@ -48,6 +50,10 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   })
 
   const out: Record<string, number> = {}
+  const availability: Record<
+    string,
+    { available: number; manage_inventory: boolean; allow_backorder: boolean }
+  > = {}
   for (const v of variants) {
     const variantId = (v as any).id as string
     const items = ((v as any).inventory_items ?? []) as any[]
@@ -65,7 +71,12 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
       }
     }
     out[variantId] = total
+    availability[variantId] = {
+      available: total,
+      manage_inventory: Boolean((v as any).manage_inventory),
+      allow_backorder: Boolean((v as any).allow_backorder),
+    }
   }
 
-  return res.json({ inventory: out })
+  return res.json({ inventory: out, availability })
 }

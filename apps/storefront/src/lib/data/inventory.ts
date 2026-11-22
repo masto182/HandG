@@ -2,6 +2,7 @@
 
 import { sdk } from "@lib/config"
 import { getAuthHeaders } from "./cookies"
+import type { VariantAvailabilityMap } from "@lib/util/stock"
 
 /**
  * Fetches inventory quantities for a set of variant IDs.
@@ -34,6 +35,22 @@ export async function getVariantInventory(
   }
 }
 
+export async function getVariantAvailability(
+  variantIds: string[],
+): Promise<VariantAvailabilityMap | null> {
+  if (!variantIds.length) return {}
+
+  const headers = { ...(await getAuthHeaders()) }
+  const { availability } = await sdk.client.fetch<{
+    availability: VariantAvailabilityMap
+  }>(`/store/inventory/by-variant-ids`, {
+    method: "GET",
+    query: { ids: variantIds.join(",") },
+    headers,
+    cache: "no-store",
+  })
+  return availability ?? null
+}
 type ProductWithVariants = {
   variants?: Array<
     { id?: string; inventory_quantity?: number | null } & Record<

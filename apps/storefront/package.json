@@ -83,9 +83,9 @@
     "typescript": "^6.0.3",
     "vite": "^7.3.7"
   },
-  "packageManager": "pnpm@11.13.0",
+  "packageManager": "pnpm@11.20.0",
   "engines": {
     "node": ">=24",
-    "pnpm": ">=11.13.0"
+    "pnpm": ">=11.20.0"
   }
 }

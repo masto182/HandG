@@ -1,6 +1,8 @@
 "use client"
 
 import { updateLineItem } from "@lib/data/cart"
+import { getLineStockStatus } from "@lib/util/stock"
+import type { VariantAvailabilityMap } from "@lib/util/stock"
 import { HttpTypes } from "@medusajs/types"
 import ErrorMessage from "@modules/checkout/components/error-message"
 import DeleteButton from "@modules/common/components/delete-button"
@@ -15,10 +17,15 @@ type ItemProps = {
   item: HttpTypes.StoreCartLineItem
   type?: "full" | "preview"
   currencyCode: string
-  maxStock?: number
+  availability?: VariantAvailabilityMap | null
 }
 
-const Item = ({ item, type = "full", currencyCode, maxStock }: ItemProps) => {
+const Item = ({
+  item,
+  type = "full",
+  currencyCode,
+  availability = null,
+}: ItemProps) => {
   const [updating, setUpdating] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -38,12 +45,12 @@ const Item = ({ item, type = "full", currencyCode, maxStock }: ItemProps) => {
       })
   }
 
-  const inventoryQuantity =
-    maxStock ??
-    (item.variant as any)?.inventory_quantity ??
-    (item.variant as any)?.inventory?.quantity
+  const stockStatus = availability
+    ? getLineStockStatus(item.variant_id, item.quantity, availability)
+    : { kind: "unknown" as const }
+  const inventoryQuantity = availability?.[item.variant_id ?? ""]?.available
   const maxQuantity =
-    inventoryQuantity != null && inventoryQuantity > 0 ? inventoryQuantity : 99
+    inventoryQuantity != null && inventoryQuantity > 0 ? inventoryQuantity : 1
 
   const productMeta =
     (item as any).product?.metadata || (item.variant?.product as any)?.metadata
@@ -95,6 +102,15 @@ const Item = ({ item, type = "full", currencyCode, maxStock }: ItemProps) => {
 
         <LineItemOptions variant={item.variant} data-testid="product-variant" />
 
+        {stockStatus.kind === "sold_out" && (
+          <p className="text-sm font-semibold text-hl-error">Sold out</p>
+        )}
+        {stockStatus.kind === "insufficient" && (
+          <p className="text-sm font-semibold text-hl-error">
+            Only {stockStatus.available} available
+          </p>
+        )}
+
         {type === "full" && (
           <div className="flex justify-between items-center mt-3">
             <div className="flex items-center bg-surface-container-low rounded-lg border border-outline-variant overflow-hidden">
@@ -121,7 +137,11 @@ const Item = ({ item, type = "full", currencyCode, maxStock }: ItemProps) => {
                   item.quantity < maxQuantity &&
                   changeQuantity(item.quantity + 1)
                 }
-                disabled={updating || item.quantity >= maxQuantity}
+                disabled={
+                  updating ||
+                  item.quantity >= maxQuantity ||
+                  stockStatus.kind === "sold_out"
+                }
                 className="px-3 py-3 min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-hg-surface-hover transition-colors disabled:opacity-40"
               >
                 <Icon name="add" size={16} />

@@ -1,15 +1,16 @@
 import repeat from "@lib/util/repeat"
 import { HttpTypes } from "@medusajs/types"
+import type { VariantAvailabilityMap } from "@lib/util/stock"
 
 import Item from "@modules/cart/components/item"
 import SkeletonLineItem from "@modules/skeletons/components/skeleton-line-item"
 
 type ItemsTemplateProps = {
   cart?: HttpTypes.StoreCart
-  inventoryMap?: Record<string, number>
+  availability?: VariantAvailabilityMap | null
 }
 
-const ItemsTemplate = ({ cart, inventoryMap = {} }: ItemsTemplateProps) => {
+const ItemsTemplate = ({ cart, availability = null }: ItemsTemplateProps) => {
   const items = cart?.items
   return (
     <div className="space-y-4">
@@ -24,9 +25,7 @@ const ItemsTemplate = ({ cart, inventoryMap = {} }: ItemsTemplateProps) => {
                   key={item.id}
                   item={item}
                   currencyCode={cart?.currency_code}
-                  maxStock={
-                    item.variant_id ? inventoryMap[item.variant_id] : undefined
-                  }
+                  availability={availability}
                 />
               )
             })

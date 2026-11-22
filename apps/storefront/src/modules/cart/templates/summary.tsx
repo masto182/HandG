@@ -5,18 +5,25 @@ import LocalizedClientLink from "@modules/common/components/localized-client-lin
 import Icon from "@modules/common/components/icon"
 import { HttpTypes } from "@medusajs/types"
 import { useState } from "react"
+import type { VariantAvailabilityMap } from "@lib/util/stock"
+import { getUnavailableLineIds } from "@lib/util/stock"
 
 type SummaryProps = {
   cart: HttpTypes.StoreCart
+  availability?: VariantAvailabilityMap | null
 }
 
 function getCheckoutStep(cart: HttpTypes.StoreCart) {
   return "fulfilment"
 }
 
-const Summary = ({ cart }: SummaryProps) => {
+const Summary = ({ cart, availability = null }: SummaryProps) => {
   const step = getCheckoutStep(cart)
   const [promoOpen, setPromoOpen] = useState(false)
+  const unavailable =
+    availability === null ||
+    (availability != null &&
+      getUnavailableLineIds(cart.items ?? [], availability).length > 0)
 
   return (
     <div className="flex flex-col gap-y-6">
@@ -41,15 +48,26 @@ const Summary = ({ cart }: SummaryProps) => {
           </button>
         </div>
       )}
+      {unavailable && (
+        <p className="text-sm text-hl-error">
+          Some items are unavailable. Remove them before checkout.
+        </p>
+      )}
       <div className="space-y-3">
-        <LocalizedClientLink
-          href={"/checkout?step=" + step}
-          data-testid="checkout-button"
-          className="w-full bg-primary text-on-primary font-bold py-3.5 rounded-xl hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-        >
-          Proceed to Checkout
-          <Icon name="payments" size={18} />
-        </LocalizedClientLink>
+        {!unavailable ? (
+          <LocalizedClientLink
+            href={"/checkout?step=" + step}
+            data-testid="checkout-button"
+            className="w-full bg-primary text-on-primary font-bold py-3.5 rounded-xl hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+          >
+            Proceed to Checkout
+            <Icon name="payments" size={18} />
+          </LocalizedClientLink>
+        ) : (
+          <LocalizedClientLink href="#cart-items" className="text-sm underline">
+            Review unavailable items
+          </LocalizedClientLink>
+        )}
         <LocalizedClientLink
           href="/store"
           className="w-full inline-flex justify-center items-center py-3.5 text-on-surface-variant font-medium border border-outline-variant rounded-xl hover:bg-surface-container-high transition-all"

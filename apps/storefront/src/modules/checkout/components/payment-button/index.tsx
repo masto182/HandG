@@ -5,6 +5,7 @@ import { placeOrder } from "@lib/data/cart"
 import { HttpTypes } from "@medusajs/types"
 import { Button } from "@modules/common/components/ui"
 import React, { useState } from "react"
+import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import ErrorMessage from "../error-message"
 
 type PaymentButtonProps = {
@@ -58,7 +59,10 @@ const PlaceOrderButton = ({
     if (submitting) return
     setSubmitting(true)
     try {
-      await placeOrder()
+      const result = await placeOrder()
+      if (!result.ok) {
+        setErrorMessage(result.message)
+      }
     } catch (err: any) {
       setErrorMessage(
         err?.message || "Something went wrong placing your order.",
@@ -83,6 +87,11 @@ const PlaceOrderButton = ({
         error={errorMessage}
         data-testid={`${providerKind}-payment-error-message`}
       />
+      {errorMessage && (
+        <LocalizedClientLink href="/cart" className="text-sm underline">
+          Return to cart to update items
+        </LocalizedClientLink>
+      )}
     </>
   )
 }

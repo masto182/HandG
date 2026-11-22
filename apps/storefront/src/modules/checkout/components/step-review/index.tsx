@@ -6,12 +6,14 @@ import { HttpTypes } from "@medusajs/types"
 import HeatHoldBanner from "@modules/checkout/components/heat-hold-banner"
 import { useTrack } from "@lib/hooks/use-track"
 import Thumbnail from "@modules/products/components/thumbnail"
+import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import { useEffect, useState } from "react"
 
 type Props = {
   cart: HttpTypes.StoreCart
   isPickup: boolean
   heatHold?: { enabled: boolean; message: string }
+  unavailableLineIds?: string[]
 }
 
 function getBrewery(item: any): string | undefined {
@@ -67,10 +69,19 @@ function shouldShowCarrierCaption(
   return true
 }
 
-const StepReview: React.FC<Props> = ({ cart, isPickup, heatHold }) => {
+const StepReview: React.FC<Props> = ({
+  cart,
+  isPickup,
+  heatHold,
+  unavailableLineIds = [],
+}) => {
   const track = useTrack()
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(
+    unavailableLineIds.length
+      ? "Some items in your cart are no longer available."
+      : null,
+  )
 
   useEffect(() => {
     track("checkout.step_reached", { cart_id: cart.id, step: "review" })
@@ -98,7 +109,10 @@ const StepReview: React.FC<Props> = ({ cart, isPickup, heatHold }) => {
     setIsLoading(true)
     setError(null)
     try {
-      await placeOrder(cart.id)
+      const result = await placeOrder(cart.id)
+      if (!result.ok) {
+        setError(result.message)
+      }
     } catch (e: any) {
       setError(e.message || "Failed to place order")
     } finally {
@@ -117,7 +131,14 @@ const StepReview: React.FC<Props> = ({ cart, isPickup, heatHold }) => {
         </p>
       </div>
 
-      {error && <p className="text-sm text-hl-error mb-4">{error}</p>}
+      {error && (
+        <div className="text-sm text-hl-error mb-4">
+          <p>{error}</p>
+          <LocalizedClientLink href="/cart" className="underline">
+            Return to cart to update items
+          </LocalizedClientLink>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         {!isPickup && addr && (
@@ -330,7 +351,7 @@ const StepReview: React.FC<Props> = ({ cart, isPickup, heatHold }) => {
         </a>
         <button
           onClick={handlePlaceOrder}
-          disabled={isLoading}
+          disabled={isLoading || unavailableLineIds.length > 0}
           className="px-8 sm:px-10 py-4 bg-hg-gold text-hg-on-primary font-semibold text-[12px] uppercase tracking-[0.1em] rounded-lg transition-transform hover:scale-105 active:scale-95 shadow-lg disabled:opacity-50"
         >
           {isLoading ? "Placing Order..." : "Place Order"}

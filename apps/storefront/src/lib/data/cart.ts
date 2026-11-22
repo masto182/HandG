@@ -656,43 +656,54 @@ export async function setAddresses(
   redirect(`/checkout?step=shipping`)
 }
 
-/**
- * Places an order for a cart. If no cart ID is provided, it will use the cart ID from the cookies.
- * @param cartId - optional - The ID of the cart to place an order for.
- * @returns The cart object if the order was successful, or null if not.
- */
-export async function placeOrder(cartId?: string) {
+export type PlaceOrderResult =
+  | { ok: true }
+  | { ok: false; code: "OUT_OF_STOCK" | "UNKNOWN"; message: string }
+
+/** Places an order for a cart. */
+export async function placeOrder(cartId?: string): Promise<PlaceOrderResult> {
   const id = cartId || (await getCartId())
+  if (!id) throw new Error("No existing cart found when placing an order")
 
-  if (!id) {
-    throw new Error("No existing cart found when placing an order")
+  const headers = { ...(await getAuthHeaders()) }
+  let cartRes
+  try {
+    cartRes = await sdk.store.cart.complete(id, {}, headers)
+  } catch (error: any) {
+    const message = String(error?.message ?? "")
+    const outOfStock = /not enough stock|out of stock|insufficient stock/i.test(
+      message,
+    )
+    console.warn(
+      JSON.stringify({
+        event: "checkout.complete_failed",
+        code: outOfStock ? "OUT_OF_STOCK" : "UNKNOWN",
+        cart_id: id,
+        detail: message.slice(0, 300),
+      }),
+    )
+    return {
+      ok: false,
+      code: outOfStock ? "OUT_OF_STOCK" : "UNKNOWN",
+      message: outOfStock
+        ? "One or more items in your cart is no longer available. Return to your cart to update it."
+        : "We could not place your order. Please return to your cart and try again.",
+    }
   }
-
-  const headers = {
-    ...(await getAuthHeaders()),
-  }
-
-  const cartRes = await sdk.store.cart
-    .complete(id, {}, headers)
-    .then(async (cartRes) => {
-      const cartCacheTag = await getCacheTag("carts")
-      revalidateTag(cartCacheTag)
-      return cartRes
-    })
-    .catch(medusaError)
 
   if (cartRes?.type === "order") {
-    const countryCode =
-      cartRes.order.shipping_address?.country_code?.toLowerCase()
-
     const orderCacheTag = await getCacheTag("orders")
     revalidateTag(orderCacheTag)
-
     await removeCartId()
-    redirect(`/order/${cartRes?.order.id}/confirmed`)
+    redirect(`/order/${cartRes.order.id}/confirmed`)
   }
 
-  return cartRes.cart
+  return {
+    ok: false,
+    code: "UNKNOWN",
+    message:
+      "We could not place your order. Please return to your cart and try again.",
+  }
 }
 
 /**
