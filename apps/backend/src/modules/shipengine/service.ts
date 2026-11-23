@@ -324,14 +324,21 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
     const handlingFeeCents = Math.round(handlingFeeAud * 100)
     try {
       const family = familyFromOptionData(optionData as Record<string, unknown>)
-      const isAramex =
+      const restrictedCarrier =
         isCarrierGroup({
           provider_id: "shipengine",
           carrier_code: (data?.carrier_code as string | undefined) ?? family?.carrier_code,
           service_code:
             (data?.service_code as string | undefined) ?? family?.base_service_code ?? "",
         }).group === "aramex"
-      if (isAramex) {
+      const isCouriersPlease =
+        isCarrierGroup({
+          provider_id: "shipengine",
+          carrier_code: (data?.carrier_code as string | undefined) ?? family?.carrier_code,
+          service_code:
+            (data?.service_code as string | undefined) ?? family?.base_service_code ?? "",
+        }).group === "couriers_please"
+      if (restrictedCarrier || isCouriersPlease) {
         const allowedStates = await this.siteConfigGet<string[]>(
           "shipping_aramex_allowed_states",
           DEFAULT_ARAMEX_ALLOWED_STATES
@@ -341,7 +348,7 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
         if (!isAramexAllowedForState(province, allowedStates)) {
           throw new MedusaError(
             MedusaError.Types.INVALID_DATA,
-            "Aramex is not available for this delivery state. Please choose another shipping option or contact us."
+            "This courier is not available for the delivery state. Please choose another shipping option or contact us."
           )
         }
       }

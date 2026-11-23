@@ -256,9 +256,14 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     "shipping_aramex_allowed_states",
     DEFAULT_ARAMEX_ALLOWED_STATES
   )
-  const aramexOk = isAramexAllowedForState(cart.shipping_address.province, aramexAllowedStates)
-  if (!aramexOk) {
-    allRates = allRates.filter((r) => r.carrier_group !== "aramex")
+  const restrictedCourierStatesOk = isAramexAllowedForState(
+    cart.shipping_address.province,
+    aramexAllowedStates
+  )
+  if (!restrictedCourierStatesOk) {
+    allRates = allRates.filter(
+      (r) => r.carrier_group !== "aramex" && r.carrier_group !== "couriers_please"
+    )
   }
 
   // ShipEngine signature variants (Aramex signature_required) are not offered:
@@ -362,7 +367,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         carrier_group: r.carrier_group,
         carrier_display_name: r.carrier_display_name,
         rates: [],
-        ...(r.carrier_group === "aramex"
+        ...(r.carrier_group === "aramex" || r.carrier_group === "couriers_please"
           ? { notice: await sc<string>("shipping_aramex_notice", DEFAULT_ARAMEX_NOTICE) }
           : {}),
       }
