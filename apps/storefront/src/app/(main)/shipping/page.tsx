@@ -86,11 +86,12 @@ export default async function ShippingPage() {
             To make sure parcels never sit in a depot over the weekend, we
             dispatch on set days: Australia Post (Parcel Post and Express) on
             Mondays, Tuesdays and Wednesdays, and Aramex and CouriersPlease on
-            Mondays and Tuesdays (both are NSW, VIC and SA only, due to
-            reliability). Orders ship on the next dispatch day after you place
-            them, and delivery estimates at checkout already allow for this.
-            Need something sooner or different? Get in touch and we&apos;ll
-            organise an alternative.
+            Mondays and Tuesdays (both are NSW, VIC and SA only). We use these
+            dispatch days to reduce the chance of beer sitting in sorting
+            centres over the weekend. Orders ship on the next dispatch day after
+            you place them, and delivery estimates at checkout already allow for
+            this. Need something sooner or different? Get in touch and
+            we&apos;ll organise an alternative.
           </p>
         </section>
 

@@ -113,4 +113,4 @@ export function estimateDeliveryRange(
 }
 
 export const DEFAULT_ARAMEX_NOTICE =
-  "Aramex is only dispatched on Mondays and Tuesdays, and only to NSW, VIC and SA. We've had reliability problems with Aramex, so we don't send parcels with it on other days, to make sure nothing sits in a depot over the weekend. Need it sooner or somewhere else? Contact us and we'll work out an alternative option."
+  "This carrier is dispatched on Mondays and Tuesdays, and only to NSW, VIC and SA. We use these dispatch days to reduce the chance of beer sitting in sorting centres over the weekend. Need it sooner or somewhere else? Contact us and we'll work out an alternative option."
