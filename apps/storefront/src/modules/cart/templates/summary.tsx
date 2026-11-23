@@ -3,7 +3,9 @@
 import CartTotals from "@modules/common/components/cart-totals"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import Icon from "@modules/common/components/icon"
+import { deleteLineItem } from "@lib/data/cart"
 import { HttpTypes } from "@medusajs/types"
+import { useRouter } from "next/navigation"
 import { useState } from "react"
 import type { VariantAvailabilityMap } from "@lib/util/stock"
 import { getUnavailableLineIds } from "@lib/util/stock"
@@ -19,11 +21,23 @@ function getCheckoutStep(cart: HttpTypes.StoreCart) {
 
 const Summary = ({ cart, availability = null }: SummaryProps) => {
   const step = getCheckoutStep(cart)
+  const router = useRouter()
   const [promoOpen, setPromoOpen] = useState(false)
-  const unavailable =
-    availability === null ||
-    (availability != null &&
-      getUnavailableLineIds(cart.items ?? [], availability).length > 0)
+  const [removing, setRemoving] = useState(false)
+
+  const unavailableIds = availability
+    ? getUnavailableLineIds(cart.items ?? [], availability)
+    : []
+  const blocked = availability === null || unavailableIds.length > 0
+
+  const removeUnavailable = async () => {
+    setRemoving(true)
+    for (const id of unavailableIds) {
+      await deleteLineItem(id).catch(() => undefined)
+    }
+    setRemoving(false)
+    router.refresh()
+  }
 
   return (
     <div className="flex flex-col gap-y-6">
@@ -48,13 +62,36 @@ const Summary = ({ cart, availability = null }: SummaryProps) => {
           </button>
         </div>
       )}
-      {unavailable && (
-        <p className="text-sm text-hl-error">
-          Some items are unavailable. Remove them before checkout.
-        </p>
+      {blocked && (
+        <div
+          role="alert"
+          className="flex flex-col gap-2 rounded-xl border border-hl-error p-4"
+        >
+          <p className="font-semibold text-hl-error">
+            {availability === null
+              ? "We could not check stock right now"
+              : "Some items are sold out"}
+          </p>
+          <p className="text-sm text-on-surface-variant">
+            {availability === null
+              ? "Please refresh the page and try again."
+              : "Remove them to continue to checkout."}
+          </p>
+          {unavailableIds.length > 0 && (
+            <button
+              type="button"
+              onClick={removeUnavailable}
+              disabled={removing}
+              data-testid="remove-unavailable-items"
+              className="mt-2 min-h-[44px] rounded-lg border border-hl-error text-hl-error font-semibold text-sm hover:bg-surface-container-high transition-colors disabled:opacity-50"
+            >
+              {removing ? "Removing..." : "Remove sold-out items"}
+            </button>
+          )}
+        </div>
       )}
       <div className="space-y-3">
-        {!unavailable ? (
+        {!blocked ? (
           <LocalizedClientLink
             href={"/checkout?step=" + step}
             data-testid="checkout-button"
@@ -64,9 +101,14 @@ const Summary = ({ cart, availability = null }: SummaryProps) => {
             <Icon name="payments" size={18} />
           </LocalizedClientLink>
         ) : (
-          <LocalizedClientLink href="#cart-items" className="text-sm underline">
-            Review unavailable items
-          </LocalizedClientLink>
+          <button
+            type="button"
+            disabled
+            data-testid="checkout-button-disabled"
+            className="w-full bg-surface-container-high text-on-surface-variant font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 opacity-60 cursor-not-allowed"
+          >
+            Proceed to Checkout
+          </button>
         )}
         <LocalizedClientLink
           href="/store"

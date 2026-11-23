@@ -11,6 +11,7 @@ import LineItemPrice from "@modules/common/components/line-item-price"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
 import Thumbnail from "@modules/products/components/thumbnail"
 import Icon from "@modules/common/components/icon"
+import { clx } from "@modules/common/components/ui"
 import { useState } from "react"
 
 type ItemProps = {
@@ -62,12 +63,20 @@ const Item = ({
 
   return (
     <div
-      className="bg-surface-container rounded-xl p-5 border border-outline-variant flex gap-5 items-start"
+      className={clx(
+        "bg-surface-container rounded-xl p-5 border flex gap-5 items-start",
+        stockStatus.kind === "sold_out"
+          ? "border-hl-error/60"
+          : "border-outline-variant",
+      )}
       data-testid="product-row"
     >
       <LocalizedClientLink
         href={`/products/${item.product_handle}`}
-        className="w-20 h-20 rounded-lg bg-surface-container-high flex-shrink-0 overflow-hidden"
+        className={clx(
+          "w-20 h-20 rounded-lg bg-surface-container-high flex-shrink-0 overflow-hidden",
+          stockStatus.kind === "sold_out" && "opacity-50 grayscale",
+        )}
       >
         <Thumbnail
           thumbnail={item.thumbnail}
@@ -103,15 +112,29 @@ const Item = ({
         <LineItemOptions variant={item.variant} data-testid="product-variant" />
 
         {stockStatus.kind === "sold_out" && (
-          <p className="text-sm font-semibold text-hl-error">Sold out</p>
+          <span className="self-start rounded-full border border-hl-error px-2.5 py-1 text-label-caps uppercase tracking-[0.05em] text-hl-error">
+            Sold out
+          </span>
         )}
         {stockStatus.kind === "insufficient" && (
-          <p className="text-sm font-semibold text-hl-error">
-            Only {stockStatus.available} available
-          </p>
+          <span className="self-start rounded-full border border-hl-error px-2.5 py-1 text-label-caps uppercase tracking-[0.05em] text-hl-error">
+            Only {stockStatus.available} left
+          </span>
         )}
 
-        {type === "full" && (
+        {type === "full" && stockStatus.kind === "sold_out" && (
+          <div className="flex justify-end items-center mt-3">
+            <DeleteButton
+              id={item.id}
+              className="text-hl-error hover:text-hg-text transition-colors"
+              data-testid="product-delete-button"
+            >
+              Remove item
+            </DeleteButton>
+          </div>
+        )}
+
+        {type === "full" && stockStatus.kind !== "sold_out" && (
           <div className="flex justify-between items-center mt-3">
             <div className="flex items-center bg-surface-container-low rounded-lg border border-outline-variant overflow-hidden">
               <button
@@ -137,11 +160,7 @@ const Item = ({
                   item.quantity < maxQuantity &&
                   changeQuantity(item.quantity + 1)
                 }
-                disabled={
-                  updating ||
-                  item.quantity >= maxQuantity ||
-                  stockStatus.kind === "sold_out"
-                }
+                disabled={updating || item.quantity >= maxQuantity}
                 className="px-3 py-3 min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-hg-surface-hover transition-colors disabled:opacity-40"
               >
                 <Icon name="add" size={16} />

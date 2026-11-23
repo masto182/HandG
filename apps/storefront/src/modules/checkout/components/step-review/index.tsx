@@ -132,10 +132,19 @@ const StepReview: React.FC<Props> = ({
       </div>
 
       {error && (
-        <div className="text-sm text-hl-error mb-4">
-          <p>{error}</p>
-          <LocalizedClientLink href="/cart" className="underline">
-            Return to cart to update items
+        <div
+          role="alert"
+          className="mb-6 flex flex-col gap-3 rounded-xl border border-hl-error p-5"
+        >
+          <p className="font-semibold text-hl-error">
+            We could not place your order
+          </p>
+          <p className="text-sm text-hg-text-secondary">{error}</p>
+          <LocalizedClientLink
+            href="/cart"
+            className="inline-flex min-h-[44px] w-fit items-center rounded-lg border border-hg-border px-5 text-sm font-semibold text-hg-text hover:border-hg-gold transition-colors"
+          >
+            Back to cart
           </LocalizedClientLink>
         </div>
       )}
