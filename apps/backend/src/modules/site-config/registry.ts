@@ -700,6 +700,61 @@ export const SITE_CONFIG_REGISTRY: Record<string, SiteConfigDefinition> = {
       return null
     },
   },
+  shipping_aramex_allowed_states: {
+    key: "shipping_aramex_allowed_states",
+    type: "json",
+    isPublic: false,
+    default: ["NSW", "VIC", "SA"],
+    group: "shipping",
+    label: "Aramex allowed states",
+    description:
+      "Destination states Aramex is offered for. Aramex is hidden at checkout (and rejected when a shipping method is added) for any other state.",
+    validate: (value) => {
+      if (!Array.isArray(value)) return "must be a JSON array"
+      const allowed = ["NSW", "VIC", "QLD", "SA", "WA", "TAS", "NT", "ACT"]
+      for (const v of value) {
+        if (typeof v !== "string" || !allowed.includes(v.toUpperCase())) {
+          return `every entry must be one of ${allowed.join(", ")}`
+        }
+      }
+      return null
+    },
+  },
+  shipping_dispatch_days: {
+    key: "shipping_dispatch_days",
+    type: "json",
+    isPublic: false,
+    default: { aramex: [1, 2], couriers_please: [1, 2], australia_post: [1, 2, 3] },
+    group: "shipping",
+    label: "Dispatch days by carrier",
+    description:
+      "Weekdays (1=Mon .. 5=Fri) you dispatch each carrier group. Drives the shipping date and expected delivery date shown at checkout. An order ships on the first dispatch day AFTER the day it is placed (Sydney time). Carriers not listed dispatch any weekday.",
+    validate: (value) => {
+      if (!value || typeof value !== "object" || Array.isArray(value)) {
+        return "must be a JSON object keyed by carrier group"
+      }
+      const groups = ["australia_post", "aramex", "couriers_please", "other"]
+      for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+        if (!groups.includes(k)) return `unknown carrier group ${k}`
+        if (!Array.isArray(v) || v.some((d) => !Number.isInteger(d) || d < 1 || d > 5)) {
+          return `${k} must be an array of weekdays 1-5`
+        }
+      }
+      return null
+    },
+  },
+  shipping_aramex_notice: {
+    key: "shipping_aramex_notice",
+    type: "string",
+    isPublic: true,
+    default:
+      "Aramex is only dispatched on Mondays and Tuesdays, and only to NSW, VIC and SA. We've had reliability problems with Aramex, so we don't send parcels with it on other days, to make sure nothing sits in a depot over the weekend. Need it sooner or somewhere else? Contact us and we'll work out an alternative option.",
+    group: "shipping",
+    label: "Aramex checkout notice",
+    description:
+      "Message shown under the Aramex group at checkout. Any 'Contact us' text is linked to the contact page by the storefront.",
+    validate: requireString,
+  },
   shipping_signature_recommended_threshold_aud: {
     key: "shipping_signature_recommended_threshold_aud",
     type: "number",

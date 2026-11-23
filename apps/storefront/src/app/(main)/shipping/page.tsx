@@ -79,6 +79,22 @@ export default async function ShippingPage() {
         </section>
 
         <section>
+          <h2 className="text-lg font-semibold text-hg-text mb-3">
+            Dispatch days
+          </h2>
+          <p className="text-sm text-hg-text-secondary leading-relaxed">
+            To make sure parcels never sit in a depot over the weekend, we
+            dispatch on set days: Australia Post (Parcel Post and Express) on
+            Mondays, Tuesdays and Wednesdays, and Aramex and CouriersPlease on
+            Mondays and Tuesdays (Aramex is NSW, VIC and SA only, due to
+            reliability). Orders ship on the next dispatch day after you place
+            them, and delivery estimates at checkout already allow for this.
+            Need something sooner or different? Get in touch and we&apos;ll
+            organise an alternative.
+          </p>
+        </section>
+
+        <section>
           <h2 className="text-lg font-semibold text-hg-text mb-3">Tracking</h2>
           <p className="text-sm text-hg-text-secondary leading-relaxed">
             You&apos;ll receive a tracking number via email once your order is

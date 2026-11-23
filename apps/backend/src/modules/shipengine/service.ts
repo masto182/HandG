@@ -14,6 +14,8 @@ import type {
 
 import { getShipEngineClient } from "./factory"
 import { trackingUrlForCarrierCode } from "../shipping-common/tracking-url"
+import { isCarrierGroup } from "../shipping-common/normalise"
+import { DEFAULT_ARAMEX_ALLOWED_STATES, isAramexAllowedForState } from "../shipping-common/dispatch"
 import {
   packableItemsFromLineItems,
   packableItemsFromFulfillmentItems,
@@ -322,6 +324,27 @@ class ShipEngineProviderService extends AbstractFulfillmentProviderService {
     const handlingFeeCents = Math.round(handlingFeeAud * 100)
     try {
       const family = familyFromOptionData(optionData as Record<string, unknown>)
+      const isAramex =
+        isCarrierGroup({
+          provider_id: "shipengine",
+          carrier_code: (data?.carrier_code as string | undefined) ?? family?.carrier_code,
+          service_code:
+            (data?.service_code as string | undefined) ?? family?.base_service_code ?? "",
+        }).group === "aramex"
+      if (isAramex) {
+        const allowedStates = await this.siteConfigGet<string[]>(
+          "shipping_aramex_allowed_states",
+          DEFAULT_ARAMEX_ALLOWED_STATES
+        )
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const province = (context as any)?.shipping_address?.province as string | undefined
+        if (!isAramexAllowedForState(province, allowedStates)) {
+          throw new MedusaError(
+            MedusaError.Types.INVALID_DATA,
+            "Aramex is not available for this delivery state. Please choose another shipping option or contact us."
+          )
+        }
+      }
       // data.amount comes from /store/shipping/rates, which already includes the handling fee.
       // For a per-service option it is only trusted when it was quoted for a service in this family.
       const dataInFamily = !family || familyIncludes(family, data?.service_code)

@@ -31,6 +31,16 @@ import {
   type ShipmentQuote as AusPostShipmentQuote,
 } from "../../../../modules/auspost/mapping"
 import type { PacServiceCode } from "../../../../modules/auspost/types"
+import {
+  DEFAULT_ARAMEX_ALLOWED_STATES,
+  DEFAULT_ARAMEX_NOTICE,
+  DEFAULT_DISPATCH_DAYS,
+  estimateDeliveryRange,
+  isAramexAllowedForState,
+  nextDispatchDate,
+  resolveDispatchDays,
+  type DispatchDaysConfig,
+} from "../../../../modules/shipping-common/dispatch"
 
 type CarrierRate = {
   id: string
@@ -63,6 +73,8 @@ type CarrierRate = {
     service_type?: string
     delivery_days?: number | null
     estimated_delivery_date?: string | null
+    estimated_delivery_latest?: string | null
+    dispatch_date?: string | null
     rate_quoted_at: string
     cover_total_aud?: number // v3: AusPost - cover allocated for this rate (0 if none)
   }
@@ -72,6 +84,7 @@ type CarrierRateGroup = {
   carrier_group: CarrierGroup
   carrier_display_name: string
   rates: CarrierRate[]
+  notice?: string
 }
 
 type DebugInfo = {
@@ -238,6 +251,16 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 
   let allRates: CarrierRate[] = [...seRates, ...apResult.rates]
 
+  // Aramex is only offered to a short list of destination states.
+  const aramexAllowedStates = await sc<string[]>(
+    "shipping_aramex_allowed_states",
+    DEFAULT_ARAMEX_ALLOWED_STATES
+  )
+  const aramexOk = isAramexAllowedForState(cart.shipping_address.province, aramexAllowedStates)
+  if (!aramexOk) {
+    allRates = allRates.filter((r) => r.carrier_group !== "aramex")
+  }
+
   // ShipEngine signature variants (Aramex signature_required) are not offered:
   // Aramex treats signature as best-effort only. AusPost SOD is unaffected.
   allRates = allRates.filter(
@@ -247,6 +270,37 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   // Each rate is saved against the per-service shipping option of its family
   // (signature variants share their base service's option).
   allRates = await attachShippingOptionIds(allRates, query, logger)
+
+  // Dispatch-aware dates: an order ships on the first dispatch day after today
+  // (Sydney time), then transit days are counted in business days from there.
+  const dispatchConfig = await sc<DispatchDaysConfig>(
+    "shipping_dispatch_days",
+    DEFAULT_DISPATCH_DAYS
+  )
+  const quotedAt = new Date()
+  allRates = allRates.map((r) => {
+    const dispatch = nextDispatchDate(
+      quotedAt,
+      resolveDispatchDays(r.carrier_group, dispatchConfig)
+    )
+    const transit =
+      typeof r.data.delivery_days === "number" && r.data.delivery_days > 0
+        ? r.data.delivery_days
+        : r.service_tier === "express"
+          ? 2
+          : 4
+    const range = estimateDeliveryRange(dispatch, transit)
+    return {
+      ...r,
+      data: {
+        ...r.data,
+        delivery_days: transit,
+        dispatch_date: dispatch,
+        estimated_delivery_date: range.earliest,
+        estimated_delivery_latest: range.latest,
+      },
+    }
+  })
 
   // v3 sibling pairing for ShipEngine: within each (carrier_group, service_tier) pair,
   // a non-signature standard rate becomes the visible row and gains a `signature_sibling`
@@ -308,6 +362,9 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         carrier_group: r.carrier_group,
         carrier_display_name: r.carrier_display_name,
         rates: [],
+        ...(r.carrier_group === "aramex"
+          ? { notice: await sc<string>("shipping_aramex_notice", DEFAULT_ARAMEX_NOTICE) }
+          : {}),
       }
       byGroup.set(r.carrier_group, g)
     }
@@ -324,7 +381,17 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 
   // Best price across visible rows only
   const visibleSorted = allRates.filter((r) => visibleRateIds.has(r.id))
-  const bestPriceRateId = visibleSorted.length ? visibleSorted[0].id : null
+  // Australia Post Express is the recommended default when available; then any
+  // Australia Post rate; otherwise the cheapest.
+  const auspostVisible = visibleSorted.filter((r) => r.carrier_group === "australia_post")
+  const auspostExpress = auspostVisible.filter((r) => r.service_tier === "express")
+  const bestPriceRateId = auspostExpress.length
+    ? auspostExpress[0].id
+    : auspostVisible.length
+      ? auspostVisible[0].id
+      : visibleSorted.length
+        ? visibleSorted[0].id
+        : null
 
   res.json({
     rates: allRates, // includes hidden signature siblings for selection lookup

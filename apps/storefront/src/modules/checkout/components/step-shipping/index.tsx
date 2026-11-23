@@ -26,19 +26,59 @@ function estimateDeliveryDays(rate: CarrierRate): number {
   return 4
 }
 
+function parseIsoLocal(iso: string): Date {
+  return new Date(`${iso}T12:00:00`)
+}
+
+const fmtDay = (d: Date) =>
+  d.toLocaleDateString("en-AU", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  })
+
 function arrivalEstimate(rate: CarrierRate): string {
+  const { estimated_delivery_date: from, estimated_delivery_latest: to } =
+    rate.data
+  if (from && to) {
+    return from === to
+      ? fmtDay(parseIsoLocal(from))
+      : `${fmtDay(parseIsoLocal(from))} — ${fmtDay(parseIsoLocal(to))}`
+  }
   const days = estimateDeliveryDays(rate)
   const start = new Date()
   start.setDate(start.getDate() + Math.max(1, days - 1))
   const end = new Date()
   end.setDate(end.getDate() + days + 1)
-  const fmt = (d: Date) =>
-    d.toLocaleDateString("en-AU", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    })
-  return `${fmt(start)} — ${fmt(end)}`
+  return `${fmtDay(start)} — ${fmtDay(end)}`
+}
+
+function dispatchLabel(rate: CarrierRate): string | null {
+  const d = rate.data.dispatch_date
+  return d ? `Ships ${fmtDay(parseIsoLocal(d))}` : null
+}
+
+function earliestDeliveryKey(rate: CarrierRate): number {
+  const iso = rate.data.estimated_delivery_date
+  if (iso) return parseIsoLocal(iso).getTime()
+  return Date.now() + estimateDeliveryDays(rate) * 86_400_000
+}
+
+function renderNotice(text: string, contactEmail: string): React.ReactNode {
+  const parts = text.split(/(Contact us)/i)
+  return parts.map((p, i) =>
+    /^contact us$/i.test(p) ? (
+      <a
+        key={i}
+        href={`mailto:${contactEmail}`}
+        className="text-hg-gold underline hover:no-underline"
+      >
+        {p}
+      </a>
+    ) : (
+      <span key={i}>{p}</span>
+    ),
+  )
 }
 
 function rateDescription(rate: CarrierRate): string {
@@ -304,9 +344,12 @@ const StepShipping: React.FC<Props> = ({
     return out
   }, [groups])
 
-  // Cheapest visible row given current toggles.
+  // Recommended row: the server's pick (Australia Post when available), if it is visible.
   const bestPriceBaseId = useMemo(() => {
     if (!visibleRows.length) return null
+    const serverPick = response?.best_price_rate_id
+    if (serverPick && visibleRows.some((r) => r.id === serverPick))
+      return serverPick
     let bestId: string | null = null
     let bestAmount = Infinity
     for (const base of visibleRows) {
@@ -319,17 +362,17 @@ const StepShipping: React.FC<Props> = ({
     }
     return bestId
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visibleRows, signatureToggles, ratesById])
+  }, [visibleRows, signatureToggles, ratesById, response])
 
-  // Fastest visible row (smallest delivery_days). On ties, first wins.
+  // Fastest visible row (earliest delivery date, dispatch days included). On ties, first wins.
   const fastestBaseId = useMemo(() => {
     if (!visibleRows.length) return null
     let bestId: string | null = null
-    let bestDays = Infinity
+    let bestKey = Infinity
     for (const base of visibleRows) {
-      const d = estimateDeliveryDays(base)
-      if (d < bestDays) {
-        bestDays = d
+      const k = earliestDeliveryKey(base)
+      if (k < bestKey) {
+        bestKey = k
         bestId = base.id
       }
     }
@@ -400,6 +443,12 @@ const StepShipping: React.FC<Props> = ({
                 </h3>
                 <div className="h-px flex-grow bg-white/5" />
               </div>
+
+              {group.notice && (
+                <p className="mb-4 rounded-lg border border-hg-gold/30 bg-hg-gold/5 p-3 text-sm leading-relaxed text-hg-text-secondary">
+                  {renderNotice(group.notice, contactEmail)}
+                </p>
+              )}
 
               <div className="flex flex-col gap-3">
                 {group.rates.map((rate) => {
@@ -510,6 +559,11 @@ const StepShipping: React.FC<Props> = ({
                             <div className="text-sm text-hg-text font-medium">
                               {arrivalEstimate(rate)}
                             </div>
+                            {dispatchLabel(rate) && (
+                              <div className="text-xs text-hg-text-secondary mt-1">
+                                {dispatchLabel(rate)}
+                              </div>
+                            )}
                           </div>
 
                           {/* Price */}

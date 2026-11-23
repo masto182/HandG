@@ -41,6 +41,8 @@ export type CarrierRate = {
     service_type?: string
     delivery_days?: number | null
     estimated_delivery_date?: string | null
+    estimated_delivery_latest?: string | null
+    dispatch_date?: string | null
     rate_quoted_at: string
     cover_total_aud?: number
   }
@@ -50,6 +52,7 @@ export type CarrierRateGroup = {
   carrier_group: CarrierGroup
   carrier_display_name: string
   rates: CarrierRate[]
+  notice?: string
 }
 
 export type CarrierRatesResponse = {
