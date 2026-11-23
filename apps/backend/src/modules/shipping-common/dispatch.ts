@@ -10,6 +10,19 @@ export const DEFAULT_DISPATCH_DAYS: DispatchDaysConfig = {
   australia_post: [1, 2, 3],
 }
 
+export const DEFAULT_EXTRA_TRANSIT_DAYS: Partial<Record<CarrierGroup, number>> = {
+  aramex: 1,
+}
+
+export function resolveExtraTransitDays(
+  group: CarrierGroup | string | undefined,
+  config: Partial<Record<CarrierGroup, number>> | null | undefined
+): number {
+  const merged = { ...DEFAULT_EXTRA_TRANSIT_DAYS, ...(config ?? {}) } as Record<string, number>
+  const n = group ? merged[group] : 0
+  return Number.isFinite(n) && n > 0 ? Math.round(n) : 0
+}
+
 export const WEEKDAYS = [1, 2, 3, 4, 5]
 export const DISPATCH_TZ = "Australia/Sydney"
 

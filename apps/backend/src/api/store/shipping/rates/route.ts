@@ -35,10 +35,12 @@ import {
   DEFAULT_ARAMEX_ALLOWED_STATES,
   DEFAULT_ARAMEX_NOTICE,
   DEFAULT_DISPATCH_DAYS,
+  DEFAULT_EXTRA_TRANSIT_DAYS,
   estimateDeliveryRange,
   isAramexAllowedForState,
   nextDispatchDate,
   resolveDispatchDays,
+  resolveExtraTransitDays,
   type DispatchDaysConfig,
 } from "../../../../modules/shipping-common/dispatch"
 
@@ -283,17 +285,22 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     DEFAULT_DISPATCH_DAYS
   )
   const quotedAt = new Date()
+  const extraTransitConfig = await sc<Record<string, number>>(
+    "shipping_extra_transit_days",
+    DEFAULT_EXTRA_TRANSIT_DAYS as Record<string, number>
+  )
   allRates = allRates.map((r) => {
     const dispatch = nextDispatchDate(
       quotedAt,
       resolveDispatchDays(r.carrier_group, dispatchConfig)
     )
-    const transit =
+    const baseTransit =
       typeof r.data.delivery_days === "number" && r.data.delivery_days > 0
         ? r.data.delivery_days
         : r.service_tier === "express"
           ? 2
           : 4
+    const transit = baseTransit + resolveExtraTransitDays(r.carrier_group, extraTransitConfig)
     const range = estimateDeliveryRange(dispatch, transit)
     return {
       ...r,

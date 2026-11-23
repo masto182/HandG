@@ -5,6 +5,7 @@ import {
   nextDispatchDate,
   normaliseAuState,
   resolveDispatchDays,
+  resolveExtraTransitDays,
 } from "../../modules/shipping-common/dispatch"
 
 const ARAMEX = [1, 2]
@@ -81,6 +82,69 @@ describe("shipping-common dispatch", () => {
 
     it("crosses a year boundary", () => {
       expect(nextDispatchDate(new Date("2026-12-31T01:00:00Z"), AUSPOST)).toBe("2027-01-04")
+    })
+  })
+
+  describe("full-week dispatch rules", () => {
+    const orderDays = [
+      "2026-11-23", // Mon
+      "2026-11-24", // Tue
+      "2026-11-25", // Wed
+      "2026-11-26", // Thu
+      "2026-11-27", // Fri
+      "2026-11-28", // Sat
+      "2026-11-29", // Sun
+    ]
+    const at = (day: string) => new Date(`${day}T01:00:00Z`) // noon Sydney (AEDT)
+
+    it("Aramex: Monday ships Tuesday, Tuesday to Sunday ship the following Monday", () => {
+      const expected = [
+        "2026-11-24",
+        "2026-11-30",
+        "2026-11-30",
+        "2026-11-30",
+        "2026-11-30",
+        "2026-11-30",
+        "2026-11-30",
+      ]
+      expect(orderDays.map((d) => nextDispatchDate(at(d), ARAMEX))).toEqual(expected)
+    })
+
+    it("Australia Post: Monday ships Tuesday, Tuesday ships Wednesday, Wednesday to Sunday ship Monday", () => {
+      const expected = [
+        "2026-11-24",
+        "2026-11-25",
+        "2026-11-30",
+        "2026-11-30",
+        "2026-11-30",
+        "2026-11-30",
+        "2026-11-30",
+      ]
+      expect(orderDays.map((d) => nextDispatchDate(at(d), AUSPOST))).toEqual(expected)
+    })
+  })
+
+  describe("extra transit days", () => {
+    it("adds one day for Aramex by default and nothing for other carriers", () => {
+      expect(resolveExtraTransitDays("aramex", undefined)).toBe(1)
+      expect(resolveExtraTransitDays("australia_post", undefined)).toBe(0)
+      expect(resolveExtraTransitDays("couriers_please", undefined)).toBe(0)
+    })
+
+    it("lets config override", () => {
+      expect(resolveExtraTransitDays("aramex", { aramex: 0 })).toBe(0)
+      expect(resolveExtraTransitDays("couriers_please", { couriers_please: 2 })).toBe(2)
+    })
+
+    it("shifts the Aramex delivery range a business day later than the same transit without it", () => {
+      expect(estimateDeliveryRange("2026-11-24", 4)).toEqual({
+        earliest: "2026-11-27",
+        latest: "2026-12-01",
+      })
+      expect(estimateDeliveryRange("2026-11-24", 4 + 1)).toEqual({
+        earliest: "2026-11-30",
+        latest: "2026-12-02",
+      })
     })
   })
 

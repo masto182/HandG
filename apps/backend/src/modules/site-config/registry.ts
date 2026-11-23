@@ -743,6 +743,29 @@ export const SITE_CONFIG_REGISTRY: Record<string, SiteConfigDefinition> = {
       return null
     },
   },
+  shipping_extra_transit_days: {
+    key: "shipping_extra_transit_days",
+    type: "json",
+    isPublic: false,
+    default: { aramex: 1 },
+    group: "shipping",
+    label: "Extra transit days by carrier",
+    description:
+      "Business days added to the expected delivery date for a carrier group, counted from its dispatch date. Used where a carrier's pickup runs late in the day.",
+    validate: (value) => {
+      if (!value || typeof value !== "object" || Array.isArray(value)) {
+        return "must be a JSON object keyed by carrier group"
+      }
+      const groups = ["australia_post", "aramex", "couriers_please", "other"]
+      for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+        if (!groups.includes(k)) return `unknown carrier group ${k}`
+        if (!Number.isInteger(v) || (v as number) < 0 || (v as number) > 5) {
+          return `${k} must be a whole number of days 0-5`
+        }
+      }
+      return null
+    },
+  },
   shipping_aramex_notice: {
     key: "shipping_aramex_notice",
     type: "string",
