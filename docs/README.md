@@ -33,7 +33,6 @@ example** monorepo. Topics are grouped by what you're trying to do.
 
 ## Contribute
 
-- [Contributing](../CONTRIBUTING.md) — conventional commits, PR flow,
-  release-please
+- [Contributing](../CONTRIBUTING.md) — conventional commits, PR flow
 - [Security policy](../SECURITY.md) — how to report a vulnerability
 - [Code of conduct](../CODE_OF_CONDUCT.md)

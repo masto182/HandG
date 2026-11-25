@@ -24,8 +24,7 @@ demo-specific module or generalise a hard-coded assumption.
    / security / Lighthouse. All required.
 5. Address review (1 approval is the configured minimum). Self-approval
    is permitted for trivial PRs by maintainers.
-6. Merge. release-please will open a release PR if your commits
-   warrant a version bump.
+6. Merge.
 
 ## Conventional commits
 
@@ -51,20 +50,6 @@ git config --global commit.gpgsign true
 git config --global gpg.format ssh
 git config --global user.signingkey ~/.ssh/id_ed25519.pub
 ```
-
-## Releases
-
-Versioning is automated by [release-please](https://github.com/googleapis/release-please)
-using your conventional commits. When you merge a `feat:` or `fix:`
-into `main`, release-please opens (or updates) a release PR. Merging
-that release PR:
-
-- Bumps the version in `package.json`
-- Updates `CHANGELOG.md`
-- Tags the commit `vX.Y.Z`
-- Triggers `build-images.yml` for production
-
-Hidden commit types (`test`, `chore`, `style`) don't bump the version.
 
 ## Code style
 

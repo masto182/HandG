@@ -67,29 +67,21 @@ pnpm dev
 
 ## Services
 
-| Service     | URL                        | Purpose          |
-| ----------- | -------------------------- | ---------------- |
-| Backend     | http://localhost:9000      | Medusa API       |
-| Admin       | http://localhost:9000/admin| Admin dashboard  |
-| Storefront  | http://localhost:8000      | Customer-facing  |
-| PostgreSQL  | localhost:5432             | Database         |
-| Redis       | localhost:6379             | Cache / events   |
-| MeiliSearch | http://localhost:7700      | Full-text search |
-| MinIO       | http://localhost:9100      | S3-compatible storage |
+| Service     | URL                         | Purpose               |
+| ----------- | --------------------------- | --------------------- |
+| Backend     | http://localhost:9000       | Medusa API            |
+| Admin       | http://localhost:9000/admin | Admin dashboard       |
+| Storefront  | http://localhost:8000       | Customer-facing       |
+| PostgreSQL  | localhost:5432              | Database              |
+| Redis       | localhost:6379              | Cache / events        |
+| MeiliSearch | http://localhost:7700       | Full-text search      |
+| MinIO       | http://localhost:9100       | S3-compatible storage |
 
 ## Documentation
 
 - `docs/runbooks/` — deploy, incident response, branch protection
 - `SECURITY.md` — vulnerability reporting policy
 - `apps/backend/.env.example` — full env reference
-
-## Releases
-
-Versioning is automated by [release-please](https://github.com/googleapis/release-please)
-using [conventional commits](https://www.conventionalcommits.org). Merge
-a PR with a `feat:` or `fix:` commit and a release PR will appear; merging
-that release PR cuts a tag, updates `CHANGELOG.md`, and triggers the
-production image build.
 
 ## License
 

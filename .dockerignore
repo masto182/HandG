@@ -62,8 +62,6 @@ docs
 .husky
 commitlint.config.cjs
 renovate.json
-.release-please-manifest.json
-release-please-config.json
 .lighthouserc.json
 .gitleaks.toml
 .editorconfig
