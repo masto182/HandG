@@ -83,7 +83,7 @@ const Summary = ({ cart, availability = null }: SummaryProps) => {
               onClick={removeUnavailable}
               disabled={removing}
               data-testid="remove-unavailable-items"
-              className="mt-2 min-h-[44px] rounded-lg border border-hl-error text-hl-error font-semibold text-sm hover:bg-surface-container-high transition-colors disabled:opacity-50"
+              className="mt-2 min-h-[44px] rounded-lg bg-hg-gold text-hg-bg font-bold text-sm hover:brightness-110 transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-hg-gold disabled:opacity-50"
             >
               {removing ? "Removing..." : "Remove sold-out items"}
             </button>

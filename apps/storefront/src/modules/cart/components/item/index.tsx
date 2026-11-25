@@ -112,26 +112,25 @@ const Item = ({
         <LineItemOptions variant={item.variant} data-testid="product-variant" />
 
         {stockStatus.kind === "sold_out" && (
-          <span className="self-start rounded-full border border-hl-error px-2.5 py-1 text-label-caps uppercase tracking-[0.05em] text-hl-error">
-            Sold out
-          </span>
+          <div className="mt-1 flex items-center justify-between gap-3">
+            <span className="rounded-full border border-hl-error px-2.5 py-1 text-label-caps uppercase tracking-[0.05em] text-hl-error">
+              Sold out
+            </span>
+            {type === "full" && (
+              <DeleteButton
+                id={item.id}
+                className="text-hl-error hover:text-hg-text transition-colors"
+                data-testid="product-delete-button"
+              >
+                Remove item
+              </DeleteButton>
+            )}
+          </div>
         )}
         {stockStatus.kind === "insufficient" && (
           <span className="self-start rounded-full border border-hl-error px-2.5 py-1 text-label-caps uppercase tracking-[0.05em] text-hl-error">
             Only {stockStatus.available} left
           </span>
-        )}
-
-        {type === "full" && stockStatus.kind === "sold_out" && (
-          <div className="flex justify-end items-center mt-3">
-            <DeleteButton
-              id={item.id}
-              className="text-hl-error hover:text-hg-text transition-colors"
-              data-testid="product-delete-button"
-            >
-              Remove item
-            </DeleteButton>
-          </div>
         )}
 
         {type === "full" && stockStatus.kind !== "sold_out" && (
