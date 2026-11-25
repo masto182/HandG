@@ -104,12 +104,7 @@ export default async function Checkout({
   )
 
   const step = params.step
-  if (
-    unavailableLineIds.length > 0 &&
-    (step === "address" || step === "shipping" || step === "payment")
-  ) {
-    redirect("/checkout?step=fulfilment")
-  }
+  const blocked = unavailableLineIds.length > 0
   const isPickup =
     step === "fulfilment"
       ? false
@@ -120,23 +115,16 @@ export default async function Checkout({
       case "fulfilment":
         const pickupLocations = await getPickupLocations()
         return (
-          <>
-            <UnavailableItemsAlert titles={unavailableTitles}>
-              {canFixInPlace ? (
-                <FixUnavailableButton actions={fixActions} />
-              ) : null}
-            </UnavailableItemsAlert>
-            <StepFulfilment
-              cart={cart}
-              shippingOptions={shippingMethods}
-              pickupLocations={pickupLocations}
-              blocked={unavailableLineIds.length > 0}
-            />
-          </>
+          <StepFulfilment
+            cart={cart}
+            shippingOptions={shippingMethods}
+            pickupLocations={pickupLocations}
+            blocked={blocked}
+          />
         )
       case "address":
         if (isPickup) redirect("/checkout?step=payment")
-        return <StepAddress cart={cart} customer={customer} />
+        return <StepAddress cart={cart} customer={customer} blocked={blocked} />
       case "shipping":
         if (isPickup) redirect("/checkout?step=payment")
         if (!cart.shipping_address?.address_1)
@@ -146,6 +134,7 @@ export default async function Checkout({
             cart={cart}
             shippingOptions={shippingMethods}
             contactEmail={await getContactEmail()}
+            blocked={blocked}
           />
         )
       case "payment":
@@ -172,6 +161,7 @@ export default async function Checkout({
               holdHours={payHoldHours}
               ordersEmail={payOrdersEmail}
               payidAlias={payidAlias}
+              blocked={blocked}
             />
           </PaymentWrapper>
         )
@@ -190,7 +180,6 @@ export default async function Checkout({
             isPickup={isPickup}
             heatHold={heatHold}
             unavailableLineIds={unavailableLineIds}
-            unavailableTitles={unavailableTitles}
           />
         )
       case "confirm":
@@ -212,6 +201,13 @@ export default async function Checkout({
         <div className="max-w-[720px] mx-auto">
           {!isConfirm && (
             <CheckoutProgress currentStep={step} isPickup={isPickup} />
+          )}
+          {!isConfirm && (
+            <UnavailableItemsAlert titles={unavailableTitles}>
+              {canFixInPlace ? (
+                <FixUnavailableButton actions={fixActions} />
+              ) : null}
+            </UnavailableItemsAlert>
           )}
           {await renderStep()}
         </div>

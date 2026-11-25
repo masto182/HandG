@@ -13,6 +13,7 @@ type Props = {
   holdHours?: number
   ordersEmail?: string
   payidAlias?: string
+  blocked?: boolean
 }
 
 const StepPayment: React.FC<Props> = ({
@@ -22,6 +23,7 @@ const StepPayment: React.FC<Props> = ({
   holdHours = 24,
   ordersEmail,
   payidAlias,
+  blocked = false,
 }) => {
   const track = useTrack()
   const activeSession = cart.payment_collection?.payment_sessions?.find(
@@ -377,7 +379,7 @@ const StepPayment: React.FC<Props> = ({
         </a>
         <button
           onClick={handleContinue}
-          disabled={!selected || isLoading}
+          disabled={!selected || isLoading || blocked}
           className="px-8 sm:px-10 py-4 bg-hg-gold text-hg-on-primary font-semibold text-[12px] uppercase tracking-[0.1em] rounded-lg transition-transform hover:scale-105 active:scale-95 shadow-lg disabled:opacity-50"
         >
           {isLoading ? "Processing..." : "I Understand Payment Terms"}

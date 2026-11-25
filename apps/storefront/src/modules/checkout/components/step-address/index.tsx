@@ -22,9 +22,10 @@ import {
 type Props = {
   cart: HttpTypes.StoreCart
   customer: HttpTypes.StoreCustomer | null
+  blocked?: boolean
 }
 
-const StepAddress: React.FC<Props> = ({ cart, customer }) => {
+const StepAddress: React.FC<Props> = ({ cart, customer, blocked = false }) => {
   const countriesInRegion = useMemo(
     () => cart?.region?.countries?.map((c) => c.iso_2) ?? [],
     [cart.region],
@@ -641,7 +642,10 @@ const StepAddress: React.FC<Props> = ({ cart, customer }) => {
             </svg>
             Return to Fulfilment
           </a>
-          <SubmitButton className="px-8 py-3.5 min-h-[44px] bg-hg-gold text-hg-bg font-bold text-sm rounded-full transition-all hover:brightness-110 active:scale-95">
+          <SubmitButton
+            disabled={blocked}
+            className="px-8 py-3.5 min-h-[44px] bg-hg-gold text-hg-bg font-bold text-sm rounded-full transition-all hover:brightness-110 active:scale-95"
+          >
             Continue to Shipping Method →
           </SubmitButton>
         </div>

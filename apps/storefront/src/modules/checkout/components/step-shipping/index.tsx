@@ -18,6 +18,7 @@ type Props = {
   cart: HttpTypes.StoreCart
   shippingOptions: HttpTypes.StoreCartShippingOption[] | null
   contactEmail: string
+  blocked?: boolean
 }
 
 function estimateDeliveryDays(rate: CarrierRate): number {
@@ -95,6 +96,7 @@ const StepShipping: React.FC<Props> = ({
   cart,
   shippingOptions,
   contactEmail,
+  blocked = false,
 }) => {
   const router = useRouter()
   const track = useTrack()
@@ -658,7 +660,7 @@ const StepShipping: React.FC<Props> = ({
         </a>
         <button
           onClick={handleContinue}
-          disabled={!selected || isLoading || isLoadingRates}
+          disabled={!selected || isLoading || isLoadingRates || blocked}
           className="bg-hg-gold text-hg-bg uppercase px-8 sm:px-12 py-4 rounded-full text-[12px] font-black tracking-[0.2em] shadow-xl shadow-hg-gold/10 hover:shadow-hg-gold/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100"
         >
           {isLoading ? "Processing…" : "Proceed to Payment"}

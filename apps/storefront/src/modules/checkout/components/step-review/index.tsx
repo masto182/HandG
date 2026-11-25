@@ -7,15 +7,14 @@ import HeatHoldBanner from "@modules/checkout/components/heat-hold-banner"
 import { useTrack } from "@lib/hooks/use-track"
 import Thumbnail from "@modules/products/components/thumbnail"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
-import { describeUnavailableItems } from "@lib/util/stock"
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 
 type Props = {
   cart: HttpTypes.StoreCart
   isPickup: boolean
   heatHold?: { enabled: boolean; message: string }
   unavailableLineIds?: string[]
-  unavailableTitles?: string[]
 }
 
 function getBrewery(item: any): string | undefined {
@@ -76,15 +75,11 @@ const StepReview: React.FC<Props> = ({
   isPickup,
   heatHold,
   unavailableLineIds = [],
-  unavailableTitles = [],
 }) => {
   const track = useTrack()
+  const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(
-    unavailableLineIds.length
-      ? `${describeUnavailableItems(unavailableTitles) || "Some items in your cart are no longer available."} Return to your cart to remove ${unavailableLineIds.length === 1 ? "it" : "them"}.`
-      : null,
-  )
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     track("checkout.step_reached", { cart_id: cart.id, step: "review" })
@@ -115,6 +110,7 @@ const StepReview: React.FC<Props> = ({
       const result = await placeOrder(cart.id)
       if (!result.ok) {
         setError(result.message)
+        if (result.code === "OUT_OF_STOCK") router.refresh()
       }
     } catch (e: any) {
       setError(e.message || "Failed to place order")
@@ -134,7 +130,7 @@ const StepReview: React.FC<Props> = ({
         </p>
       </div>
 
-      {error && (
+      {error && unavailableLineIds.length === 0 && (
         <div
           role="alert"
           className="mb-6 flex flex-col gap-3 rounded-xl border border-hl-error p-5"
