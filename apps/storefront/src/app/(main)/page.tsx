@@ -56,11 +56,15 @@ export default async function Home() {
     return stock > 0 && stock <= 3
   }).length
 
-  const recentProducts = [...products]
-    .sort(
-      (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+  const arrivedAt = (p: any) =>
+    Math.max(
+      new Date(p.created_at).getTime(),
+      p.metadata?.release_at
+        ? new Date(p.metadata.release_at).getTime() || 0
+        : 0,
     )
+  const recentProducts = [...products]
+    .sort((a, b) => arrivedAt(b) - arrivedAt(a))
     .slice(0, 8)
 
   return (

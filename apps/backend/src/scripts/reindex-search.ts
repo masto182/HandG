@@ -161,7 +161,10 @@ export default async function reindexSearch({ container }: ExecArgs) {
       abv: parseFloat(meta.abv) || 0,
       untappd_score: parseFloat(meta.untappd_score) || 0,
       packaged_at_ts: packagedAtTs,
-      created_at_ts: createdAt,
+      created_at_ts: Math.max(
+        createdAt,
+        meta.release_at ? new Date(meta.release_at).getTime() || 0 : 0
+      ),
       thumbnail: p.thumbnail || null,
       is_collab: isCollab,
       tags: (p as any).tags?.map((t: any) => t.value).filter(Boolean) ?? [],

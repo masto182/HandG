@@ -167,7 +167,10 @@ export default async function productSearchIndexer({
           style_family: styleFamily,
           abv: parseFloat(meta.abv) || 0,
           untappd_score: parseFloat(meta.untappd_score) || 0,
-          created_at_ts: product.created_at ? new Date(product.created_at).getTime() : 0,
+          created_at_ts: Math.max(
+            product.created_at ? new Date(product.created_at).getTime() : 0,
+            meta.release_at ? new Date(meta.release_at).getTime() || 0 : 0
+          ),
           packaged_at_ts: meta.packaged_at
             ? new Date(meta.packaged_at).getTime()
             : meta.released_date
