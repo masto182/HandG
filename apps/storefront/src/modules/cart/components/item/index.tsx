@@ -113,7 +113,7 @@ const Item = ({
 
         {stockStatus.kind === "sold_out" && (
           <div className="mt-1 flex items-center justify-between gap-3">
-            <span className="rounded-full border border-hl-error px-2.5 py-1 text-label-caps uppercase tracking-[0.05em] text-hl-error">
+            <span className="whitespace-nowrap rounded-full border border-hl-error px-2.5 py-1 text-label-caps uppercase tracking-[0.05em] text-hl-error">
               Sold out
             </span>
             {type === "full" && (
@@ -122,7 +122,7 @@ const Item = ({
                 className="text-hl-error hover:text-hg-text transition-colors"
                 data-testid="product-delete-button"
               >
-                Remove item
+                <span className="whitespace-nowrap">Remove</span>
               </DeleteButton>
             )}
           </div>
