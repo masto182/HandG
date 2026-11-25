@@ -65,3 +65,30 @@ export function describeUnavailableItems(titles: string[]): string {
   const head = names.slice(0, -1).join(", ")
   return `${head} and ${names[names.length - 1]} are no longer available.`
 }
+
+export type LineFixAction =
+  | { id: string; kind: "remove" }
+  | { id: string; kind: "reduce"; quantity: number }
+
+export function getUnavailableLineActions<
+  T extends {
+    id: string
+    variant_id?: string | null
+    quantity: number
+  },
+>(items: T[], availability: VariantAvailabilityMap): LineFixAction[] {
+  const actions: LineFixAction[] = []
+  for (const item of items) {
+    const status = getLineStockStatus(
+      item.variant_id,
+      item.quantity,
+      availability,
+    )
+    if (status.kind === "sold_out") {
+      actions.push({ id: item.id, kind: "remove" })
+    } else if (status.kind === "insufficient") {
+      actions.push({ id: item.id, kind: "reduce", quantity: status.available })
+    }
+  }
+  return actions
+}

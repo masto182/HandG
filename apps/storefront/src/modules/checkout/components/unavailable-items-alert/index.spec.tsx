@@ -28,4 +28,23 @@ describe("UnavailableItemsAlert", () => {
     ).toBeInTheDocument()
     expect(screen.getByText(/Remove them from your cart/i)).toBeInTheDocument()
   })
+
+  it("renders an extra action next to Back to cart and softens the copy", () => {
+    render(
+      <UnavailableItemsAlert titles={["Dankest Days"]}>
+        <button type="button">Remove sold-out item and continue</button>
+      </UnavailableItemsAlert>,
+    )
+    expect(
+      screen.getByRole("button", {
+        name: /remove sold-out item and continue/i,
+      }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("link", { name: /back to cart/i }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(/Update your cart to continue/i),
+    ).toBeInTheDocument()
+  })
 })

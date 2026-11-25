@@ -15,8 +15,9 @@ import {
 } from "@lib/data/site-config"
 import { getVariantAvailability } from "@lib/data/inventory"
 import { getPickupOptions } from "@lib/util/shipping"
-import { getUnavailableLines } from "@lib/util/stock"
+import { getUnavailableLineActions, getUnavailableLines } from "@lib/util/stock"
 import UnavailableItemsAlert from "@modules/checkout/components/unavailable-items-alert"
+import FixUnavailableButton from "@modules/checkout/components/fix-unavailable-button"
 import PaymentWrapper from "@modules/checkout/components/payment-wrapper"
 import CheckoutProgress from "@modules/checkout/components/checkout-progress"
 import CheckoutSummary from "@modules/checkout/templates/checkout-summary"
@@ -78,6 +79,13 @@ export default async function Checkout({
     ? getUnavailableLines(cart.items ?? [], availability)
     : []
   const unavailableLineIds = unavailableLines.map((line) => line.id)
+  const fixActions = availability
+    ? getUnavailableLineActions(cart.items ?? [], availability)
+    : []
+  const linesLeftAfterFix =
+    (cart.items?.length ?? 0) -
+    fixActions.filter((action) => action.kind === "remove").length
+  const canFixInPlace = fixActions.length > 0 && linesLeftAfterFix > 0
   const unavailableTitles = unavailableLines.map(
     (line) => line.product_title ?? line.title ?? "",
   )
@@ -113,7 +121,11 @@ export default async function Checkout({
         const pickupLocations = await getPickupLocations()
         return (
           <>
-            <UnavailableItemsAlert titles={unavailableTitles} />
+            <UnavailableItemsAlert titles={unavailableTitles}>
+              {canFixInPlace ? (
+                <FixUnavailableButton actions={fixActions} />
+              ) : null}
+            </UnavailableItemsAlert>
             <StepFulfilment
               cart={cart}
               shippingOptions={shippingMethods}

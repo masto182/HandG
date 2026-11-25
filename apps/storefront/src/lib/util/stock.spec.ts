@@ -1,9 +1,37 @@
 import {
   describeUnavailableItems,
   getLineStockStatus,
+  getUnavailableLineActions,
   getUnavailableLineIds,
   getUnavailableLines,
 } from "./stock"
+
+describe("getUnavailableLineActions", () => {
+  it("removes sold-out lines and reduces short-stock lines", () => {
+    const items = [
+      { id: "sold", variant_id: "v1", quantity: 1 },
+      { id: "short", variant_id: "v2", quantity: 5 },
+      { id: "fine", variant_id: "v3", quantity: 1 },
+    ]
+    const availability = {
+      v1: { available: 0, manage_inventory: true, allow_backorder: false },
+      v2: { available: 2, manage_inventory: true, allow_backorder: false },
+      v3: { available: 9, manage_inventory: true, allow_backorder: false },
+    }
+    expect(getUnavailableLineActions(items, availability)).toEqual([
+      { id: "sold", kind: "remove" },
+      { id: "short", kind: "reduce", quantity: 2 },
+    ])
+  })
+
+  it("returns nothing when every line is available", () => {
+    expect(
+      getUnavailableLineActions([{ id: "a", variant_id: "v1", quantity: 1 }], {
+        v1: { available: 3, manage_inventory: true, allow_backorder: false },
+      }),
+    ).toEqual([])
+  })
+})
 
 describe("describeUnavailableItems", () => {
   it("names one, two and many items", () => {
