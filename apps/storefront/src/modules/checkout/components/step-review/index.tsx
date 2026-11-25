@@ -321,6 +321,11 @@ const StepReview: React.FC<Props> = ({
                       <h4 className="text-base font-semibold text-hg-text mt-0.5">
                         {item.product_title}
                       </h4>
+                      {unavailableLineIds.includes(item.id) && (
+                        <p className="mt-1 inline-block rounded-full border border-hl-error px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-hl-error">
+                          Sold out
+                        </p>
+                      )}
                     </div>
                     <span className="font-bold text-base text-hl-price shrink-0">
                       {convertToLocale({
