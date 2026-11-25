@@ -15,7 +15,8 @@ import {
 } from "@lib/data/site-config"
 import { getVariantAvailability } from "@lib/data/inventory"
 import { getPickupOptions } from "@lib/util/shipping"
-import { getUnavailableLineIds } from "@lib/util/stock"
+import { getUnavailableLines } from "@lib/util/stock"
+import UnavailableItemsAlert from "@modules/checkout/components/unavailable-items-alert"
 import PaymentWrapper from "@modules/checkout/components/payment-wrapper"
 import CheckoutProgress from "@modules/checkout/components/checkout-progress"
 import CheckoutSummary from "@modules/checkout/templates/checkout-summary"
@@ -73,9 +74,13 @@ export default async function Checkout({
   const availability = await getVariantAvailability(variantIds).catch(
     () => null,
   )
-  const unavailableLineIds = availability
-    ? getUnavailableLineIds(cart.items ?? [], availability)
+  const unavailableLines = availability
+    ? getUnavailableLines(cart.items ?? [], availability)
     : []
+  const unavailableLineIds = unavailableLines.map((line) => line.id)
+  const unavailableTitles = unavailableLines.map(
+    (line) => line.product_title ?? line.title ?? "",
+  )
 
   // customer + shipping methods are both always needed and independent — fetch
   const [customer, shippingMethods, earlyAccess] = await Promise.all([
@@ -91,6 +96,12 @@ export default async function Checkout({
   )
 
   const step = params.step
+  if (
+    unavailableLineIds.length > 0 &&
+    (step === "address" || step === "shipping" || step === "payment")
+  ) {
+    redirect("/checkout?step=fulfilment")
+  }
   const isPickup =
     step === "fulfilment"
       ? false
@@ -101,11 +112,15 @@ export default async function Checkout({
       case "fulfilment":
         const pickupLocations = await getPickupLocations()
         return (
-          <StepFulfilment
-            cart={cart}
-            shippingOptions={shippingMethods}
-            pickupLocations={pickupLocations}
-          />
+          <>
+            <UnavailableItemsAlert titles={unavailableTitles} />
+            <StepFulfilment
+              cart={cart}
+              shippingOptions={shippingMethods}
+              pickupLocations={pickupLocations}
+              blocked={unavailableLineIds.length > 0}
+            />
+          </>
         )
       case "address":
         if (isPickup) redirect("/checkout?step=payment")
@@ -163,6 +178,7 @@ export default async function Checkout({
             isPickup={isPickup}
             heatHold={heatHold}
             unavailableLineIds={unavailableLineIds}
+            unavailableTitles={unavailableTitles}
           />
         )
       case "confirm":
@@ -197,7 +213,11 @@ export default async function Checkout({
             backdropFilter: "blur(20px)",
           }}
         >
-          <CheckoutSummary cart={cart} step={step} />
+          <CheckoutSummary
+            cart={cart}
+            step={step}
+            unavailableLineIds={unavailableLineIds}
+          />
         </aside>
       )}
     </main>

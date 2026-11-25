@@ -7,6 +7,7 @@ import HeatHoldBanner from "@modules/checkout/components/heat-hold-banner"
 import { useTrack } from "@lib/hooks/use-track"
 import Thumbnail from "@modules/products/components/thumbnail"
 import LocalizedClientLink from "@modules/common/components/localized-client-link"
+import { describeUnavailableItems } from "@lib/util/stock"
 import { useEffect, useState } from "react"
 
 type Props = {
@@ -14,6 +15,7 @@ type Props = {
   isPickup: boolean
   heatHold?: { enabled: boolean; message: string }
   unavailableLineIds?: string[]
+  unavailableTitles?: string[]
 }
 
 function getBrewery(item: any): string | undefined {
@@ -74,12 +76,13 @@ const StepReview: React.FC<Props> = ({
   isPickup,
   heatHold,
   unavailableLineIds = [],
+  unavailableTitles = [],
 }) => {
   const track = useTrack()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(
     unavailableLineIds.length
-      ? "Some items in your cart are no longer available."
+      ? `${describeUnavailableItems(unavailableTitles) || "Some items in your cart are no longer available."} Return to your cart to remove ${unavailableLineIds.length === 1 ? "it" : "them"}.`
       : null,
   )
 

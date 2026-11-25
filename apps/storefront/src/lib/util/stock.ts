@@ -31,6 +31,23 @@ export function getLineStockStatus(
   return { kind: "available" }
 }
 
+export function getUnavailableLines<
+  T extends {
+    id: string
+    variant_id?: string | null
+    quantity: number
+  },
+>(items: T[], availability: VariantAvailabilityMap): T[] {
+  return items.filter((item) => {
+    const status = getLineStockStatus(
+      item.variant_id,
+      item.quantity,
+      availability,
+    )
+    return status.kind === "sold_out" || status.kind === "insufficient"
+  })
+}
+
 export function getUnavailableLineIds<
   T extends {
     id: string
@@ -38,14 +55,13 @@ export function getUnavailableLineIds<
     quantity: number
   },
 >(items: T[], availability: VariantAvailabilityMap): string[] {
-  return items
-    .filter((item) => {
-      const status = getLineStockStatus(
-        item.variant_id,
-        item.quantity,
-        availability,
-      )
-      return status.kind === "sold_out" || status.kind === "insufficient"
-    })
-    .map((item) => item.id)
+  return getUnavailableLines(items, availability).map((item) => item.id)
+}
+
+export function describeUnavailableItems(titles: string[]): string {
+  const names = titles.filter(Boolean)
+  if (names.length === 0) return ""
+  if (names.length === 1) return `${names[0]} is no longer available.`
+  const head = names.slice(0, -1).join(", ")
+  return `${head} and ${names[names.length - 1]} are no longer available.`
 }

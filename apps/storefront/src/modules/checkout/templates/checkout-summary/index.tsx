@@ -4,9 +4,11 @@ import { convertToLocale } from "@lib/util/money"
 const CheckoutSummary = ({
   cart,
   step,
+  unavailableLineIds = [],
 }: {
   cart: HttpTypes.StoreCart
   step?: string
+  unavailableLineIds?: string[]
 }) => {
   const items = cart.items || []
   const currencyCode = cart.currency_code || "aud"
@@ -136,6 +138,11 @@ const CheckoutSummary = ({
                   <p className="text-[10px] text-hg-text-secondary uppercase tracking-wider">
                     Qty {item.quantity}
                   </p>
+                  {unavailableLineIds.includes(item.id) && (
+                    <p className="mt-1 inline-block rounded-full border border-hl-error px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-hl-error">
+                      Sold out
+                    </p>
+                  )}
                 </div>
                 <span className="font-bold text-sm text-hg-text">
                   {convertToLocale({

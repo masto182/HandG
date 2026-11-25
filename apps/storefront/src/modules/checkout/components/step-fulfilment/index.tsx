@@ -13,6 +13,7 @@ type Props = {
   cart: HttpTypes.StoreCart
   shippingOptions: HttpTypes.StoreCartShippingOption[] | null
   pickupLocations: PickupLocationDTO[]
+  blocked?: boolean
 }
 
 // Pickup shipping options are matched to their pickup_location record via the
@@ -41,6 +42,7 @@ const StepFulfilment: React.FC<Props> = ({
   cart,
   shippingOptions,
   pickupLocations,
+  blocked = false,
 }) => {
   const router = useRouter()
   const track = useTrack()
@@ -78,7 +80,7 @@ const StepFulfilment: React.FC<Props> = ({
   const [error, setError] = useState<string | null>(null)
 
   const handleContinue = async () => {
-    if (isLoading) return
+    if (isLoading || blocked) return
     setIsLoading(true)
     setError(null)
 
@@ -355,7 +357,8 @@ const StepFulfilment: React.FC<Props> = ({
       <div className="mt-12 pt-6 border-t border-hg-border/30 flex justify-end">
         <button
           onClick={handleContinue}
-          disabled={isLoading}
+          disabled={isLoading || blocked}
+          aria-disabled={isLoading || blocked}
           className="px-8 py-3.5 bg-hg-gold text-hg-bg font-bold text-sm rounded-full transition-all hover:brightness-110 active:scale-95 disabled:opacity-50 flex items-center gap-2"
         >
           {isLoading
